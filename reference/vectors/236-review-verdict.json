@@ -1,0 +1,29 @@
+{
+  "note": "First golden vector for the Cross-Reference Console. A review_verdict Claim lifted from invinoveritas /ledger #236 (Fede's /review reject on the t/28083 composed-run action).",
+  "source": {
+    "ledger": "https://api.babyblueviper.com/ledger/236",
+    "decision_ref": "sha256:5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9",
+    "event_id": "ce953822d970b5786dd3474f43e159f80cdd08a81e254354449fb01c90a0c5a3",
+    "verifier_pubkey": "6786e18a864893a900bd9858e650f67ccc3513f248fed374b591e2ff6922fbb7"
+  },
+  "mapping_choices_v0": [
+    "artifact_hash = the verdict's decision_ref hex (the verdict IS the artifact being cross-verified)",
+    "claim_body = the verdict field ('reject'); vantage_limitation/related_decision_ref/intended_audience stay on the verdict record, not the claim identity",
+    "verifier_profile = attestation/invinoveritas (schnorr sig vs the published key)",
+    "claimant = 54848 (Fede's agentId); as_of = verdict verified_at as RFC3339 UTC"
+  ],
+  "claim": {
+    "schema": "crc.claim.v0",
+    "profile_id": "invinoveritas.review",
+    "policy_version": "invinoveritas.review.v7",
+    "artifact_hash": "5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9",
+    "artifact_type": "review_verdict",
+    "claim_body": "reject",
+    "source_class": "agent_reported",
+    "verifier_profile": "attestation/invinoveritas",
+    "as_of": "2026-08-04T00:11:24Z",
+    "claimant": 54848
+  },
+  "claim_id": "sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512",
+  "recompute": "python3 reference/claim_id.py reference/vectors/236-review-verdict.claim.json  # -> claim_id above"
+}
