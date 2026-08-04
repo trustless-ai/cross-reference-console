@@ -7,7 +7,7 @@ proof_payload (crc.cell.v0)
 ├── schema         "crc.cell.v0"
 ├── claim_id       the Claim being verified (== sha256:df1a6bfe… for #236)
 ├── result         GREEN | RED | AMBER   (derived from evidence, never asserted)
-├── verifier       the node's ERC-8004 token id
+├── verifier       the node's identity: an ERC-8004 token id (node 1) or the on-chain agent/attestor address (node 2)
 ├── boundary       the ERC-8274 verifier lane this node used (recompute/* | attestation/* | tee/* | zk/*)
 ├── recomputed_at  RFC3339 UTC
 └── evidence       { claim_preimage, recomputed{…}, recipe, note, source_ledger_entry, cross_check, … }
@@ -31,7 +31,7 @@ types.Cell = [
   { "name": "schema",        "type": "string"  },
   { "name": "claim_id",      "type": "string"  },
   { "name": "result",        "type": "string"  },
-  { "name": "verifier",      "type": "uint256" },
+  { "name": "verifier",      "type": "address" },   // node 2's on-chain agent/attestor address
   { "name": "recomputed_at", "type": "string"  },
   { "name": "evidence_hash", "type": "bytes32" }   // keccak256( utf8( JCS(evidence) ) )
 ]
@@ -44,6 +44,13 @@ types.Cell = [
 2. `recoverTypedDataAddress(domain, {Cell}, cellStruct, sig) == ` the gateway attestor address → the signer is the Vértice node.
 3. Re-run the evidence yourself: `claim_id(claim_preimage) == claim_id` and `decision_ref` re-derives from `/ledger #236` → `result` is earned, not asserted.
 
-## v0 first edge
+## v0 first edge — **LANDED (2026-08-04)**
 
-`reference/vectors/236-node2-cell.unsigned.json` is the payload + `evidence_hash`, fully recomputed and GREEN; it awaits only the attestor signature (`verifier` + `recomputed_at` set at sign time) and publication to the Vértice `/ledger`. When it lands, `#236` has **two independently-signed Cells on two lanes** = the first live 2×1 matrix. Any change to this struct mints `crc.cell.v1` — v0 is append-only.
+`#236` now has **two independently-signed Cells on two lanes** = the first live 2×1 matrix:
+
+| Node | Verifier | Lane | Signature | Cell |
+|---|---|---|---|---|
+| 1 (Fede, `/verify-proof`) | `54848` | `attestation/invinoveritas` | schnorr / Nostr | `api.babyblueviper.com/verdict-proofs/5f6b6d7c…` |
+| 2 (Vértice recompute-lens) | `0x85Fa…Bf1A` | `recompute/cross-reference-console` | EIP-712 | [`reference/vectors/236-node2-cell.signed.json`](reference/vectors/236-node2-cell.signed.json) |
+
+Both carry `claim_id sha256:df1a6bfe…`, each independently reproduced (node 2 re-derived both `claim_id` **and** `decision_ref` from the `/ledger #236` source, not from node 1's Cell). Node 2's signature was produced **inside the gateway container** — the attestor key never left the box — and recovers to `0x85Fa…Bf1A` off-box (`eth_account`, `ethers`). Any change to the struct mints `crc.cell.v1` — v0 is append-only.

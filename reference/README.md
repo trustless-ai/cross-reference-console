@@ -11,10 +11,11 @@ python3 reference/claim_id.py reference/vectors/236-review-verdict.claim.json
 ## Validation — the pre-hash gate  *(Pavlo, 2026-08-04)*
 `claim_id()` **validates before it hashes**: exact `crc.claim.v0` key set (no missing, no unknown fields), required types, and strict `as_of` = RFC3339 UTC `YYYY-MM-DDTHH:MM:SSZ`. A structurally incomplete or extended input is **rejected** (`ValueError`) — it never receives a `claim_id`. So the reference impl serves as the conformance boundary, not just a hasher.
 
-## Status of the first edge
+## Status of the first edge — **COMPLETE (2026-08-04)**
 - ✅ **Fixture shipped** — `vectors/236-review-verdict.*`, `claim_id sha256:df1a6bfe…`, from real `/ledger #236`.
-- ✅ **Node 1 Cell landed + cross-verified** — Fede's `/verify-proof` (agentId `54848`) published a signed **GREEN** Cell; we recomputed his `claim_id` and the Nostr event-id cold — both match. (`api.babyblueviper.com/verdict-proofs/5f6b6d7c…`)
-- ⏳ **Node 2 Cell pending** — a Vértice recompute-lens node publishes the second signed Cell → the first live **2×1 matrix**.
+- ✅ **Node 1 Cell** — Fede's `/verify-proof` (agentId `54848`), signed **GREEN**, schnorr/Nostr lane `attestation/invinoveritas`; we recomputed his `claim_id` + Nostr event-id cold. (`api.babyblueviper.com/verdict-proofs/5f6b6d7c…`)
+- ✅ **Node 2 Cell** — Vértice recompute-lens (`0x85Fa…Bf1A`), signed **GREEN**, EIP-712 lane `recompute/cross-reference-console` (`vectors/236-node2-cell.signed.json`); re-derived both `claim_id` **and** `decision_ref` from the `/ledger #236` source, signed inside the gateway container, signer recovers off-box.
+- → **The first live 2×1 matrix.** Same `claim_id` across an attestation lane and a recompute lane, each independently reproduced. See [`../CELL.md`](../CELL.md).
 
 ## Composability: authority ⟂ assertion  *(Pavlo)*
 Two proofs, kept composable, never collapsed:
