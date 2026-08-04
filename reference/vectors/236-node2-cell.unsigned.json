@@ -1,0 +1,37 @@
+{
+  "proof_payload": {
+    "schema": "crc.cell.v0",
+    "claim_id": "sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512",
+    "result": "GREEN",
+    "verifier": "<VERTICE_AGENT_ID>",
+    "boundary": "ERC-8274 recompute/cross-reference-console -- claim_id AND decision_ref independently re-derived from /ledger #236 source (own impl), match published golden vector; signature = EIP-712 by the Vertice gateway attestor",
+    "recomputed_at": "<SET_AT_SIGN_TIME>",
+    "evidence": {
+      "claim_preimage": {
+        "artifact_hash": "5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9",
+        "artifact_type": "review_verdict",
+        "as_of": "2026-08-04T00:11:24Z",
+        "claim_body": "reject",
+        "claimant": 54848,
+        "policy_version": "invinoveritas.review.v7",
+        "profile_id": "invinoveritas.review",
+        "schema": "crc.claim.v0",
+        "source_class": "agent_reported",
+        "verifier_profile": "attestation/invinoveritas"
+      },
+      "independent_reimplementation": true,
+      "lane": "recompute",
+      "recomputed": {
+        "claim_id": "sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512",
+        "decision_ref": "sha256:5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9",
+        "decision_ref_from": "proof_event.decision_ref_preimage_fields over /ledger #236 (absent fields = JSON null), sha256(JCS)"
+      },
+      "recipe": "reference/claim_id.py @ trustless-ai/cross-reference-console (hardened, pre-hash validation gate); claim_id = sha256:+hex(sha256(JCS(ClaimPreimage)))",
+      "note": "Node 2 recomputed BOTH the claim_id (from CLAIM.md's ClaimPreimage) AND the verdict's decision_ref (from /ledger #236's own declared preimage fields) — independently, from the ledger source, not from node 1's Cell. Both match the published golden vector byte-for-byte.",
+      "source_ledger_entry": "https://api.babyblueviper.com/ledger/236",
+      "cross_check": "node 1 (Fede /verify-proof, verifier 54848) Cell event 5f6b6d7cd032445038939e7152251e5ea3eaa444500952bd3e2f8d15de05fbd3 carries the same claim_id df1a6bfe — the two independent lanes (attestation vs recompute) agree."
+    }
+  },
+  "evidence_hash": "0xe4a98e481700cd62ae8dd6c85341c28e042ade7375a0024a5501a358afa4f76a",
+  "eip712_note": "sign the Cell struct below; evidence_hash = keccak256(JCS(evidence))"
+}
