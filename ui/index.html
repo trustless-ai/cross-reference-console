@@ -168,7 +168,8 @@
     <p class="big">Recomputed in your browser from public data. No trust required.</p>
     <p>Node 2 is fetched <b>live</b> from GitHub raw (the signed <code>crc.cell.v0</code>). Node 1 and the <code>/ledger #236</code> source are embedded from Fede's published <code>/verify-proof</code> (his endpoint isn't CORS-open, so a browser can't fetch it cross-origin — we don't proxy it, as a proxy would insert a trust dependency; the links above let you diff against the live source yourself).
     Recompute uses <code>SubtleCrypto</code> (sha256), <code>@noble/curves</code> (BIP-340 schnorr), and <code>ethers</code> (keccak256 + EIP-712 recover) — all client-side.</p>
-    <p>Spec &amp; vectors: <a href="https://github.com/trustless-ai/cross-reference-console" target="_blank" rel="noopener">trustless-ai/cross-reference-console</a> · <code>CLAIM.md</code> · <code>CELL.md</code> · <code>reference/claim_id.py</code></p>
+    <p>Every cell runs the <b>pre-hash conformance gate</b> before hashing (exact field set, duplicate-member rejection on the raw text, hash grammar, claimant range, strict <code>as_of</code>) — the same predicates as <code>reference/claim_id.py</code>. EIP-712 cells require <b>triple equality</b>: recovered signer == <code>signature.signer</code> == <code>proof_payload.verifier</code>. <b>AMBER abstains</b> — an unreachable dependency or source is an observation failure, never a mismatch; only a computed mismatch earns RED.</p>
+    <p>Spec &amp; vectors: <a href="https://github.com/trustless-ai/cross-reference-console" target="_blank" rel="noopener">trustless-ai/cross-reference-console</a> · <code>CLAIM.md</code> · <code>CELL.md</code> · <code>CELL-v1.md</code> · <code>reference/claim_id.py</code> · <code>reference/test_gate.py</code></p>
   </footer>
 </div>
 
@@ -177,13 +178,87 @@
 <script type="application/json" id="seed-node2">{"proof_payload":{"schema":"crc.cell.v0","claim_id":"sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512","result":"GREEN","verifier":"0x85Fa13511D170FBe173761b63D7f8DD4A6f6Bf1A","boundary":"ERC-8274 recompute/cross-reference-console -- claim_id AND decision_ref independently re-derived from /ledger #236 source (own impl), match published golden vector; signature = EIP-712 by the Vertice gateway attestor","recomputed_at":"2026-08-04T19:38:20Z","evidence":{"claim_preimage":{"artifact_hash":"5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9","artifact_type":"review_verdict","as_of":"2026-08-04T00:11:24Z","claim_body":"reject","claimant":54848,"policy_version":"invinoveritas.review.v7","profile_id":"invinoveritas.review","schema":"crc.claim.v0","source_class":"agent_reported","verifier_profile":"attestation/invinoveritas"},"independent_reimplementation":true,"lane":"recompute","recomputed":{"claim_id":"sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512","decision_ref":"sha256:5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9","decision_ref_from":"proof_event.decision_ref_preimage_fields over /ledger #236 (absent fields = JSON null), sha256(JCS)"},"recipe":"reference/claim_id.py @ trustless-ai/cross-reference-console (hardened, pre-hash validation gate); claim_id = sha256:+hex(sha256(JCS(ClaimPreimage)))","note":"Node 2 recomputed BOTH the claim_id (from CLAIM.md's ClaimPreimage) AND the verdict's decision_ref (from /ledger #236's own declared preimage fields) — independently, from the ledger source, not from node 1's Cell. Both match the published golden vector byte-for-byte.","source_ledger_entry":"https://api.babyblueviper.com/ledger/236","cross_check":"node 1 (Fede /verify-proof, verifier 54848) Cell event 5f6b6d7cd032445038939e7152251e5ea3eaa444500952bd3e2f8d15de05fbd3 carries the same claim_id df1a6bfe — the two independent lanes (attestation vs recompute) agree."}},"signature":{"scheme":"eip712","domain":{"name":"cross-reference-console","version":"0","chainId":1},"primaryType":"Cell","types":{"Cell":[{"name":"schema","type":"string"},{"name":"claim_id","type":"string"},{"name":"result","type":"string"},{"name":"verifier","type":"address"},{"name":"recomputed_at","type":"string"},{"name":"evidence_hash","type":"bytes32"}]},"evidence_hash":"0xe4a98e481700cd62ae8dd6c85341c28e042ade7375a0024a5501a358afa4f76a","signer":"0x85Fa13511D170FBe173761b63D7f8DD4A6f6Bf1A","signature":"0x3f05f3edad155b0fd3287f2fa07dca9bc8e2a21e74e055de5d0a98c943123f9b26ee2e7a9a7c574002ca6495cd5de81cd3e1c85c1336bfa7dff73e23c05181f31b"},"verify":"recompute evidence_hash=keccak256(JCS(evidence)); recoverTypedData(domain,{Cell},{schema,claim_id,result,verifier,recomputed_at,evidence_hash},signature)==signer; then re-run evidence (claim_id + decision_ref)."}</script>
 
 <script type="module">
-import { verifyTypedData, keccak256, toUtf8Bytes } from 'https://esm.sh/ethers@6.13.4';
-import { schnorr } from 'https://esm.sh/@noble/curves@1.6.0/secp256k1';
-
 const NODE2_RAW = "https://raw.githubusercontent.com/trustless-ai/cross-reference-console/main/reference/vectors/236-node2-cell.signed.json";
-const seedN1 = JSON.parse(document.getElementById('seed-node1').textContent);
-const seedLedger = JSON.parse(document.getElementById('seed-ledger').textContent);
-let node2 = JSON.parse(document.getElementById('seed-node2').textContent);
+
+/* ---- strict JSON: rejects duplicate members at any depth. JSON.parse keeps
+   the last member silently, letting two different byte-streams canonicalize
+   identically — the gate must see the raw text (CELL-v1.md §3.2). ---- */
+function parseStrict(text){
+  let i=0;
+  const err=(m)=>{ throw new Error('strict JSON: '+m); };
+  const ws=()=>{ while(i<text.length && ' \t\n\r'.includes(text[i])) i++; };
+  function pstr(){
+    let j=i+1;
+    while(j<text.length){ if(text[j]==='\\') j+=2; else if(text[j]==='"') break; else j++; }
+    if(j>=text.length) err('unterminated string');
+    const s=JSON.parse(text.slice(i,j+1)); i=j+1; return s;
+  }
+  function pval(){
+    ws(); const c=text[i];
+    if(c==='{') return pobj();
+    if(c==='[') return parr();
+    if(c==='"') return pstr();
+    let j=i; while(j<text.length && !',}] \t\n\r'.includes(text[j])) j++;
+    const tok=text.slice(i,j); i=j;
+    if(tok==='true') return true; if(tok==='false') return false; if(tok==='null') return null;
+    if(/^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?$/.test(tok)) return Number(tok);
+    err('bad literal '+tok);
+  }
+  function pobj(){
+    i++; const o={}; ws();
+    if(text[i]==='}'){ i++; return o; }
+    for(;;){
+      ws(); if(text[i]!=='"') err('expected key');
+      const k=pstr();
+      if(Object.prototype.hasOwnProperty.call(o,k)) err('duplicate member "'+k+'"');
+      ws(); if(text[i]!==':') err('expected :'); i++;
+      o[k]=pval(); ws();
+      if(text[i]===','){ i++; continue; }
+      if(text[i]==='}'){ i++; return o; }
+      err('expected , or }');
+    }
+  }
+  function parr(){
+    i++; const a=[]; ws();
+    if(text[i]===']'){ i++; return a; }
+    for(;;){
+      a.push(pval()); ws();
+      if(text[i]===','){ i++; continue; }
+      if(text[i]===']'){ i++; return a; }
+      err('expected , or ]');
+    }
+  }
+  const v=pval(); ws();
+  if(i<text.length) err('trailing data');
+  return v;
+}
+
+/* ---- pre-hash conformance gate: the same predicates as reference/claim_id.py,
+   enforced BEFORE hashing. An input the gate rejects never gets a claim_id. ---- */
+const FIELDS=["schema","profile_id","policy_version","artifact_hash","artifact_type",
+              "claim_body","source_class","verifier_profile","as_of","claimant"];
+const STR_FIELDS=["schema","profile_id","policy_version","artifact_hash","artifact_type",
+                  "source_class","verifier_profile","as_of"];
+function validateClaim(p){
+  if(p===null||typeof p!=='object'||Array.isArray(p)) throw new Error('ClaimPreimage must be an object');
+  const missing=FIELDS.filter(k=>!(k in p));
+  const req=new Set(FIELDS), extra=Object.keys(p).filter(k=>!req.has(k));
+  if(missing.length) throw new Error('missing required fields: '+missing.join(','));
+  if(extra.length) throw new Error('unknown fields: '+extra.join(','));
+  if(p.schema!=='crc.claim.v0') throw new Error("schema must be exactly 'crc.claim.v0'");
+  for(const k of STR_FIELDS) if(typeof p[k]!=='string'||p[k]==='') throw new Error(k+' must be a non-empty string');
+  if(!(p.claim_body===null||typeof p.claim_body==='string')) throw new Error('claim_body must be a string or null');
+  if(!/^[0-9a-f]{64}$/.test(p.artifact_hash)) throw new Error('artifact_hash must match ^[0-9a-f]{64}$');
+  if(typeof p.claimant!=='number'||!Number.isSafeInteger(p.claimant)||p.claimant<0)
+    throw new Error('claimant must be a non-negative integer (ERC-8004 token id)');
+  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(p.as_of)) throw new Error("as_of must be RFC3339 UTC 'YYYY-MM-DDTHH:MM:SSZ'");
+  const d=new Date(p.as_of);
+  if(Number.isNaN(d.getTime())||d.toISOString().slice(0,19)+'Z'!==p.as_of) throw new Error('as_of is not a real instant');
+}
+
+const seedN1 = parseStrict(document.getElementById('seed-node1').textContent);
+const seedLedger = parseStrict(document.getElementById('seed-ledger').textContent);
+let node2 = parseStrict(document.getElementById('seed-node2').textContent);
 
 const jcs = (o)=> o===null||typeof o!=='object' ? JSON.stringify(o)
   : Array.isArray(o) ? '['+o.map(jcs).join(',')+']'
@@ -192,13 +267,18 @@ const hex = (buf)=>[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0'
 async function sha256hex(str){ return hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))); }
 const short = (h)=> h.length>22 ? h.slice(0,14)+'…'+h.slice(-6) : h;
 
-// live-refresh node 2 from raw
+/* deps load lazily so an unreachable CDN is an AMBER (availability), not a dead page */
+let _schnorr,_ethers;
+async function getSchnorr(){ if(!_schnorr) _schnorr=(await import('https://esm.sh/@noble/curves@1.6.0/secp256k1')).schnorr; return _schnorr; }
+async function getEthers(){ if(!_ethers) _ethers=await import('https://esm.sh/ethers@6.13.4'); return _ethers; }
+
+// live-refresh node 2 from raw (strict-parsed; a failed fetch keeps the embedded copy)
 (async()=>{
   const el=document.getElementById('src');
   try{
     const r=await fetch(NODE2_RAW,{cache:'no-store'});
     if(!r.ok) throw new Error(r.status);
-    node2=await r.json();
+    node2=parseStrict(await r.text());
     el.innerHTML='<span class="dot live"></span>node 2: live from GitHub raw';
   }catch(e){
     el.innerHTML='<span class="dot seed"></span>node 2: embedded copy (raw fetch blocked)';
@@ -206,72 +286,124 @@ const short = (h)=> h.length>22 ? h.slice(0,14)+'…'+h.slice(-6) : h;
 })();
 
 function mkCheck(id,label){ return `<div class="chk wait" id="${id}"><span class="mk">○</span><span class="lab">${label}</span><span class="val"></span></div>`; }
-function setChk(id,ok,val){ const e=document.getElementById(id); if(!e)return; e.className='chk '+(ok?'ok':'no'); e.querySelector('.mk').textContent=ok?'✓':'✗'; if(val!==undefined) e.querySelector('.val').innerHTML=val; }
-function setCell(cell,state,txt){ cell.classList.remove('run','green','red','amber'); cell.classList.add(state); cell.querySelector('.txt').textContent=txt; }
+/* st: 'ok' | 'no' (mismatch → RED) | 'wait' (unavailable → AMBER) */
+function setChk(id,st,val){ const e=document.getElementById(id); if(!e)return; e.className='chk '+st; e.querySelector('.mk').textContent=st==='ok'?'✓':st==='no'?'✗':'◌'; if(val!==undefined) e.querySelector('.val').innerHTML=val; }
+function setCell(cell,state,txt){ cell.classList.remove('run','green','red','amber'); if(state) cell.classList.add(state); cell.querySelector('.txt').textContent=txt; }
+
+/* CELL-v1.md §5 — RED only on a computed mismatch; AMBER when a check could not
+   observe (unreachable dep/source). AMBER abstains from the edge, never breaks it. */
+function verdict(checks){
+  if(checks.some(c=>c==='no')) return 'red';
+  if(checks.some(c=>c==='wait')) return 'amber';
+  return 'green';
+}
 
 const results={};
 
 async function recomputeNode1(open=true){
   const cell=document.getElementById('c1'); const box=document.getElementById('c1-checks');
-  box.innerHTML=[mkCheck('n1-cid','claim_id = sha256(JCS(ClaimPreimage))'),
+  box.innerHTML=[mkCheck('n1-gate','pre-hash gate: crc.claim.v0 conformant'),
+                 mkCheck('n1-cid','claim_id = sha256(JCS(ClaimPreimage))'),
                  mkCheck('n1-eid','Nostr event_id = sha256(NIP-01 serialize)'),
                  mkCheck('n1-sig','BIP-340 schnorr sig verifies vs pubkey')].join('');
   if(open) cell.classList.add('open'); setCell(cell,'run','recomputing…');
-  const ev=seedN1.event; const content=JSON.parse(ev.content);
-  // 1 claim_id
-  const cid='sha256:'+await sha256hex(jcs(content.evidence.claim_preimage));
-  const cidOk=cid===content.claim_id; setChk('n1-cid',cidOk,`<b>${short(cid)}</b>`);
+  const ev=seedN1.event;
+  const states=[];
+  // 0 gate — strict parse of the raw content string (duplicate members surface here)
+  let content=null, gateSt='ok', gateMsg='exact field set · no duplicate members · grammar';
+  try{ content=parseStrict(ev.content); validateClaim(content.evidence.claim_preimage); }
+  catch(e){ gateSt='no'; gateMsg=e.message; }
+  setChk('n1-gate',gateSt,gateMsg); states.push(gateSt);
+  // 1 claim_id (only if the gate passed — a rejected preimage never gets one)
+  let cid='';
+  if(gateSt==='ok'){
+    cid='sha256:'+await sha256hex(jcs(content.evidence.claim_preimage));
+    const st=cid===content.claim_id?'ok':'no'; setChk('n1-cid',st,`<b>${short(cid)}</b>`); states.push(st);
+  } else { setChk('n1-cid','no','blocked by gate'); states.push('no'); }
   // 2 event id (NIP-01)
   const ser=JSON.stringify([0,ev.pubkey,ev.created_at,ev.kind,ev.tags,ev.content]);
-  const eid=await sha256hex(ser); const eidOk=eid===ev.id; setChk('n1-eid',eidOk,`<b>${short(eid)}</b>`);
-  // 3 schnorr
-  let sigOk=false; try{ sigOk=schnorr.verify(ev.sig, ev.id, ev.pubkey); }catch(e){ sigOk=false; }
-  setChk('n1-sig',sigOk,sigOk?`pubkey <b>${short(ev.pubkey)}</b>`:'signature check failed');
-  const green=cidOk&&eidOk&&sigOk;
-  setCell(cell,green?'green':'red',green?'GREEN · '+content.result:'RED'); results.n1={cid,green};
+  const eid=await sha256hex(ser); const eidSt=eid===ev.id?'ok':'no';
+  setChk('n1-eid',eidSt,`<b>${short(eid)}</b>`); states.push(eidSt);
+  // 3 schnorr — a failed CDN import is availability (AMBER), a failed verify is mismatch (RED)
+  let sigSt;
+  try{
+    const schnorr=await getSchnorr();
+    sigSt=schnorr.verify(ev.sig, ev.id, ev.pubkey)?'ok':'no';
+    setChk('n1-sig',sigSt,sigSt==='ok'?`pubkey <b>${short(ev.pubkey)}</b>`:'signature does not verify');
+  }catch(e){ sigSt='wait'; setChk('n1-sig','wait','verifier unreachable (schnorr lib failed to load) — could not observe'); }
+  states.push(sigSt);
+  const v=verdict(states);
+  setCell(cell,v,v==='green'?'GREEN · '+(content?content.result:''):v==='amber'?'AMBER · could not observe':'RED');
+  results.n1={cid,verdict:v};
   updateEdge();
 }
 
 async function recomputeNode2(open=true){
   const cell=document.getElementById('c2'); const box=document.getElementById('c2-checks');
-  box.innerHTML=[mkCheck('n2-cid','claim_id = sha256(JCS(ClaimPreimage))'),
+  box.innerHTML=[mkCheck('n2-gate','pre-hash gate: crc.claim.v0 conformant'),
+                 mkCheck('n2-cid','claim_id = sha256(JCS(ClaimPreimage))'),
                  mkCheck('n2-dref','decision_ref re-derived from /ledger #236 source'),
                  mkCheck('n2-evh','evidence_hash = keccak256(JCS(evidence))'),
-                 mkCheck('n2-sig','EIP-712 signer recovers to verifier')].join('');
+                 mkCheck('n2-sig','EIP-712: recovered == signer == verifier')].join('');
   if(open) cell.classList.add('open'); setCell(cell,'run','recomputing…');
   const pp=node2.proof_payload, sg=node2.signature, ev=pp.evidence;
+  const states=[];
+  // 0 gate
+  let gateSt='ok', gateMsg='exact field set · no duplicate members · grammar';
+  try{ validateClaim(ev.claim_preimage); }catch(e){ gateSt='no'; gateMsg=e.message; }
+  setChk('n2-gate',gateSt,gateMsg); states.push(gateSt);
   // 1 claim_id
-  const cid='sha256:'+await sha256hex(jcs(ev.claim_preimage));
-  const cidOk=cid===pp.claim_id; setChk('n2-cid',cidOk,`<b>${short(cid)}</b>`);
-  // 2 decision_ref from ledger source
-  const lc=JSON.parse(seedLedger.proof_event.content);
+  let cid='';
+  if(gateSt==='ok'){
+    cid='sha256:'+await sha256hex(jcs(ev.claim_preimage));
+    const st=cid===pp.claim_id?'ok':'no'; setChk('n2-cid',st,`<b>${short(cid)}</b>`); states.push(st);
+  } else { setChk('n2-cid','no','blocked by gate'); states.push('no'); }
+  // 2 decision_ref from ledger source (strict-parsed raw content)
+  const lc=parseStrict(seedLedger.proof_event.content);
   const pre={}; for(const k of lc.decision_ref_preimage_fields) pre[k]=(k in lc)?lc[k]:null;
   const dref='sha256:'+await sha256hex(jcs(pre));
-  const drefOk=dref===ev.recomputed.decision_ref; setChk('n2-dref',drefOk,`<b>${short(dref)}</b>`);
-  // 3 evidence_hash (keccak)
-  let evh='',evhOk=false; try{ evh=keccak256(toUtf8Bytes(jcs(ev))); evhOk=evh.toLowerCase()===sg.evidence_hash.toLowerCase(); }catch(e){}
-  setChk('n2-evh',evhOk,`<b>${short(evh)}</b>`);
-  // 4 EIP-712 recover
-  let recOk=false, rec='';
+  const drefSt=dref===ev.recomputed.decision_ref?'ok':'no';
+  setChk('n2-dref',drefSt,`<b>${short(dref)}</b>`); states.push(drefSt);
+  // 3 + 4 need ethers — unreachable CDN is AMBER, a computed mismatch is RED
   try{
-    const value={schema:pp.schema,claim_id:pp.claim_id,result:pp.result,verifier:pp.verifier,recomputed_at:pp.recomputed_at,evidence_hash:sg.evidence_hash};
-    rec=verifyTypedData(sg.domain,{Cell:sg.types.Cell},value,sg.signature);
-    recOk=rec.toLowerCase()===sg.signer.toLowerCase();
-  }catch(e){ rec='recover error'; }
-  setChk('n2-sig',recOk,recOk?`signer <b>${short(rec)}</b>`:rec);
-  const green=cidOk&&drefOk&&evhOk&&recOk;
-  setCell(cell,green?'green':'red',green?'GREEN · '+pp.result:'RED'); results.n2={cid,green};
+    const {verifyTypedData,keccak256,toUtf8Bytes}=await getEthers();
+    const evh=keccak256(toUtf8Bytes(jcs(ev)));
+    const evhSt=evh.toLowerCase()===sg.evidence_hash.toLowerCase()?'ok':'no';
+    setChk('n2-evh',evhSt,`<b>${short(evh)}</b>`); states.push(evhSt);
+    // triple equality (CELL-v1.md §2): recovered == signature.signer == proof_payload.verifier
+    let rec='', recSt='no';
+    try{
+      const value={schema:pp.schema,claim_id:pp.claim_id,result:pp.result,verifier:pp.verifier,recomputed_at:pp.recomputed_at,evidence_hash:sg.evidence_hash};
+      rec=verifyTypedData(sg.domain,{Cell:sg.types.Cell},value,sg.signature);
+      recSt=(rec.toLowerCase()===sg.signer.toLowerCase() && rec.toLowerCase()===String(pp.verifier).toLowerCase())?'ok':'no';
+    }catch(e){ rec='recover error'; }
+    setChk('n2-sig',recSt,recSt==='ok'?`recovered <b>${short(rec)}</b> == signer == verifier`:(rec==='recover error'?rec:`recovered ${short(rec)} — signer/verifier mismatch`));
+    states.push(recSt);
+  }catch(e){
+    setChk('n2-evh','wait','verifier unreachable (ethers failed to load) — could not observe');
+    setChk('n2-sig','wait','verifier unreachable (ethers failed to load) — could not observe');
+    states.push('wait','wait');
+  }
+  const v=verdict(states);
+  setCell(cell,v,v==='green'?'GREEN · '+pp.result:v==='amber'?'AMBER · could not observe':'RED');
+  results.n2={cid,verdict:v};
   updateEdge();
 }
 
 function updateEdge(){
   const e=document.getElementById('edge'), t=document.getElementById('edgetxt');
-  if(results.n1&&results.n2){
-    const match=results.n1.cid===results.n2.cid && results.n1.green && results.n2.green;
-    e.classList.toggle('match',match);
-    t.textContent = match
-      ? `edge holds — both lanes derived ${short(results.n1.cid)} independently. 2×1 matrix live.`
-      : 'edge broken — the nodes disagree.';
+  if(!(results.n1&&results.n2)) return;
+  const a=results.n1, b=results.n2;
+  e.classList.remove('match');
+  if(a.verdict==='red'||b.verdict==='red'){
+    t.textContent='edge broken — a node computed a mismatch.';
+  } else if(a.verdict==='amber'||b.verdict==='amber'){
+    t.textContent='edge pending — an AMBER cell abstains (could not observe); it never breaks the edge, and never carries it.';
+  } else if(a.cid===b.cid && a.verdict==='green' && b.verdict==='green'){
+    e.classList.add('match');
+    t.textContent=`edge holds — both lanes derived ${short(a.cid)} independently. 2×1 matrix live.`;
+  } else {
+    t.textContent='edge broken — both nodes GREEN but claim_ids differ.';
   }
 }
 

@@ -23,6 +23,26 @@ FIELDS = ["schema", "profile_id", "policy_version", "artifact_hash",
 _STR_FIELDS = ["schema", "profile_id", "policy_version", "artifact_hash",
                "artifact_type", "source_class", "verifier_profile", "as_of"]
 _AS_OF_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")  # RFC3339 UTC, second precision
+_HASH_RE = re.compile(r"[0-9a-f]{64}")  # lowercase hex, exactly 64 — no sha256:/0x prefix here
+_UINT256_MAX = 2**256 - 1  # claimant is an ERC-8004 token id
+
+
+def _reject_duplicate_pairs(pairs):
+    """object_pairs_hook: JCS is only defined over unique members, and a parser
+    that silently keeps the last member lets two different byte-streams
+    canonicalize identically. Detected here, at parse time — on the parsed
+    object the evidence is already gone."""
+    obj = {}
+    for k, v in pairs:
+        if k in obj:
+            raise ValueError(f"duplicate JSON member: {k!r}")
+        obj[k] = v
+    return obj
+
+
+def loads_strict(text: str):
+    """Parse JSON text rejecting duplicate members at any depth."""
+    return json.loads(text, object_pairs_hook=_reject_duplicate_pairs)
 
 
 def validate(preimage: dict) -> None:
@@ -47,9 +67,14 @@ def validate(preimage: dict) -> None:
     # claim_body: string or explicit null (the type may carry no assertion)
     if not (preimage["claim_body"] is None or isinstance(preimage["claim_body"], str)):
         raise ValueError("claim_body must be a string or null")
-    # claimant: an ERC-8004 token id (integer; bool is not an int here)
+    # artifact_hash: strict grammar — bare lowercase hex-64 (sha256:/0x prefixes reject)
+    if not _HASH_RE.fullmatch(preimage["artifact_hash"]):
+        raise ValueError("artifact_hash must match ^[0-9a-f]{64}$ (bare lowercase hex)")
+    # claimant: an ERC-8004 token id (integer; bool is not an int here) in uint256 range
     if isinstance(preimage["claimant"], bool) or not isinstance(preimage["claimant"], int):
         raise ValueError("claimant must be an integer (ERC-8004 token id)")
+    if not (0 <= preimage["claimant"] <= _UINT256_MAX):
+        raise ValueError("claimant must be in uint256 range [0, 2^256)")
     # as_of: strict RFC3339 UTC 'YYYY-MM-DDTHH:MM:SSZ', and a real instant
     if not _AS_OF_RE.fullmatch(preimage["as_of"]):
         raise ValueError("as_of must be RFC3339 UTC 'YYYY-MM-DDTHH:MM:SSZ'")
@@ -68,5 +93,5 @@ def claim_id(preimage: dict) -> str:
 
 
 if __name__ == "__main__":
-    p = json.load(open(sys.argv[1])) if len(sys.argv) > 1 else json.load(sys.stdin)
-    print(claim_id(p))
+    text = open(sys.argv[1]).read() if len(sys.argv) > 1 else sys.stdin.read()
+    print(claim_id(loads_strict(text)))

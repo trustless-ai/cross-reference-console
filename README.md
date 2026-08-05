@@ -4,7 +4,7 @@
 
 > **Don't trust. Recompute — continuously, and about each other.**
 
-**Status:** v0 design sketch (2026-08-04). Seeded in the WG chat (Tiago floated it; Jimmy, Pavlo, and Fede converged the same day). This is a sketch to build against, not a finished spec.
+**Status:** first edge **LIVE** (2026-08-04): `/ledger #236` carries two independently-signed Cells on two lanes (attestation/invinoveritas · recompute/cross-reference-console), same `claim_id`, recomputable in-browser (`ui/`). Hardening pass landed 2026-08-05 ([`CELL-v1.md`](CELL-v1.md)) answering Pavlo's five conformance points: observation/evaluation time split, full boundary binding + triple signer equality, a universal pre-hash gate (duplicate members, hash grammar, claimant range — enforced in Python **and** the browser, negative vectors in [`reference/test_gate.py`](reference/test_gate.py)), recomputable independence evidence, and the operational AMBER/RED split (AMBER abstains, only a computed mismatch earns RED).
 
 ---
 
