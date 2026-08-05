@@ -46,8 +46,8 @@
     box-shadow:0 1px 0 rgba(255,255,255,.25) inset, 0 6px 18px rgba(201,162,39,.18);
   }
   button.act:disabled{opacity:.55; cursor:progress}
-  button.ghost{background:transparent; color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:11px 16px; font-family:var(--disp); font-size:13px; cursor:pointer}
-  button.ghost:hover{color:var(--paper); border-color:var(--brass-2)}
+  button.ghost,a.ghost{background:transparent; color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:11px 16px; font-family:var(--disp); font-size:13px; cursor:pointer; text-decoration:none; display:inline-block}
+  button.ghost:hover,a.ghost:hover{color:var(--paper); border-color:var(--brass-2)}
   .src{font-family:var(--mono); font-size:11.5px; color:var(--dim); margin-left:auto}
   .src .dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--dim); margin-right:5px; vertical-align:middle}
   .src .live{background:var(--green)} .src .seed{background:var(--amber)}
@@ -117,6 +117,7 @@
   <div class="bar">
     <button class="act" id="run">Recompute all</button>
     <button class="ghost" id="reset">Reset</button>
+    <a class="ghost" href="https://github.com/trustless-ai/cross-reference-console" target="_blank" rel="noopener">repo · registry · claims ↗</a>
     <span class="src" id="src"><span class="dot seed"></span>node&nbsp;2: loading…</span>
   </div>
 
