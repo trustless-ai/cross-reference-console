@@ -1,0 +1,101 @@
+{
+  "proof_payload": {
+    "schema": "crc.cell.v1",
+    "claim_id": "sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512",
+    "result": "GREEN",
+    "verifier": "0x347aeeF3a6f8fD71C93289ab90c8dC0b26A8300a",
+    "boundary": "ERC-8274 recompute/receiptos -- claim_id independently re-derived from the live /ledger #236 source using a from-scratch crc.claim.v0 gate + JCS canonicalizer (tools/cross_reference_console/receiptos_crc_claim_id.py, not reference/claim_id.py); ClaimPreimage field mapping reasoned from CLAIM.md, CELL-v1.md, and reference/README.md's documented v0 mapping choices; result cross-checked against the registered claims/ file and both existing Cells only after independent derivation completed. No container, no pinned runtime image. Signature = EIP-712 v1, unsigned -- pending the registered key holder's own MetaMask signature; not valid as a Cell PR until signed and signer recovery passes triple equality.",
+    "as_of": "2026-08-04T00:11:24Z",
+    "recomputed_at": "2026-08-05T21:29:00Z",
+    "evidence": {
+      "claim_preimage": {
+        "schema": "crc.claim.v0",
+        "profile_id": "invinoveritas.review",
+        "policy_version": "invinoveritas.review.v7",
+        "artifact_hash": "5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9",
+        "artifact_type": "review_verdict",
+        "claim_body": "reject",
+        "source_class": "agent_reported",
+        "verifier_profile": "attestation/invinoveritas",
+        "as_of": "2026-08-04T00:11:24Z",
+        "claimant": 54848
+      },
+      "recomputed": {
+        "claim_id": "sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512",
+        "decision_ref": "sha256:5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9",
+        "decision_ref_from": "record.verdict.decision_ref in the live /ledger #236 source, taken as-is (the decision_ref itself is not recomputed from its own hidden sub-preimage by this node; only claim_id is recomputed here, from the ClaimPreimage above)"
+      },
+      "lane": "recompute/receiptos",
+      "recipe": "independent tools/cross_reference_console/receiptos_crc_claim_id.py, written from CLAIM.md + CELL-v1.md's pre-hash gate section without importing reference/claim_id.py; claim_id = sha256(JCS(ClaimPreimage))",
+      "independence": {
+        "implementation": {
+          "repo": "https://github.com/pipavlo82/crystal-receipt",
+          "commit": "6d013ad8eedaa141418b1388f1d17cae8fd36c0f",
+          "path": "tools/cross_reference_console/receiptos_crc_claim_id.py",
+          "impl_hash": "sha256:39461fd0aa0d42eb14648d2dc5361d717ed26efff14c530e9da9f6ca36234981"
+        },
+        "dependency_lock": null,
+        "runtime_image": null,
+        "inputs": [
+          {
+            "url": "https://api.babyblueviper.com/ledger/236",
+            "content_hash": "sha256:6cb8dc90bfa9709b1885310427eee6703c9273b2240b53d94316a2ba90cc586c",
+            "retrieved_at": "2026-08-05T21:26:26Z"
+          }
+        ],
+        "execution_witness": "sha256:73887589507ef7572f6d5a357d60d0e0d59e253b31a9525f90fcd5f5ef213529"
+      },
+      "note": "ReceiptOS (Node 3, recompute/receiptos) independently fetched /ledger #236 directly (no container, no pinned runtime image -- dependency_lock and runtime_image are honestly null, plain stdlib run), derived the ClaimPreimage from the live source and CLAIM.md/CELL-v1.md/reference/README.md's documented v0 mapping choices, and recomputed claim_id with a from-scratch gate + canonicalizer. Compared against the known checkpoint and the registered claims/ file only after this derivation completed: byte-identical match on all ten ClaimPreimage fields.",
+      "source_ledger_entry": "https://api.babyblueviper.com/ledger/236",
+      "cross_check": "The registered claims/df1a6bfe....json file and both existing Cells (invinoveritas.cell.json, vertice-recompute-lens.cell.json) carry the same claim_id and the same claim_preimage fields this node independently derived; this Cell adds a third, independent lane (recompute/receiptos) to that set. This Cell is not yet signed and does not itself close an edge."
+    }
+  },
+  "signature": {
+    "scheme": "eip712",
+    "domain": {
+      "name": "cross-reference-console",
+      "version": "1",
+      "chainId": 1
+    },
+    "primaryType": "Cell",
+    "types": {
+      "Cell": [
+        {
+          "name": "schema",
+          "type": "string"
+        },
+        {
+          "name": "claim_id",
+          "type": "string"
+        },
+        {
+          "name": "result",
+          "type": "string"
+        },
+        {
+          "name": "verifier",
+          "type": "address"
+        },
+        {
+          "name": "boundary",
+          "type": "string"
+        },
+        {
+          "name": "as_of",
+          "type": "string"
+        },
+        {
+          "name": "recomputed_at",
+          "type": "string"
+        },
+        {
+          "name": "evidence_hash",
+          "type": "bytes32"
+        }
+      ]
+    },
+    "evidence_hash": "0xf211e7988d4160d2f7ee68ce482c9511f24e68aed1fb846593705e455b26ab51",
+    "signer": "0x347aeeF3a6f8fD71C93289ab90c8dC0b26A8300a",
+    "signature": "0x9712e87015713c47aaff0734568f8f584a6d34925d390cc8e389b1df891deb2509a8b0bbc8da928c33c73089bfaf24ef3cdcd755e2c92e3f763323594677a7ce1b"
+  }
+}
