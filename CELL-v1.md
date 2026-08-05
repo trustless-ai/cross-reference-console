@@ -91,6 +91,12 @@ RED is evidence of inconsistency. AMBER is absence of observation — a network 
 
 **Edge rule (v1).** An edge holds when ≥ 2 Cells are GREEN with byte-equal `claim_id` on distinct lanes/implementations. AMBER Cells abstain. Any RED on the claim breaks the edge until reconciled.
 
+## First v1 Cell — node 2 LANDED (2026-08-05)
+
+[`reference/vectors/236-node2-cell.v1.signed.json`](reference/vectors/236-node2-cell.v1.signed.json) — the first `crc.cell.v1` Cell, signed inside the Vértice gateway container (attestor `0x85Fa…Bf1A`, key never left the box). `claim_id` and `decision_ref` re-derived live from `/ledger #236` through the gate; `evidence.independence` carries the real refs (implementation pinned at [`a82f8f1`](https://github.com/trustless-ai/cross-reference-console/commit/a82f8f10b3ae870195e0fd12d92ab45125e19fd8) + file hash, `bun.lock` hash, runtime image digest, content-hashed inputs, and an execution witness that recomputes from [the published run transcript](reference/vectors/236-node2-cell.v1.transcript.json)). Verified off-box on two independent stacks (`ethers`, `eth_account`) plus the Python reference.
+
+**The v1 edge abstains** until node 1 publishes its v1 Cell — per §5 that is a pending observation, not a break. The v0 edge stands as frozen history either way.
+
 ## Versioning
 
 `crc.cell.v0` remains frozen; the #236 v0 Cells stand as the first edge. New Cells SHOULD sign v1. Any change to this struct or these rules mints `crc.cell.v2`.

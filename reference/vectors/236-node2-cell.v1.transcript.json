@@ -1,0 +1,36 @@
+{
+  "schema": "crc.cell.v1.run-transcript",
+  "runner": "ensboiler-gateway-1 (bun 1.3.14)",
+  "runtime_image": "sha256:8b1732b432ca1da9ab57a8d8087ab2916d64d724216b72638e9444690e130bb3",
+  "steps": [
+    {
+      "step": "fetch",
+      "url": "https://api.babyblueviper.com/ledger/236",
+      "content_hash": "sha256:6cb8dc90bfa9709b1885310427eee6703c9273b2240b53d94316a2ba90cc586c",
+      "retrieved_at": "2026-08-05T18:20:00Z"
+    },
+    {
+      "step": "fetch",
+      "url": "https://raw.githubusercontent.com/trustless-ai/cross-reference-console/a82f8f10b3ae870195e0fd12d92ab45125e19fd8/reference/claim_id.py",
+      "content_hash": "sha256:da82958a382356b4c4a326ecc1a83dacaa93767539f71436600b1e5053614ffc",
+      "retrieved_at": "2026-08-05T18:20:00Z"
+    },
+    {
+      "step": "gate",
+      "input": "ClaimPreimage",
+      "result": "pass (crc.claim.v0, all predicates)"
+    },
+    {
+      "step": "derive",
+      "name": "claim_id",
+      "value": "sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512"
+    },
+    {
+      "step": "derive",
+      "name": "decision_ref",
+      "value": "sha256:5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9",
+      "matches_source": true
+    }
+  ],
+  "recomputed_at": "2026-08-05T18:20:00Z"
+}
