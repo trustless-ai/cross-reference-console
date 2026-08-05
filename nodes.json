@@ -30,6 +30,21 @@
       "cell_url_template": "https://raw.githubusercontent.com/trustless-ai/cross-reference-console/main/cells/{claim_id}/vertice-recompute-lens.cell.json",
       "since": "2026-08-04T19:38:20Z",
       "retired": null
+    },
+    {
+      "node_id": "receiptos-recompute",
+      "display": "Node 3 — ReceiptOS recompute (Pavlo)",
+      "verifier": "0x347aeeF3a6f8fD71C93289ab90c8dC0b26A8300a",
+      "lane": "recompute/receiptos",
+      "envelope": "eip712",
+      "key_ref": {
+        "pubkey": null,
+        "address": "0x347aeeF3a6f8fD71C93289ab90c8dC0b26A8300a",
+        "keys_url": null
+      },
+      "cell_url_template": null,
+      "since": "2026-08-05T19:35:31Z",
+      "retired": null
     }
   ],
   "claim_sources": [
