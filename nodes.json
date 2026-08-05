@@ -1,0 +1,45 @@
+{
+  "schema": "crc.nodes.v0",
+  "nodes": [
+    {
+      "node_id": "invinoveritas",
+      "display": "Node 1 — invinoveritas (Fede)",
+      "verifier": 54848,
+      "lane": "attestation/invinoveritas",
+      "envelope": "nostr-nip01",
+      "key_ref": {
+        "pubkey": "6786e18a864893a900bd9858e650f67ccc3513f248fed374b591e2ff6922fbb7",
+        "address": null,
+        "keys_url": "https://api.babyblueviper.com/.well-known/verifier-keys.json"
+      },
+      "cell_url_template": null,
+      "since": "2026-08-04T18:56:00Z",
+      "retired": null
+    },
+    {
+      "node_id": "vertice-recompute-lens",
+      "display": "Node 2 — Vértice recompute-lens (Tiago)",
+      "verifier": "0x85Fa13511D170FBe173761b63D7f8DD4A6f6Bf1A",
+      "lane": "recompute/cross-reference-console",
+      "envelope": "eip712",
+      "key_ref": {
+        "pubkey": null,
+        "address": "0x85Fa13511D170FBe173761b63D7f8DD4A6f6Bf1A",
+        "keys_url": null
+      },
+      "cell_url_template": "https://raw.githubusercontent.com/trustless-ai/cross-reference-console/main/cells/{claim_id}/vertice-recompute-lens.cell.json",
+      "since": "2026-08-04T19:38:20Z",
+      "retired": null
+    }
+  ],
+  "claim_sources": [
+    {
+      "source_id": "invinoveritas-ledger",
+      "url": "https://api.babyblueviper.com/ledger/submit",
+      "admission": "sats per entry, signature-verified, auto-accepted (type: self_submitted_verdict)",
+      "lifts": ["review_verdict"],
+      "since": "2026-08-05T00:00:00Z",
+      "retired": null
+    }
+  ]
+}
