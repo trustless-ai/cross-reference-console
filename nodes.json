@@ -27,7 +27,7 @@
         "address": "0x85Fa13511D170FBe173761b63D7f8DD4A6f6Bf1A",
         "keys_url": null
       },
-      "cell_url_template": "https://raw.githubusercontent.com/trustless-ai/cross-reference-console/main/cells/{claim_id}/vertice-recompute-lens.cell.json",
+      "cell_url_template": "https://raw.githubusercontent.com/trustless-ai/cross-reference-console/main/cells/{claim_id_hex}/vertice-recompute-lens.cell.json",
       "since": "2026-08-04T19:38:20Z",
       "retired": null
     },

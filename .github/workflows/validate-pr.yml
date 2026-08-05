@@ -1,0 +1,52 @@
+name: validate-pr
+# The mechanical review NODES.md promises, as public CI — parse + conformance +
+# checkable keys. If this is green, a registry/cell PR merges; no other approval step.
+on:
+  pull_request:
+    paths:
+      - nodes.json
+      - "cells/**"
+      - "claims/**"
+      - "reference/**"
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: deps (eip712 recover + keccak only — everything else is stdlib)
+        run: pip install --quiet eth-account pycryptodome
+      - name: gate conformance suite (negative vector per predicate)
+        run: python3 reference/test_gate.py
+      - name: nodes.json — crc.nodes.v0
+        run: python3 reference/validate_nodes.py
+      - name: every cell verifies under its envelope + the registry
+        run: |
+          found=0
+          while IFS= read -r f; do
+            found=1
+            echo "::group::$f"
+            python3 reference/validate_cell.py "$f"
+            echo "::endgroup::"
+          done < <(find cells -name '*.cell.json' -not -path 'cells/rejected/*' 2>/dev/null)
+          [ "$found" = "1" ] || echo "no cells yet"
+      - name: every claim file re-derives
+        run: |
+          python3 - <<'EOF'
+          import json, os, sys
+          sys.path.insert(0, 'reference')
+          from claim_id import loads_strict, claim_id
+          bad = 0
+          for fn in sorted(os.listdir('claims')) if os.path.isdir('claims') else []:
+              if not fn.endswith('.json') or fn.startswith('.'): continue
+              d = loads_strict(open(os.path.join('claims', fn)).read())
+              cid = claim_id(d['claim_preimage'])
+              ok = cid == d['claim_id'] == 'sha256:' + fn[:-5]
+              print(('ok  ' if ok else 'FAIL') + ' · ' + fn)
+              bad += (not ok)
+          sys.exit(1 if bad else 0)
+          EOF

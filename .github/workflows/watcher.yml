@@ -1,0 +1,35 @@
+name: watcher
+# Ledger intake → pre-hash gate → claims/ registry, committed from public CI.
+# The committer role lives HERE, not on any member's box — the run log is the
+# audit trail for every commit this workflow makes (group decision 2026-08-05).
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: claims-watcher
+  cancel-in-progress: false
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: poll intake, gate, register (stdlib only)
+        run: python3 reference/watcher.py
+      - name: commit registry changes (public log = audit trail)
+        run: |
+          git config user.name "crc-watcher[bot]"
+          git config user.email "crc-watcher@users.noreply.github.com"
+          git add claims/
+          if git diff --cached --quiet; then
+            echo "no registry changes"
+          else
+            git commit -m "watcher: registry update ($(git diff --cached --name-only | tr '\n' ' '))"
+            git pull --rebase origin main
+            git push origin main
+          fi

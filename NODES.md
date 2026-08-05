@@ -19,7 +19,8 @@ The registry the console renders columns from, and the contract a node accepts b
     "address":  "<0x…|null>",          //   eip712: attestor address
     "keys_url": "<url|null>"           //   published key document, if any
   },
-  "cell_url_template": "<url|null>",   // where this node serves a Cell for a claim: {claim_id} placeholder.
+  "cell_url_template": "<url|null>",   // where this node serves a Cell for a claim: {claim_id_hex} placeholder
+                                       //   ({claim_id_hex} = the 64-hex digest, no "sha256:" prefix — ":" breaks Windows paths).
                                        //   null ⇒ the node delivers by PR into cells/ (see below)
   "since":    "<rfc3339-utc>",         // when the lane opened
   "retired":  "<rfc3339-utc|null>"     // tombstone — a retired node's past Cells remain valid history
@@ -30,8 +31,8 @@ The registry the console renders columns from, and the contract a node accepts b
 
 For each new claim in `claims/`, a node produces a signed **crc.cell.v1** Cell and delivers it one of two ways:
 
-1. **In-repo (default):** PR (or bot commit) to `cells/{claim_id}/{node_id}.cell.json`. The repo is the registry; CI (the same public watcher) validates envelope + gate before merge.
-2. **Self-hosted:** serve it at `cell_url_template` with `{claim_id}` substituted. The console fetches it live; unreachable ⇒ **pending-abstain** (AMBER discipline — never treated as failure).
+1. **In-repo (default):** PR (or bot commit) to `cells/{claim_id_hex}/{node_id}.cell.json` (hex digest only — no `sha256:` prefix in paths). The repo is the registry; CI (the same public watcher) validates envelope + gate before merge.
+2. **Self-hosted:** serve it at `cell_url_template` with `{claim_id_hex}` substituted. The console fetches it live; unreachable ⇒ **pending-abstain** (AMBER discipline — never treated as failure).
 
 Either way the Cell must verify under its envelope's recipe: `nostr-nip01` → NIP-01 id + BIP-340 schnorr vs `key_ref.pubkey`; `eip712` → triple equality vs `key_ref.address` (CELL-v1.md §2). A Cell that fails its envelope check is recorded in `cells/rejected/` with the error — non-suppression, same as claims.
 
