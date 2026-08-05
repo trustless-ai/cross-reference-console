@@ -95,7 +95,11 @@ RED is evidence of inconsistency. AMBER is absence of observation — a network 
 
 [`reference/vectors/236-node2-cell.v1.signed.json`](reference/vectors/236-node2-cell.v1.signed.json) — the first `crc.cell.v1` Cell, signed inside the Vértice gateway container (attestor `0x85Fa…Bf1A`, key never left the box). `claim_id` and `decision_ref` re-derived live from `/ledger #236` through the gate; `evidence.independence` carries the real refs (implementation pinned at [`a82f8f1`](https://github.com/trustless-ai/cross-reference-console/commit/a82f8f10b3ae870195e0fd12d92ab45125e19fd8) + file hash, `bun.lock` hash, runtime image digest, content-hashed inputs, and an execution witness that recomputes from [the published run transcript](reference/vectors/236-node2-cell.v1.transcript.json)). Verified off-box on two independent stacks (`ethers`, `eth_account`) plus the Python reference.
 
-**The v1 edge abstains** until node 1 publishes its v1 Cell — per §5 that is a pending observation, not a break. The v0 edge stands as frozen history either way.
+## v1 edge — **CLOSED (2026-08-05)**
+
+Node 1 signed its v1 Cell the same day: Nostr event [`8530c144…5bd583`](reference/vectors/236-node1-cell.v1.json) (kind 30078, schnorr vs the published pubkey `6786e18a…`, fetched from public relays). Fede's `claim_id` came from a **fresh independent implementation** ([`scripts/crc_claim_id.py` @ babyblueviper1/invinoveritas](https://github.com/babyblueviper1/invinoveritas), written from `CLAIM.md`, not the reference) — so `independence.implementation` is checkable, not asserted. `dependency_lock` / `runtime_image` / `execution_witness` are **honestly `null`** (plain stdlib run, no pinned container — no fabricated evidence).
+
+The cross-check that makes it an edge: both nodes' `independence.inputs` carry the **byte-identical content hash** for `/ledger #236` (`sha256:6cb8dc90…c586c`) — same input, independently fetched, different implementations, byte-equal `claim_id sha256:df1a6bfe…`. Two GREEN v1 Cells on distinct lanes: **the hardened edge is complete per §5.** Node 2 re-verified node 1's Cell off-box before accepting it (NIP-01 id, schnorr, gate, claim_id, as_of binding, input-hash equality).
 
 ## Versioning
 
