@@ -1,0 +1,107 @@
+{
+  "proof_payload": {
+    "schema": "crc.cell.v1",
+    "claim_id": "sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512",
+    "result": "GREEN",
+    "verifier": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
+    "boundary": "ERC-8274 recompute/mycelium -- claim_id AND decision_ref independently re-derived from /ledger #236 source with our own claim_id.py; signature = EIP-712 v1 by the Mycelium/Rama owner wallet",
+    "as_of": "2026-08-04T00:11:24Z",
+    "recomputed_at": "2026-08-06T13:41:34Z",
+    "evidence": {
+      "claim_preimage": {
+        "schema": "crc.claim.v0",
+        "profile_id": "invinoveritas.review",
+        "policy_version": "invinoveritas.review.v7",
+        "artifact_hash": "5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9",
+        "artifact_type": "review_verdict",
+        "claim_body": "reject",
+        "source_class": "agent_reported",
+        "verifier_profile": "attestation/invinoveritas",
+        "as_of": "2026-08-04T00:11:24Z",
+        "claimant": 54848
+      },
+      "lane": "recompute",
+      "recomputed": {
+        "claim_id": "sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512",
+        "decision_ref": "sha256:5bca0bf044c8e1c8e16a01bf3ee44b12c305ce6a50dd9789ff73cbd13482b9b9",
+        "decision_ref_from": "proof_event.decision_ref_preimage_fields over /ledger #236 (absent fields = JSON null), sha256(JCS)"
+      },
+      "recipe": "examples/conformance/crc-claim-id/claim_id.py @ giskard09/argentum-core@46517aa (own implementation, written from CLAIM.md, not the reference script); claim_id = sha256:+hex(sha256(JCS(ClaimPreimage)))",
+      "independence": {
+        "implementation": {
+          "repo": "https://github.com/giskard09/argentum-core",
+          "commit": "46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1",
+          "path": "examples/conformance/crc-claim-id/claim_id.py",
+          "impl_hash": "sha256:084ed2169250c99aa19b12c1557b7e5cc4adcac14c70128e2f467ed9d07fbe3b"
+        },
+        "dependency_lock": null,
+        "runtime_image": null,
+        "inputs": [
+          {
+            "url": "https://api.babyblueviper.com/ledger/236",
+            "content_hash": "sha256:bc3afa72fdaed3d830d0d6071d9eafbff41b4620076cdf8b1aa7d8a8f5ffa9a0",
+            "retrieved_at": "2026-08-06T13:41:34Z"
+          },
+          {
+            "url": "https://raw.githubusercontent.com/giskard09/argentum-core/46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1/examples/conformance/crc-claim-id/claim_id.py",
+            "content_hash": "sha256:084ed2169250c99aa19b12c1557b7e5cc4adcac14c70128e2f467ed9d07fbe3b",
+            "retrieved_at": "2026-08-06T13:41:34Z"
+          }
+        ],
+        "execution_witness": null
+      },
+      "note": "Node 4 (mycelium-anchorregistry) first Cell. Both claim_id AND decision_ref independently re-derived from the live /ledger #236 source using our own claim_id.py (jcs.py canonicalizer, pre-existing in this repo for an unrelated RFC 8785 fix, reused as-is). No container pinning available in this run -- dependency_lock/runtime_image/execution_witness left honestly null rather than fabricated.",
+      "source_ledger_entry": "https://api.babyblueviper.com/ledger/236",
+      "cross_check": "node 1 (Fede /verify-proof, verifier 54848) and node 2 (Vertice recompute-lens, 0x85Fa...Bf1A) both carry this same claim_id on distinct lanes; this Cell adds a third, independently-implemented recompute lane on the same claim."
+    }
+  },
+  "signature": {
+    "scheme": "eip712",
+    "domain": {
+      "name": "cross-reference-console",
+      "version": "1",
+      "chainId": 1
+    },
+    "primaryType": "Cell",
+    "types": {
+      "Cell": [
+        {
+          "name": "schema",
+          "type": "string"
+        },
+        {
+          "name": "claim_id",
+          "type": "string"
+        },
+        {
+          "name": "result",
+          "type": "string"
+        },
+        {
+          "name": "verifier",
+          "type": "address"
+        },
+        {
+          "name": "boundary",
+          "type": "string"
+        },
+        {
+          "name": "as_of",
+          "type": "string"
+        },
+        {
+          "name": "recomputed_at",
+          "type": "string"
+        },
+        {
+          "name": "evidence_hash",
+          "type": "bytes32"
+        }
+      ]
+    },
+    "evidence_hash": "0x18254db34b6b8653de9abcf2f1de867976d1fd3e7619e94e4b8bc40f571b6029",
+    "signer": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
+    "signature": "60c6b670fc59a37215019fd71ebc605839764cbe706839b38b51d5bc3f7c4fa2547f002e717113f224b948b25cbcf42764fb8781d9daaae5b3d07a3ef3b3a6fc1b"
+  },
+  "verify": "gate the claim_preimage; recompute evidence_hash=keccak256(JCS(evidence)); recoverTypedData(domain,{Cell},{schema,claim_id,result,verifier,boundary,as_of,recomputed_at,evidence_hash},signature) must equal signature.signer AND proof_payload.verifier (triple equality, CELL-v1.md \u00a72); re-run the evidence (claim_id + decision_ref from source_ledger_entry); re-derive independence from evidence.independence refs; check proof_payload.as_of == evidence.claim_preimage.as_of."
+}
