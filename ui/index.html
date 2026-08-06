@@ -103,6 +103,10 @@
   .how .step p{margin:0; color:var(--muted); font-size:13.5px; max-width:78ch}
   .how .step p b{color:var(--paper)}
   .how a{color:var(--brass); text-decoration:none; border-bottom:1px dotted var(--brass-2)}
+  .fp-bar{display:flex; gap:10px; margin:4px 0 14px; flex-wrap:wrap}
+  .fp-bar input{flex:1 1 260px; min-width:0; background:var(--panel); border:1px solid var(--line); border-radius:7px; color:var(--paper); font-family:var(--mono); font-size:13px; padding:11px 14px; outline:none}
+  .fp-bar input:focus{border-color:var(--brass-2)}
+  .fp-out{display:flex !important; padding-bottom:14px}
   footer{margin-top:34px; padding-top:18px; border-top:1px solid var(--line); color:var(--dim); font-size:12.5px; max-width:74ch}
   footer .big{font-family:var(--serif); font-style:italic; font-size:16px; color:var(--paper)}
   footer a{color:var(--brass); text-decoration:none} footer a:hover{text-decoration:underline}
@@ -223,6 +227,17 @@
       <div class="k">3 · Register a lane</div>
       <p>One PR adding one node object to <a href="https://github.com/trustless-ai/cross-reference-console/blob/main/nodes.json" target="_blank" rel="noopener">nodes.json</a> per <a href="https://github.com/trustless-ai/cross-reference-console/blob/main/NODES.md" target="_blank" rel="noopener">NODES.md</a>: identity, lane, envelope (<code>nostr-nip01</code> or <code>eip712</code>), and a checkable key reference. If it parses, conforms, and the key is checkable, it merges — <b>no other approval step</b>. Retirement is a tombstone, never a deletion.</p>
     </div>
+  </section>
+
+
+  <section class="how" id="footprint">
+    <h3>Your footprint in the matrix</h3>
+    <p class="sub">No login — everything here is public and content-addressed. Enter a GitHub handle, an <code>0x</code> address, or a claimant id; the report derives on your machine, live from the repo and registry.</p>
+    <div class="fp-bar">
+      <input id="fp-in" placeholder="github handle · 0x address · claimant id" spellcheck="false">
+      <button class="act" id="fp-go">Look up</button>
+    </div>
+    <div class="checks fp-out" id="fp-out"></div>
   </section>
 
   <footer>
@@ -600,6 +615,73 @@ function updateEdge(){
     t.textContent='edge broken — both nodes GREEN but claim_ids differ.';
   }
 }
+
+/* ---- footprint lookup: no login, no server — public data, derived client-side ---- */
+const FP_REPO='trustless-ai/cross-reference-console';
+async function ghApi(path){ const r=await fetch('https://api.github.com/'+path,{headers:{'Accept':'application/vnd.github+json'}}); if(!r.ok) throw new Error('GitHub API '+r.status); return r.json(); }
+async function fpRaw(p){ const r=await fetch('https://raw.githubusercontent.com/'+FP_REPO+'/main/'+p,{cache:'no-store'}); if(!r.ok) throw new Error(p+' '+r.status); return parseStrict(await r.text()); }
+function fpLine(st,label,val){
+  return `<div class="chk ${st}"><span class="mk">${st==='ok'?'✓':st==='no'?'✗':'◌'}</span><span class="lab">${label}</span><span class="val">${val||''}</span></div>`;
+}
+async function fpLookup(){
+  const q=document.getElementById('fp-in').value.trim();
+  const out=document.getElementById('fp-out');
+  if(!q){ out.innerHTML=fpLine('wait','enter a github handle, 0x address, or claimant id',''); return; }
+  out.innerHTML=fpLine('wait','deriving — fetching public data…','');
+  const lines=[];
+  const isAddr=/^0x[0-9a-fA-F]{40}$/.test(q);
+  const isId=/^\d+$/.test(q);
+  try{
+    const registry=await fpRaw('nodes.json');
+    if(isAddr||isId){
+      // registered lanes
+      const mine=registry.nodes.filter(n=>String(n.verifier).toLowerCase()===q.toLowerCase());
+      for(const n of mine) lines.push(fpLine(n.retired?'no':'ok',`lane · ${n.node_id}`,`${n.lane} · ${n.envelope} · since ${n.since}`+(n.retired?` · RETIRED ${n.retired}`:'')));
+      if(!mine.length) lines.push(fpLine('wait','no registered lane for this identity','register: one PR to nodes.json per NODES.md'));
+      // cells signed by those lanes
+      if(mine.length){
+        const dirs=(await ghApi(`repos/${FP_REPO}/contents/cells`)).filter(d=>d.type==='dir');
+        for(const d of dirs.slice(0,12)){
+          const files=await ghApi(`repos/${FP_REPO}/contents/cells/${d.name}`);
+          for(const n of mine){
+            const f=files.find(x=>x.name===n.node_id+'.cell.json');
+            lines.push(f?fpLine('ok',`cell · claim ${d.name.slice(0,8)}…`,`${n.node_id}.cell.json — in the registry (recompute it above)`)
+                        :fpLine('wait',`cell · claim ${d.name.slice(0,8)}…`,`${n.node_id}: none yet — this lane abstains on that claim`));
+          }
+        }
+      }
+    }
+    if(isId){
+      // claims lifted with this claimant
+      const cfiles=(await ghApi(`repos/${FP_REPO}/contents/claims`)).filter(f=>f.type==='file'&&f.name.endsWith('.json')&&!f.name.startsWith('.'));
+      let hits=0;
+      for(const f of cfiles.slice(0,20)){
+        const c=await fpRaw('claims/'+f.name);
+        if(String(c.claim_preimage.claimant)===q){ hits++; lines.push(fpLine('ok',`claim · ${c.claim_id.slice(0,18)}…`,`${c.claim_preimage.artifact_type} · via ${c.lift.source_id} entry #${c.lift.entry}`)); }
+      }
+      try{
+        const rfiles=(await ghApi(`repos/${FP_REPO}/contents/claims/rejected`)).filter(f=>f.type==='file'&&f.name.endsWith('.json'));
+        for(const f of rfiles.slice(0,10)){
+          const rj=await fpRaw('claims/rejected/'+f.name);
+          if(String((rj.lift_attempt||{}).claimant||'')===q) lines.push(fpLine('no',`rejected · entry #${rj.entry}`,`${rj.stage}: ${rj.error} — public, with the gate error (non-suppression)`));
+        }
+      }catch(e){}
+      if(!hits) lines.push(fpLine('wait','no registered claims for this claimant id','submit via the intake above — the watcher lifts conforming entries within ~30 min'));
+    }
+    if(!isAddr&&!isId){
+      // github handle: PRs against the console repo
+      const prs=(await ghApi(`repos/${FP_REPO}/pulls?state=all&per_page=30`)).filter(p=>p.user.login.toLowerCase()===q.toLowerCase());
+      for(const p of prs) lines.push(fpLine(p.merged_at?'ok':(p.state==='open'?'wait':'no'),`PR #${p.number} · ${p.merged_at?'merged':p.state}`,p.title));
+      if(!prs.length) lines.push(fpLine('wait',`no PRs by @${q} on the console repo`,'cells and lanes arrive as PRs — CI is the reviewer'));
+    }
+    lines.push(fpLine('ok','report derived on your machine','nothing was stored, nothing was asserted — every line re-derivable from the repo, registry, and CI'));
+    out.innerHTML=lines.join('');
+  }catch(e){
+    out.innerHTML=lines.join('')+fpLine('wait','could not observe — '+e.message,'availability failure, not a verdict (AMBER discipline); try again shortly');
+  }
+}
+document.getElementById('fp-go').addEventListener('click',fpLookup);
+document.getElementById('fp-in').addEventListener('keydown',(e)=>{ if(e.key==='Enter') fpLookup(); });
 
 document.getElementById('c1').addEventListener('click',()=>recomputeNode1());
 document.getElementById('c2').addEventListener('click',()=>recomputeNode2());
