@@ -95,6 +95,14 @@
 
   .edge{display:flex; align-items:center; gap:10px; margin:20px 2px 0; font-family:var(--mono); font-size:12px; color:var(--dim)}
   .edge .b{color:var(--muted)} .edge.match .b{color:var(--green)}
+  .how{margin-top:34px; border:1px solid var(--line); border-radius:12px; background:var(--ink-2); padding:22px 22px 8px}
+  .how h3{margin:0 0 4px; font-size:16px; letter-spacing:.02em}
+  .how .sub{color:var(--dim); font-size:12.5px; margin:0 0 14px}
+  .how .step{border-top:1px solid var(--line); padding:14px 0}
+  .how .step .k{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--brass); margin-bottom:5px}
+  .how .step p{margin:0; color:var(--muted); font-size:13.5px; max-width:78ch}
+  .how .step p b{color:var(--paper)}
+  .how a{color:var(--brass); text-decoration:none; border-bottom:1px dotted var(--brass-2)}
   footer{margin-top:34px; padding-top:18px; border-top:1px solid var(--line); color:var(--dim); font-size:12.5px; max-width:74ch}
   footer .big{font-family:var(--serif); font-style:italic; font-size:16px; color:var(--paper)}
   footer a{color:var(--brass); text-decoration:none} footer a:hover{text-decoration:underline}
@@ -198,6 +206,24 @@
 
   <div class="edge" id="edge"><span>edge:</span> <span class="b" id="edgetxt">both nodes must derive the same claim_id for the edge to hold</span></div>
   <div class="edge" id="edge2"><span>v1 edge:</span> <span class="b" id="edge2txt">both nodes must produce GREEN crc.cell.v1 Cells with byte-equal claim_id</span></div>
+
+
+  <section class="how">
+    <h3>Join the matrix — three doors, one gate</h3>
+    <p class="sub">Payment meters admission. Only the cryptographic + conformance checks decide validity — never one substituting for the other.</p>
+    <div class="step">
+      <div class="k">1 · Submit a claim</div>
+      <p>POST a signed verdict to the registered intake — invinoveritas <b>/ledger/submit</b> (self-serve, paid in sats, signature-verified, auto-accepted). A public CI watcher polls the ledger every 30 minutes, runs every entry through the <b>pre-hash conformance gate</b>, and registers conforming claims in <code>claims/</code>. Nonconforming-but-paid submissions are published in <code>claims/rejected/</code> <b>with the gate error</b> — a rejection is a derivable fact, never a silent drop.</p>
+    </div>
+    <div class="step">
+      <div class="k">2 · Cross-verify a claim (registered nodes)</div>
+      <p>Recompute the claim from its source, sign a <b>crc.cell.v1</b> Cell under your registered key, and open a PR to <code>cells/{claim_id_hex}/{node_id}.cell.json</code>. CI runs the full mechanical review — gate, claim_id, as_of binding, and your envelope's signature check against the <b>registered</b> key (never the key the cell asserts). Green merges; your column earns its lamp here. One-liner check before you PR: <code>recompute-step crc/cell-verify &lt;cell.json&gt; eip712 &lt;registered address&gt;</code> (recompute-kit).</p>
+    </div>
+    <div class="step">
+      <div class="k">3 · Register a lane</div>
+      <p>One PR adding one node object to <a href="https://github.com/trustless-ai/cross-reference-console/blob/main/nodes.json" target="_blank" rel="noopener">nodes.json</a> per <a href="https://github.com/trustless-ai/cross-reference-console/blob/main/NODES.md" target="_blank" rel="noopener">NODES.md</a>: identity, lane, envelope (<code>nostr-nip01</code> or <code>eip712</code>), and a checkable key reference. If it parses, conforms, and the key is checkable, it merges — <b>no other approval step</b>. Retirement is a tombstone, never a deletion.</p>
+    </div>
+  </section>
 
   <footer>
     <p class="big">Recomputed in your browser from public data. No trust required.</p>
