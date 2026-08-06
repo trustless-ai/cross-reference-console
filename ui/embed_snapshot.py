@@ -24,13 +24,19 @@ if os.path.isdir(rej):
             snap["rejected"].append(json.load(open(rej + "/" + fn)))
 
 targets = sys.argv[1:] or [os.path.join(root, "ui", "index.html")]
-blob = json.dumps(snap, separators=(",", ":"), ensure_ascii=False)
+import hashlib, datetime
+canonical = json.dumps(snap, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+wrapped = {"schema": "crc.console-snapshot.v0",
+           "generated_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+           "digest": "sha256:" + hashlib.sha256(canonical.encode()).hexdigest(),
+           "data": snap}
+blob = json.dumps(wrapped, separators=(",", ":"), ensure_ascii=False)
 for t in targets:
     s = open(t).read()
     s2 = re.sub(r'(<script type="application/json" id="seed-registry">)[\s\S]*?(</script>)',
                 lambda m: m.group(1) + blob + m.group(2), s, count=1)
     assert 'id="seed-registry"' in s2
     open(t, "w").write(s2)
-    print(f"snapshot embedded -> {t} ({len(blob)//1024} KB, "
+    print(f"snapshot embedded -> {t} ({len(blob)//1024} KB, {wrapped['digest'][:18]}…, "
           f"{len(snap['claims'])} claims, {sum(len(v) for v in snap['cells'].values())} cells, "
           f"{len(snap['nodes']['nodes'])} nodes)")
