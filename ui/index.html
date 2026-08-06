@@ -86,11 +86,11 @@
   .cell .hint{font-size:12px; color:var(--dim); margin-top:9px}
   .checks{margin-top:12px; display:none; flex-direction:column; gap:7px}
   .cell.open .checks{display:flex}
-  .chk{font-family:var(--mono); font-size:11.5px; display:flex; gap:8px; align-items:baseline; color:var(--muted)}
+  .chk{font-family:var(--mono); font-size:11.5px; display:flex; flex-wrap:wrap; gap:2px 8px; align-items:baseline; color:var(--muted)}
   .chk .mk{width:14px; flex:none; text-align:center}
   .chk.ok .mk{color:var(--green)} .chk.no .mk{color:var(--red)} .chk.wait .mk{color:var(--dim)}
-  .chk .lab{color:var(--paper); flex:none}
-  .chk .val{color:var(--dim); word-break:break-all}
+  .chk .lab{color:var(--paper); flex:1 1 0; min-width:0}
+  .chk .val{color:var(--dim); word-break:break-all; flex:1 1 100%; margin-left:22px}
   .chk .val b{color:var(--ink-brass)}
 
   .edge{display:flex; align-items:center; gap:10px; margin:20px 2px 0; font-family:var(--mono); font-size:12px; color:var(--dim)}
@@ -387,7 +387,7 @@ async function recomputeNode1(open=true){
   }catch(e){ sigSt='wait'; setChk('n1-sig','wait','verifier unreachable (schnorr lib failed to load) — could not observe'); }
   states.push(sigSt);
   const v=verdict(states);
-  setCell(cell,v,v==='green'?'GREEN · '+(content?content.result:''):v==='amber'?'AMBER · could not observe':'RED');
+  setCell(cell,v,v==='green'?'GREEN':v==='amber'?'AMBER · could not observe':'RED');
   results.n1={cid,verdict:v};
   updateEdge();
 }
@@ -439,7 +439,7 @@ async function recomputeNode2(open=true){
     states.push('wait','wait');
   }
   const v=verdict(states);
-  setCell(cell,v,v==='green'?'GREEN · '+pp.result:v==='amber'?'AMBER · could not observe':'RED');
+  setCell(cell,v,v==='green'?'GREEN':v==='amber'?'AMBER · could not observe':'RED');
   results.n2={cid,verdict:v};
   updateEdge();
 }
@@ -481,7 +481,7 @@ async function recomputeNode1V1(open=true){
   }catch(e){ sigSt='wait'; setChk('n1v1-sig','wait','verifier unreachable (schnorr lib failed to load) — could not observe'); }
   states.push(sigSt);
   const v=verdict(states);
-  setCell(cell,v,v==='green'?'GREEN · '+(pp?pp.result:'')+' · v1':v==='amber'?'AMBER · could not observe':'RED');
+  setCell(cell,v,v==='green'?'GREEN · v1':v==='amber'?'AMBER · could not observe':'RED');
   results.n1v1={cid,verdict:v};
   updateEdgeV1();
 }
@@ -531,7 +531,7 @@ async function recomputeEip712V1(nkey, data, open=true){
     states.push('wait','wait');
   }
   const v=verdict(states);
-  setCell(cell,v,v==='green'?'GREEN · '+pp.result+' · v1':v==='amber'?'AMBER · could not observe':'RED');
+  setCell(cell,v,v==='green'?'GREEN · v1':v==='amber'?'AMBER · could not observe':'RED');
   results['n'+nkey]={cid,verdict:v};
   updateEdgeV1();
 }
