@@ -45,6 +45,21 @@
       "cell_url_template": null,
       "since": "2026-08-05T19:35:31Z",
       "retired": null
+    },
+    {
+      "node_id": "mycelium-anchorregistry",
+      "display": "Node 4 — Mycelium AnchorRegistry (Giskard)",
+      "verifier": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
+      "lane": "recompute/mycelium",
+      "envelope": "eip712",
+      "key_ref": {
+        "pubkey": null,
+        "address": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
+        "keys_url": "https://argentum.rgiskard.xyz/.well-known/agent.json"
+      },
+      "cell_url_template": null,
+      "since": "2026-08-06T13:43:49Z",
+      "retired": null
     }
   ],
   "claim_sources": [
