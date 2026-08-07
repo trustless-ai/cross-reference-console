@@ -42,6 +42,11 @@ jobs:
           python3 reference/check_sunset.py "origin/${{ github.base_ref }}" HEAD
       - name: registry identity is derivable and stable
         run: python3 reference/registry_id.py
+      - name: create_cell.py loads (the tool an outsider onboards with)
+        run: |
+          # A create tool that has broken imports fails silently for everyone
+          # EXCEPT us, because nothing in this repo's tests exercises it.
+          python3 reference/create_cell.py --help > /dev/null
       - name: lane distinctness — the edge rule's predicate, derived not labelled
         run: |
           python3 reference/test_lane_distinctness.py
