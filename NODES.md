@@ -51,6 +51,18 @@ Either way the Cell must verify under its envelope's recipe: `nostr-nip01` → N
 
 v0.2 is **ledger-only** by group decision (2026-08-05): one admission mechanism first, so a `claims/` mismatch is unambiguously a gate bug. Adding an intake later is a PR to this file, not a rework. Admission never decides validity — the gate does.
 
+## crc.cell.v2 (in force)
+
+As of the activation commit (`git log --diff-filter=A -- CELL-v2.md`), **newly submitted Cells MUST be `crc.cell.v2`** — see [CELL-v2.md](CELL-v2.md). Cells that existed at activation stand as frozen history and are never re-judged; CI enforces the rule against *newly added* files only.
+
+A v2 Cell carries `registry_id` inside its signed payload, and it MUST equal this registry's identity:
+
+```
+sha256:9b871ba9cf05e9da7df78e0b15d44fc04059e6af4bda8037d6f456984598d157
+```
+
+Don't take that constant on faith — derive it: `python3 reference/registry_id.py` (JCS of the genesis `nodes.json`, whose commit is itself derived via `git log --diff-filter=A -- nodes.json`).
+
 ## Versioning
 
 `crc.nodes.v0`. Field changes mint `crc.nodes.v1`; instances are validated with the same strictness as ClaimPreimages (exact field set, no duplicates, unknown fields reject).

@@ -21,6 +21,7 @@ import json, hashlib, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from claim_id import loads_strict, validate as gate, claim_id as derive_claim_id
+from registry_id import registry_id as this_registry_id
 import bip340
 
 failures = []
@@ -76,7 +77,15 @@ def validate(cell_path, nodes_path):
         cid = derive_claim_id(pre)
         chk("claim_id recomputes", cid == pp["claim_id"], cid)
         chk("claim_id matches directory", cid == "sha256:" + dirname)
-        chk("schema crc.cell.v1", pp.get("schema") == "crc.cell.v1")
+        schema = pp.get("schema")
+        chk("schema is crc.cell.v1 or v2", schema in ("crc.cell.v1", "crc.cell.v2"), schema)
+        if schema == "crc.cell.v2":
+            # CELL-v2.md §2: payload-primary registry binding is THE normative check.
+            want = this_registry_id()
+            chk("v2 registry_id == this registry (payload-primary)", pp.get("registry_id") == want, pp.get("registry_id"))
+            names = [f["name"] for f in sg["types"]["Cell"]]
+            chk("v2 EIP-712 struct carries registry_id", "registry_id" in names, names)
+            chk("v2 domain version is 2", str(sg["domain"].get("version")) == "2", sg["domain"].get("version"))
         chk("as_of binding (payload == preimage)", pp.get("as_of") == pre["as_of"])
         chk("recomputed_at present and a distinct field", isinstance(pp.get("recomputed_at"), str) and pp["recomputed_at"] != "")
         chk("boundary inside payload", isinstance(pp.get("boundary"), str) and pp["boundary"] != "")
@@ -114,7 +123,13 @@ def validate(cell_path, nodes_path):
         cid = derive_claim_id(pre)
         chk("claim_id recomputes", cid == pp["claim_id"], cid)
         chk("claim_id matches directory", cid == "sha256:" + dirname)
-        chk("schema crc.cell.v1", pp.get("schema") == "crc.cell.v1")
+        schema = pp.get("schema")
+        chk("schema is crc.cell.v1 or v2", schema in ("crc.cell.v1", "crc.cell.v2"), schema)
+        if schema == "crc.cell.v2":
+            # CELL-v2.md §2.3: the Nostr lane has no domain — only a field INSIDE the signed
+            # content can bind the registry, which is why payload-primary is THE rule.
+            want = this_registry_id()
+            chk("v2 registry_id == this registry (inside signed content)", pp.get("registry_id") == want, pp.get("registry_id"))
         chk("as_of binding (payload == preimage)", pp.get("as_of") == pre["as_of"])
         chk("boundary inside signed content", isinstance(pp.get("boundary"), str) and pp["boundary"] != "")
         ser = json.dumps([0, ev["pubkey"], ev["created_at"], ev["kind"], ev["tags"], ev["content"]],
