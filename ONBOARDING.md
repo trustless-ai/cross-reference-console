@@ -189,7 +189,8 @@ validator accepted.
 ## Where to read more
 
 - [`CLAIM.md`](CLAIM.md) — the Claim preimage and its gate
-- [`CELL.md`](CELL.md) → [`CELL-v1.md`](CELL-v1.md) → [`CELL-v2.md`](CELL-v2.md) — the Cell, appended never rewritten. **v2 is what you sign**; the earlier files are frozen history, not alternatives
+- [`CELL-IN-FORCE.md`](CELL-IN-FORCE.md) — **start here.** Generated: the complete list of what a Cell you create today must satisfy, derived by building one and recording what was demanded of it
+- [`CELL.md`](CELL.md) → [`CELL-v1.md`](CELL-v1.md) → [`CELL-v2.md`](CELL-v2.md) — the normative Cell spec, appended never rewritten. The earlier files are frozen history, not alternatives — read them to verify an old Cell, not to make a new one
 - [`NODES.md`](NODES.md) — the registry and intake contract
 - [`PROPOSAL-lane-distinctness.md`](PROPOSAL-lane-distinctness.md) — what makes two lanes actually distinct
 
