@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
-"""crc.cell.v1 sunset enforcement (CELL-v2.md §4).
+"""Cell schema sunset enforcement (CELL-v2.md §4, CELL-v3.md §5).
 
-A Cell **added** after the activation commit MUST be `crc.cell.v2`. Cells that
-already existed at activation are frozen history and are never re-judged.
+A Cell **added** after the activation commit MUST carry the in-force schema.
+Cells that already existed at activation are frozen history, never re-judged.
 
-The activation point is not recorded anywhere by hand — it is derived:
+Neither the in-force version NOR its activation point is recorded by hand.
+Both are DERIVED:
 
-    git log --diff-filter=A --format=%H -- CELL-v2.md
+    in-force version = the highest CELL-vN.md present on this branch
+    activation       = git log --diff-filter=A --format=%H -- CELL-v<N>.md
+
+The version was hardcoded to v2 until 2026-08-07. That made adding CELL-v3.md a
+silent deadlock: the spec self-activates on merge and requires v3, while this
+file still demanded v2 — so no new Cell of ANY version could be submitted.
+Deriving it means minting v4 needs no change here, and a spec can never
+activate a rule its enforcement doesn't know about.
 
 Usage (CI):  python3 reference/check_sunset.py <base-ref> <head-ref>
              python3 reference/check_sunset.py            # defaults to origin/main...HEAD
@@ -16,6 +24,7 @@ Stdlib only.
 """
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -43,15 +52,31 @@ def schema_of(path: str) -> str:
     return (pp or {}).get("schema", "<none>")
 
 
+def in_force_version() -> int:
+    """Highest N for which CELL-vN.md exists on this branch. Discovered, not listed."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ns = [int(m.group(1)) for f in os.listdir(root)
+          if (m := re.fullmatch(r"CELL-v(\d+)\.md", f))]
+    return max(ns) if ns else 0
+
+
 def main() -> int:
     base = sys.argv[1] if len(sys.argv) > 1 else "origin/main"
     head = sys.argv[2] if len(sys.argv) > 2 else "HEAD"
 
-    act = activation_commit()
-    if not act:
-        print("[SKIP] CELL-v2.md not present on this branch — sunset not in force yet")
+    n = in_force_version()
+    if n == 0:
+        print("[SKIP] no CELL-vN.md on this branch — sunset not in force yet")
         return 0  # not a pass of the rule; the rule simply does not apply yet
-    print(f"activation commit (derived): {act[:12]}  [git log --diff-filter=A -- CELL-v2.md]")
+    spec = f"CELL-v{n}.md"
+    want = f"crc.cell.v{n}"
+
+    act = activation_commit(spec)
+    if not act:
+        print(f"[SKIP] {spec} not present on this branch — sunset not in force yet")
+        return 0
+    print(f"in-force schema (derived): {want}   [highest CELL-vN.md on this branch]")
+    print(f"activation commit (derived): {act[:12]}  [git log --diff-filter=A -- {spec}]")
 
     new = added_cells(base, head)
     if not new:
@@ -61,19 +86,19 @@ def main() -> int:
     bad = []
     for path in new:
         schema = schema_of(path)
-        ok = schema == "crc.cell.v2"
+        ok = schema == want
         print(f"  {'ok  ' if ok else 'FAIL'} {path} -> {schema}")
         if not ok:
             bad.append((path, schema))
 
     if bad:
         print(
-            f"\n{len(bad)} newly submitted Cell(s) are not crc.cell.v2.\n"
-            f"CELL-v2.md §4: Cells added after the activation commit MUST be v2.\n"
+            f"\n{len(bad)} newly submitted Cell(s) are not {want}.\n"
+            f"{spec}: Cells added after the activation commit MUST be {want}.\n"
             f"Existing Cells are untouched — this rule judges NEW submissions only."
         )
         return 1
-    print("\nall newly added Cells are crc.cell.v2 — sunset respected")
+    print(f"\nall newly added Cells are {want} — sunset respected")
     return 0
 
 
