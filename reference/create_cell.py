@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Produce a signed crc.cell.v2 — the tool this repo was missing.
+Produce a signed Cell — the tool this repo was missing.
 
 Until now `reference/` held ten scripts and every one of them CHECKED something.
 Nothing PRODUCED anything, so an outsider could verify our cells and not make
@@ -44,7 +44,7 @@ ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 
 from claim_id import loads_strict, validate as gate, claim_id as derive_claim_id  # noqa: E402
-from registry_id import registry_id as this_registry_id  # noqa: E402
+from registry_id import registry_id as this_registry_id, in_force_schema  # noqa: E402
 
 # The signed struct, in order. CELL-v2.md §2 — registry_id is inside it, which
 # is what makes a v2 Cell bound to THIS registry instance rather than portable
@@ -61,18 +61,13 @@ CELL_TYPE_V2 = [
     {"name": "evidence_hash", "type": "bytes32"},
 ]
 
-DOMAIN_V2 = {"name": "cross-reference-console", "version": "2", "chainId": 1}
+DOMAIN_VERSION_FOR = {"crc.cell.v2": "2", "crc.cell.v3": "3"}
 RESULTS = ("GREEN", "RED", "AMBER")
 
 
-def in_force_schema() -> str:
-    """The schema new Cells must carry: highest CELL-vN.md present. DERIVED, not
-    hardcoded -- a hardcoded version here would emit Cells that CI rejects the
-    moment a new spec lands, which is exactly the deadlock this repo just had
-    between CELL-v3.md and check_sunset.py."""
-    ns = [int(m.group(1)) for f in os.listdir(ROOT)
-          if (m := re.fullmatch(r"CELL-v(\d+)\.md", f))]
-    return f"crc.cell.v{max(ns)}" if ns else "crc.cell.v2"
+def eip712_domain(schema: str) -> dict:
+    """EIP-712 domain — version N for crc.cell.vN (CELL-v3.md §1.3)."""
+    return {"name": "cross-reference-console", "version": DOMAIN_VERSION_FOR[schema], "chainId": 1}
 
 
 def jcs(o) -> str:
@@ -169,6 +164,8 @@ def sign_eip712(pp: dict, key: str) -> dict:
     evidence_hash = "0x" + keccak256(jcs(pp["evidence"]).encode()).hex()
     value = {f["name"]: (evidence_hash if f["name"] == "evidence_hash" else pp[f["name"]])
              for f in CELL_TYPE_V2}
+    schema = pp["schema"]
+    domain = eip712_domain(schema)
     full = {
         "types": {
             "EIP712Domain": [{"name": "name", "type": "string"},
@@ -177,7 +174,7 @@ def sign_eip712(pp: dict, key: str) -> dict:
             "Cell": CELL_TYPE_V2,
         },
         "primaryType": "Cell",
-        "domain": DOMAIN_V2,
+        "domain": domain,
         "message": value,
     }
     acct = Account.from_key(key)
@@ -192,7 +189,7 @@ def sign_eip712(pp: dict, key: str) -> dict:
 
     return {
         "scheme": "eip712",
-        "domain": DOMAIN_V2,
+        "domain": domain,
         "primaryType": "Cell",
         "types": {"Cell": CELL_TYPE_V2},
         "evidence_hash": evidence_hash,
@@ -228,7 +225,7 @@ VERIFY_NOTE = (
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Create and sign a crc.cell.v2.",
+        description="Create and sign a Cell (in-force crc.cell schema).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="The signing key is read from $CRC_KEY, never a flag.")
     ap.add_argument("--claim", required=True, help="path to a claims/<id>.json file")
