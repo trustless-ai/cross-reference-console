@@ -42,6 +42,10 @@ jobs:
           python3 reference/check_sunset.py "origin/${{ github.base_ref }}" HEAD
       - name: registry identity is derivable and stable
         run: python3 reference/registry_id.py
+      - name: lane distinctness — the edge rule's predicate, derived not labelled
+        run: |
+          python3 reference/test_lane_distinctness.py
+          python3 reference/check_lane_distinctness.py
       - name: every claim file re-derives
         run: |
           python3 - <<'EOF'
