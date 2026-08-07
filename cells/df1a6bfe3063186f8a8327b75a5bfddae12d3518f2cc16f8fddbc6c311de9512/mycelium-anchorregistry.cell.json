@@ -101,7 +101,7 @@
     },
     "evidence_hash": "0x18254db34b6b8653de9abcf2f1de867976d1fd3e7619e94e4b8bc40f571b6029",
     "signer": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
-    "signature": "60c6b670fc59a37215019fd71ebc605839764cbe706839b38b51d5bc3f7c4fa2547f002e717113f224b948b25cbcf42764fb8781d9daaae5b3d07a3ef3b3a6fc1b"
+    "signature": "0x60c6b670fc59a37215019fd71ebc605839764cbe706839b38b51d5bc3f7c4fa2547f002e717113f224b948b25cbcf42764fb8781d9daaae5b3d07a3ef3b3a6fc1b"
   },
-  "verify": "gate the claim_preimage; recompute evidence_hash=keccak256(JCS(evidence)); recoverTypedData(domain,{Cell},{schema,claim_id,result,verifier,boundary,as_of,recomputed_at,evidence_hash},signature) must equal signature.signer AND proof_payload.verifier (triple equality, CELL-v1.md \u00a72); re-run the evidence (claim_id + decision_ref from source_ledger_entry); re-derive independence from evidence.independence refs; check proof_payload.as_of == evidence.claim_preimage.as_of."
+  "verify": "gate the claim_preimage; recompute evidence_hash=keccak256(JCS(evidence)); recoverTypedData(domain,{Cell},{schema,claim_id,result,verifier,boundary,as_of,recomputed_at,evidence_hash},signature) must equal signature.signer AND proof_payload.verifier (triple equality, CELL-v1.md §2); re-run the evidence (claim_id + decision_ref from source_ledger_entry); re-derive independence from evidence.independence refs; check proof_payload.as_of == evidence.claim_preimage.as_of."
 }

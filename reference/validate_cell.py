@@ -91,6 +91,8 @@ def validate(cell_path, nodes_path):
                                            {"name": "version", "type": "string"},
                                            {"name": "chainId", "type": "uint256"}], **sg["types"]},
                 "primaryType": "Cell", "domain": sg["domain"], "message": value}
+        chk("signature grammar ^0x[0-9a-f]{130}$ (65-byte hex, 0x-prefixed)",
+            bool(re.fullmatch(r"0x[0-9a-f]{130}", sg["signature"])), sg["signature"][:12])
         rec = Account.recover_message(encode_typed_data(full_message=full), signature=sg["signature"])
         chk("quadruple equality: recovered == signer == verifier == registered address",
             rec.lower() == sg["signer"].lower() == str(pp["verifier"]).lower() == node["key_ref"]["address"].lower(), rec)
