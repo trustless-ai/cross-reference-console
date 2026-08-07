@@ -1,6 +1,16 @@
 # Proposal — define and enforce lane distinctness
 
-**Status:** PROPOSAL, for the group. Not adopted. Raised 2026-08-07 after an outsider onboarding walk ([PR #7](https://github.com/trustless-ai/cross-reference-console/pull/7), M Zidan Fatonie) surfaced the lane taxonomy as undocumented. It is worse than undocumented.
+**Status:** **SUPERSEDED** by [CELL-v3.md](CELL-v3.md) (spec branch `spec/crc-cell-v3-lineage`). Historical record only — do not treat this file as normative.
+
+Raised 2026-08-07 after an outsider onboarding walk ([PR #7](https://github.com/trustless-ai/cross-reference-console/pull/7), M Zidan Fatonie) surfaced the lane taxonomy as undocumented. It is worse than undocumented.
+
+**What landed where:**
+
+| Topic | Where |
+|---|---|
+| Necessary distinctness (impl_hash, repo, runtime, lock) | [PR #8](https://github.com/trustless-ai/cross-reference-console/pull/8) — `reference/check_lane_distinctness.py` on `main` |
+| `derived_from`, pair states, claim axes, transitivity | [CELL-v3.md](CELL-v3.md) + [LINEAGE-REF.md](LINEAGE-REF.md) + [docs/VECTOR-MATRIX-v3-independence.md](docs/VECTOR-MATRIX-v3-independence.md) |
+| Runtime independence checker / UI / v3 resigning | **Not in scope** — future implementation PRs |
 
 ---
 
@@ -53,6 +63,8 @@ This is the failure the group has now hit four times in one day: **a qualifying 
 
 ## 4 · Proposed change (mints `crc.cell.v3`)
 
+This section preserves the pre-v3 proposal wording for provenance; where it conflicts with [CELL-v3.md](CELL-v3.md), CELL-v3.md is authoritative.
+
 Add one field to `evidence.independence`:
 
 ```jsonc
@@ -68,11 +80,11 @@ Add one field to `evidence.independence`:
 - `[]` — written from the specification, not from another implementation.
 - `["<url>", …]` — derived from those implementations. Honest, permitted, and an edge with any of them is **not** an independent edge.
 
-A list rather than a single value, per §6.1: derivation is not always single-parent, and a scalar would force a signer who drew on two implementations to name one and omit the other.
+A list rather than a single value, per §6 item 1: derivation is not always single-parent, and a scalar would force a signer who drew on two implementations to name one and omit the other.
 
 Per v1's existing rule, the field is always present; `null` means "independent", never "unstated". Absence fails the gate.
 
-**Why this must be v3 and not a validator patch.** `evidence.independence` sits inside the signed struct. A required field changes it, and `CELL-v2.md` §6 is explicit: any change to the struct or these rules mints `crc.cell.v3`. Existing v1/v2 cells stay valid as v1/v2 — the append-only discipline holds, nothing is re-signed.
+**Why this must be v3 and not a validator patch.** `evidence.independence` sits inside the signed struct. A required field changes it, and [CELL-v2.md §5 · Everything else carries over](CELL-v2.md) is explicit: any change to the struct or these rules mints `crc.cell.v3`. Existing v1/v2 cells stay valid as v1/v2 — the append-only discipline holds, nothing is re-signed.
 
 ## 5 · Migration, and what happens to the live edge
 
@@ -103,10 +115,16 @@ So the console renders a **third value** alongside present/absent that a reader 
 
 **4 · Ship v3 alone.** *(giskard)* Nothing pending on the mycelium leg that would need a second struct change, so no reason to batch and make nodes re-sign twice.
 
-## 7 · Open, and deliberately not assumed into this PR
+## 7 · Resolved in CELL-v3 (was open at proposal time)
 
-**Does exclusion transit?** If X declares `derived_from [A, B]` and A itself declares `derived_from C`, is X still non-independent of C? Both Fede and giskard reason it must transit, fail-closed — otherwise a two-hop fork launders itself back into independence for free. Both also said it should get its own vector once the field exists rather than be assumed now, and that is the right call: a transitivity rule with no implementation to test against is a guess written in normative language.
+**Does exclusion transit?** Both Fede and giskard reasoned it must transit, fail-closed — otherwise a two-hop fork launders itself back into independence for free. [CELL-v3.md §4](CELL-v3.md) now specifies the closure algorithm and basis labels (`transitive`, `shared_ancestor`). **Final normative prose** for edge cases remains `[PENDING-VECTOR]` until matching rows in [docs/VECTOR-MATRIX-v3-independence.md](docs/VECTOR-MATRIX-v3-independence.md) are executable in CI (see V-04, V-05, S-02).
 
 ## 8 · Fixed in review
 
 `.replace(".cell", "")` corrupted any node name *containing* `.cell` rather than ending with it — `mycelium.cellstore` became `myceliumstore`. Found and fixed by **Pavlo** (`removesuffix`, both checker and tests), who could not push to this repo directly. Applied here with a regression vector over four names so it cannot return.
+
+---
+
+## 9 · Supersession (2026-08-07)
+
+This proposal is **superseded** by [CELL-v3.md](CELL-v3.md) as the normative `crc.cell.v3` spec. Group decisions in §6–§8 are preserved here for attribution; normative pair states, claim axes, LineageRef grammar, and vector matrix live in the v3 spec files. No retroactive resigning of existing Cells.
