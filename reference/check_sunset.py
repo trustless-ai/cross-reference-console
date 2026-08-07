@@ -52,6 +52,25 @@ def schema_of(path: str) -> str:
     return (pp or {}).get("schema", "<none>")
 
 
+# Each version's spec names its OWN activation anchor, and that is a fact about
+# the spec rather than a rule that can be derived from it:
+#
+#   CELL-v2.md §4  -> activation = the commit that added CELL-v2.md
+#   CELL-v3.md §5.1 -> activation = the commit that added reference/lineage_ref.py,
+#                      because v3 deliberately does NOT self-activate on the spec
+#                      merging; it activates when enforcement exists.
+#
+# Deriving this from prose is not possible, so it is written down once, here,
+# and each new version adds its line when its spec names an anchor. Getting it
+# wrong would mean the code and the spec report different activation commits for
+# the same rule -- which is the kind of ambiguity that makes "what was in force
+# at the time" unanswerable.
+ACTIVATION_ANCHOR = {
+    2: "CELL-v2.md",
+    3: "reference/lineage_ref.py",
+}
+
+
 def in_force_version() -> int:
     """Highest N for which CELL-vN.md exists on this branch. Discovered, not listed."""
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -70,13 +89,14 @@ def main() -> int:
         return 0  # not a pass of the rule; the rule simply does not apply yet
     spec = f"CELL-v{n}.md"
     want = f"crc.cell.v{n}"
+    anchor = ACTIVATION_ANCHOR.get(n, spec)
 
-    act = activation_commit(spec)
+    act = activation_commit(anchor)
     if not act:
-        print(f"[SKIP] {spec} not present on this branch — sunset not in force yet")
+        print(f"[SKIP] {anchor} not present on this branch — sunset not in force yet")
         return 0
     print(f"in-force schema (derived): {want}   [highest CELL-vN.md on this branch]")
-    print(f"activation commit (derived): {act[:12]}  [git log --diff-filter=A -- {spec}]")
+    print(f"activation commit (derived): {act[:12]}  [git log --diff-filter=A -- {anchor}]")
 
     new = added_cells(base, head)
     if not new:
