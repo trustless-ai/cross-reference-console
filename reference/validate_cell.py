@@ -28,13 +28,9 @@ from lineage_ref import validate_derived_from, LineageRefError
 # (append-only discipline), so this list only ever grows.
 KNOWN_SCHEMAS = ("crc.cell.v1", "crc.cell.v2", "crc.cell.v3")
 
-# CELL-v3.md §1.3 says v3 "inherits CELL-v2.md in full except schema and the
-# evidence body", and the EIP-712 field list is explicitly unchanged. It does
-# NOT say whether the DOMAIN version moves to "3". The literal reading is that
-# it stays "2", which is what this enforces -- but the domain is signed data,
-# so if the group decides otherwise every v3 Cell must be re-signed. Raised on
-# PR #10; one line to flip.
-DOMAIN_VERSION_FOR = {"crc.cell.v2": "2", "crc.cell.v3": "2"}
+# EIP-712 domain.version follows the repo's N-for-vN convention (CELL.md → "0",
+# CELL-v1 → "1", CELL-v2 → "2", CELL-v3 §1.3 → "3").
+DOMAIN_VERSION_FOR = {"crc.cell.v2": "2", "crc.cell.v3": "3"}
 import bip340
 
 failures = []

@@ -106,6 +106,17 @@ answer, not before.
 
 ## 6 · Create and sign the Cell
 
+`create_cell.py` emits the **in-force** schema — derived from enforcement state,
+not from whether a spec file exists on disk:
+
+```bash
+python3 reference/registry_id.py   # prints in-force schema + activation commits
+```
+
+Until v3 is **both minted and enforced** ([`CELL-v3.md`](CELL-v3.md) §5.1 — spec landed
+**and** enforcement marker present), new Cells remain **`crc.cell.v2`**. Merging
+`CELL-v3.md` alone does not activate v3 admission; landing enforcement alone does not either.
+
 ```bash
 export CRC_KEY=0x<your key>      # env, never a flag: flags land in shell history
 
@@ -132,6 +143,7 @@ Your evidence body needs at least:
     "implementation": { "repo": "…", "commit": "…", "path": "…", "impl_hash": "sha256:…" },
     "dependency_lock": null,      // present, null if you have none
     "runtime_image":   null,
+    "derived_from":    [],         // crc.cell.v3 only — [] declares no known derivation (signed, not proof)
     "inputs": [ { "url": "…", "content_hash": "sha256:…", "retrieved_at": "…" } ]
   }
 }
@@ -189,7 +201,7 @@ validator accepted.
 ## Where to read more
 
 - [`CLAIM.md`](CLAIM.md) — the Claim preimage and its gate
-- [`CELL.md`](CELL.md) → [`CELL-v1.md`](CELL-v1.md) → [`CELL-v2.md`](CELL-v2.md) — the Cell, appended never rewritten. **v2 is what you sign**; the earlier files are frozen history, not alternatives
+- [`CELL.md`](CELL.md) → [`CELL-v1.md`](CELL-v1.md) → [`CELL-v2.md`](CELL-v2.md) (→ [`CELL-v3.md`](CELL-v3.md) when minted) — appended never rewritten. **Sign the in-force schema** (`registry_id.py`); earlier versions remain valid frozen history, never re-signed
 - [`NODES.md`](NODES.md) — the registry and intake contract
 - [`PROPOSAL-lane-distinctness.md`](PROPOSAL-lane-distinctness.md) — what makes two lanes actually distinct
 
