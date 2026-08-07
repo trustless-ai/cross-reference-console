@@ -43,7 +43,7 @@ v3 extends the `evidence.independence` object defined in [CELL-v1.md §4](CELL-v
 
 ### 1.3 · Payload shape (carry-over from v2)
 
-v3 Cells inherit [CELL-v2.md](CELL-v2.md) in full except for `schema: "crc.cell.v3"` and the changed `evidence` body (therefore changed `evidence_hash` / Nostr digest). EIP-712 `types.Cell` field list is unchanged from v2; `registry_id` remains inside the signed struct.
+v3 Cells inherit [CELL-v2.md](CELL-v2.md) in full except for `schema: "crc.cell.v3"` and the changed `evidence` body (therefore changed `evidence_hash` / Nostr digest). EIP-712 `types.Cell` field list is unchanged from v2; `registry_id` remains inside the signed struct. EIP-712 `domain.version` is **`"3"`** (same N-for-vN convention as v0→`"0"`, v1→`"1"`, v2→`"2"` in [CELL.md](CELL.md), [CELL-v1.md](CELL-v1.md), [CELL-v2.md](CELL-v2.md)).
 
 ---
 
@@ -198,7 +198,13 @@ Until that enforcement commit, [CELL-v2.md §4 · Mechanical v1 sunset](CELL-v2.
 - `reference/validate_cell.py` — v3 struct validation, including `derived_from` gate rules (§1)
 - `reference/check_sunset.py` — v3 admission / v2 sunset CI gate
 
-That enforcement commit — **not** the merge of `CELL-v3.md` — is the activation point. The enforcement PR MUST make it mechanically derivable by anyone (same discipline as [CELL-v2.md §4](CELL-v2.md)).
+That enforcement commit — **not** the merge of `CELL-v3.md` — is the activation point. Mechanically derivable:
+
+```
+activation_commit = git log --diff-filter=A --format=%H -- reference/lineage_ref.py
+```
+
+(the commit that **added** `reference/lineage_ref.py` on `main` — the v3 gate module shipped with enforcement). The enforcement PR MUST keep this derivable by anyone (same discipline as [CELL-v2.md §4](CELL-v2.md)).
 
 ### 5.2 · After activation
 
