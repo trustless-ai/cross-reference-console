@@ -60,13 +60,15 @@ Add one field to `evidence.independence`:
   "implementation": { "repo": …, "commit": …, "path": …, "impl_hash": … },
   "dependency_lock": …,
   "runtime_image": …,
-  "derived_from": null,        // NEW — REQUIRED, null-not-absent
+  "derived_from": [],          // NEW — REQUIRED, empty-not-absent, a LIST
   "inputs": [ … ]
 }
 ```
 
-- `null` — written from the specification, not from another implementation.
-- `"<url>"` — derived from that implementation. Honest, permitted, and it means an edge with that implementation is **not** an independent edge.
+- `[]` — written from the specification, not from another implementation.
+- `["<url>", …]` — derived from those implementations. Honest, permitted, and an edge with any of them is **not** an independent edge.
+
+A list rather than a single value, per §6.1: derivation is not always single-parent, and a scalar would force a signer who drew on two implementations to name one and omit the other.
 
 Per v1's existing rule, the field is always present; `null` means "independent", never "unstated". Absence fails the gate.
 
