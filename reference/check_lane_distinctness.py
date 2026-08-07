@@ -119,7 +119,7 @@ def main():
     nodes = []
     for c in cells:
         pp = load_payload(c)
-        nodes.append((c.stem.replace(".cell", ""), independence_of(pp), pp.get("claim_id")))
+        nodes.append((c.stem.removesuffix(".cell"), independence_of(pp), pp.get("claim_id")))
 
     print(f"Lane distinctness over {len(nodes)} cell(s)\n")
 

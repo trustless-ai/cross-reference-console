@@ -45,13 +45,26 @@ def main():
         print("ERROR: need >= 2 cells to test pairing", file=sys.stderr)
         return 1
 
-    real = [(c.stem.replace(".cell", ""), independence_of(payload(c))) for c in cells]
+    real = [(c.stem.removesuffix(".cell"), independence_of(payload(c))) for c in cells]
 
     print("── positive: the live cells are pairwise distinct")
     for i in range(len(real)):
         for j in range(i + 1, len(real)):
             ok, _ = pair_basis(real[i], real[j])
             chk(f"{real[i][0]} x {real[j][0]}", ok)
+
+    print("\n── regression: cell-name derivation (Pavlo, 2026-08-07)")
+    # `.replace(".cell", "")` corrupts any node whose name CONTAINS ".cell",
+    # not just one that ends with it, because replace() is not anchored.
+    # Found by Pavlo running this file; fixed with removesuffix in both places.
+    for fn, want in [
+        ("invinoveritas.cell.json", "invinoveritas"),
+        ("mycelium-anchorregistry.cell.json", "mycelium-anchorregistry"),
+        ("mycelium.cellstore.cell.json", "mycelium.cellstore"),
+        ("x.cellular-node.cell.json", "x.cellular-node"),
+    ]:
+        got = pathlib.Path(fn).stem.removesuffix(".cell")
+        chk(f"{fn} -> {want}", got == want)
 
     print("\n── negative: each predicate, tripped on purpose")
     base = real[0]

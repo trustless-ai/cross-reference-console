@@ -87,11 +87,24 @@ All six pairs across the four current cells pass the necessary conditions — fo
 
 The checker reports an independence **basis** per pair rather than a boolean, and refuses to upgrade "not contradicted" into "independent". Until `derived_from` exists, AMBER is the strongest honest reading, and could-not-check is never a pass.
 
-## 6 · Open questions for the group
+## 6 · Resolved by the group (2026-08-07)
 
-1. **Is `derived_from` a single field or a list?** An implementation may draw on several. A list is more honest and more annoying to check.
-2. **Does a `derived_from` edge count for anything?** Proposal: it is recorded, and it does not satisfy the ≥2-distinct-lanes rule. It is a corroboration, not an independent confirmation.
-3. **Should the console display the basis?** Currently an edge renders as present or absent. It could render *why* — which would make the weak-independence case visible instead of merely recorded.
-4. **Does this justify v3 on its own,** or should it be batched with other pending struct changes so nodes re-sign once rather than twice?
+All four were answered on the PR. Recorded here with attribution, because the answers changed the proposal.
 
-*Decision is the group's. This proposal ships the checker and the negative case so the decision is about something running rather than something described.*
+**1 · `derived_from` is a LIST, not a single field.** *(Fede, giskard)* Real derivation is not always single-parent — a fork that later merges logic from a second implementation is a real shape, not a hypothetical. giskard tied it to existing practice: the same discipline as `action_ref`/`decision_binding_ref`, *never collapse multiple provenance facts into a field where the signer has to omit or pick one; a list costs nothing and doesn't pressure honesty.*
+
+**2 + 3 · A derived pair is a DISTINCT, DISQUALIFYING state — not weaker corroboration.** *(Fede, giskard)* Fede's framing, and it settles both questions at once:
+
+> *"shares lineage" and "independently derived" aren't two points on a trust gradient, they're different claims about what the edge proves. Folding a derived pair into GREEN-with-caveat is the same failure as folding `evidence_unavailable` into a fail — a real, distinct fact gets flattened into the nearest existing bucket instead of getting its own state.*
+
+So the console renders a **third value** alongside present/absent that a reader can filter on, not a footnote on an edge that still reads GREEN at a glance. giskard: a boolean hides *which* check produced the AMBER/RED, and that is exactly the part a reader needs.
+
+**4 · Ship v3 alone.** *(giskard)* Nothing pending on the mycelium leg that would need a second struct change, so no reason to batch and make nodes re-sign twice.
+
+## 7 · Open, and deliberately not assumed into this PR
+
+**Does exclusion transit?** If X declares `derived_from [A, B]` and A itself declares `derived_from C`, is X still non-independent of C? Both Fede and giskard reason it must transit, fail-closed — otherwise a two-hop fork launders itself back into independence for free. Both also said it should get its own vector once the field exists rather than be assumed now, and that is the right call: a transitivity rule with no implementation to test against is a guess written in normative language.
+
+## 8 · Fixed in review
+
+`.replace(".cell", "")` corrupted any node name *containing* `.cell` rather than ending with it — `mycelium.cellstore` became `myceliumstore`. Found and fixed by **Pavlo** (`removesuffix`, both checker and tests), who could not push to this repo directly. Applied here with a regression vector over four names so it cannot return.
