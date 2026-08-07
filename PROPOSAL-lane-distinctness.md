@@ -63,6 +63,8 @@ This is the failure the group has now hit four times in one day: **a qualifying 
 
 ## 4 · Proposed change (mints `crc.cell.v3`)
 
+This section preserves the pre-v3 proposal wording for provenance; where it conflicts with [CELL-v3.md](CELL-v3.md), CELL-v3.md is authoritative.
+
 Add one field to `evidence.independence`:
 
 ```jsonc
@@ -78,7 +80,7 @@ Add one field to `evidence.independence`:
 - `[]` — written from the specification, not from another implementation.
 - `["<url>", …]` — derived from those implementations. Honest, permitted, and an edge with any of them is **not** an independent edge.
 
-A list rather than a single value, per §6.1: derivation is not always single-parent, and a scalar would force a signer who drew on two implementations to name one and omit the other.
+A list rather than a single value, per §6 item 1: derivation is not always single-parent, and a scalar would force a signer who drew on two implementations to name one and omit the other.
 
 Per v1's existing rule, the field is always present; `null` means "independent", never "unstated". Absence fails the gate.
 

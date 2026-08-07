@@ -39,7 +39,7 @@ v3 extends the `evidence.independence` object defined in [CELL-v1.md §4](CELL-v
 
 ### 1.2 · What the gate does NOT reject
 
-- **Unresolved well-formed LineageRef** — syntactically valid ref with no matching implementation in registry resolution scope. The Cell MAY still be **GREEN** if all derivation checks pass. Independence evaluation for pairs involving that Cell yields **INDEPENDENCE_NOT_PROVEN** (see §3).
+- **Unresolved well-formed LineageRef** — syntactically valid ref with no matching implementation in registry resolution scope. The Cell MAY still be **GREEN** if all derivation checks pass. Independence evaluation for pairs involving that Cell yields **INDEPENDENCE_NOT_PROVEN** (see §2.5).
 
 ### 1.3 · Payload shape (carry-over from v2)
 
