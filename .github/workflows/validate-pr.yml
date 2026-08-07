@@ -59,6 +59,13 @@ jobs:
           # inputs[].content_hash on a live endpoint is provenance of one fetch,
           # not a value two nodes can compare. The projection is what they compare.
           python3 reference/projection.py --selftest
+      - name: CELL-IN-FORCE.md is not stale
+        run: |
+          # The generated in-force view is derived by BUILDING a conforming Cell
+          # and recording what was demanded of it. If the enforced format changes
+          # and this file doesn't, the newcomer-facing answer silently becomes
+          # wrong -- which is the drift a hand-written unified spec would have.
+          python3 reference/gen_in_force.py --check
       - name: LineageRef grammar — negative vector per rule
         run: python3 reference/lineage_ref.py
       - name: cell admission — deferred v3 activation vectors
