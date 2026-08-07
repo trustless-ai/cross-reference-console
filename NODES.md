@@ -32,9 +32,53 @@ The registry the console renders columns from, and the contract a node accepts b
 For each new claim in `claims/`, a node produces a signed **crc.cell.v1** Cell and delivers it one of two ways:
 
 1. **In-repo (default):** PR (or bot commit) to `cells/{claim_id_hex}/{node_id}.cell.json` (hex digest only — no `sha256:` prefix in paths). The repo is the registry; CI (the same public watcher) validates envelope + gate before merge.
-2. **Self-hosted:** serve it at `cell_url_template` with `{claim_id_hex}` substituted. The console fetches it live; unreachable ⇒ **pending-abstain** (AMBER discipline — never treated as failure).
+2. **Self-hosted:** serve it at `cell_url_template` with `{claim_id_hex}` substituted. The console fetches it live; unreachable ⇒ **pending-abstain** (AMBER discipline — never treated as failure). The endpoint contract is below.
 
 Either way the Cell must verify under its envelope's recipe: `nostr-nip01` → NIP-01 id + BIP-340 schnorr vs `key_ref.pubkey`; `eip712` → triple equality vs `key_ref.address` (CELL-v1.md §2). A Cell that fails its envelope check is recorded in `cells/rejected/` with the error — non-suppression, same as claims.
+
+## The self-hosted endpoint contract
+
+What `cell_url_template` must actually do. Derived from the consumer rather than
+invented: the console is a static page that fetches your URL from the browser,
+strict-parses the body, and verifies the Cell client-side.
+
+| requirement | detail |
+|---|---|
+| **Method / auth** | plain `GET`, no auth, no cookies. The URL is the whole request |
+| **Status** | any non-2xx is treated as **unreachable**, not as a bad Cell |
+| **CORS** | `Access-Control-Allow-Origin` **MUST** permit the console's origin. See the trap below |
+| **Body** | the Cell JSON exactly as signed, byte-for-byte |
+| **Duplicate keys** | rejected — the console strict-parses, same rule as the pre-hash gate |
+| **Content-Type** | **not constrained.** The reference endpoint serves `text/plain` and works fine; the body is read as text and parsed |
+| **Caching** | the console sends `cache: no-store`. Serve current bytes; a stale cache silently publishes a superseded Cell |
+
+### The CORS trap, stated plainly
+
+The console runs in a browser, on a different origin from your node. **An endpoint
+with no CORS header is unreachable to it while being completely healthy** — you
+will `curl` it successfully, see 200, and still show as pending-abstain.
+
+That failure presents as downtime and is a header. If your column is AMBER and
+your service is up, check this first:
+
+```bash
+curl -sI "https://your.node/cells/<64-hex>.json" | grep -i access-control-allow-origin
+```
+
+The reference endpoint (`raw.githubusercontent.com`) returns
+`access-control-allow-origin: *`, which is why node 2's self-hosted lane works.
+
+### What unreachable means
+
+Nothing bad. Unreachable ⇒ **pending-abstain**: the edge waits, it does not break,
+and no verdict is recorded against you. Could-not-fetch is never a RED, in the same
+way could-not-check is never a pass. Downtime is not a judgement.
+
+### Bytes, not equivalents
+
+Serve the Cell you signed, unchanged. Re-serialising it — reordering keys,
+re-indenting, dropping a null — changes `evidence_hash` and the signature no longer
+recovers. The console will report a real mismatch, and it will be right.
 
 ## Intake object (`claim_sources`)
 

@@ -167,8 +167,13 @@ Two options, and you may do both:
 **PR into `cells/`** — the file lands in this repo and CI re-runs every check.
 
 **Self-host** — serve it at your `cell_url_template` with `{claim_id_hex}`
-substituted. The console fetches it live. Serve JSON, and the same bytes the
-validator accepted.
+substituted. The console fetches it live, from a browser, cross-origin.
+
+**Read [`NODES.md` → the self-hosted endpoint contract](NODES.md) before you do.**
+The one that catches people: **without a permissive `Access-Control-Allow-Origin`
+header your endpoint is unreachable to the console while being completely
+healthy** — you will `curl` it, get a 200, and still show pending-abstain. Serve
+the same bytes the validator accepted, unchanged.
 
 > If your endpoint is unreachable the console records **pending-abstain**, never
 > a failure — the AMBER discipline again. Downtime is not a verdict against you.
