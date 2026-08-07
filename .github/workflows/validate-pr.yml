@@ -42,6 +42,8 @@ jobs:
           python3 reference/check_sunset.py "origin/${{ github.base_ref }}" HEAD
       - name: registry identity is derivable and stable
         run: python3 reference/registry_id.py
+      - name: LineageRef grammar — negative vector per rule
+        run: python3 reference/lineage_ref.py
       - name: create_cell.py loads (the tool an outsider onboards with)
         run: |
           # A create tool that has broken imports fails silently for everyone

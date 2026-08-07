@@ -45,10 +45,15 @@ def registry_id(root: str = ROOT) -> str:
     return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def activation_commit(root: str = ROOT) -> str:
-    """The v1-sunset activation point: the commit that ADDED CELL-v2.md (CELL-v2.md §4)."""
+def activation_commit(spec: str = "CELL-v2.md", root: str = ROOT) -> str:
+    """The sunset activation point for `spec`: the commit that ADDED it.
+
+    CELL-v2.md §4 and CELL-v3.md §5 define activation identically — the commit
+    that lands the file. The filename is a parameter so a new version needs no
+    change here; defaulting to CELL-v2.md keeps existing callers working.
+    """
     out = subprocess.run(
-        ["git", "log", "--diff-filter=A", "--format=%H", "--", "CELL-v2.md"],
+        ["git", "log", "--diff-filter=A", "--format=%H", "--", spec],
         cwd=root, capture_output=True, text=True, check=True,
     ).stdout.split()
     return out[-1] if out else ""

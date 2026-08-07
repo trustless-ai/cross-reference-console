@@ -22,6 +22,19 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from claim_id import loads_strict, validate as gate, claim_id as derive_claim_id
 from registry_id import registry_id as this_registry_id
+from lineage_ref import validate_derived_from, LineageRefError
+
+# Schemas this validator accepts. Frozen versions stay verifiable forever
+# (append-only discipline), so this list only ever grows.
+KNOWN_SCHEMAS = ("crc.cell.v1", "crc.cell.v2", "crc.cell.v3")
+
+# CELL-v3.md §1.3 says v3 "inherits CELL-v2.md in full except schema and the
+# evidence body", and the EIP-712 field list is explicitly unchanged. It does
+# NOT say whether the DOMAIN version moves to "3". The literal reading is that
+# it stays "2", which is what this enforces -- but the domain is signed data,
+# so if the group decides otherwise every v3 Cell must be re-signed. Raised on
+# PR #10; one line to flip.
+DOMAIN_VERSION_FOR = {"crc.cell.v2": "2", "crc.cell.v3": "2"}
 import bip340
 
 failures = []
@@ -40,6 +53,26 @@ def jcs(o):
 def keccak256(data: bytes) -> bytes:
     from Crypto.Hash import keccak as _k  # pycryptodome; CI installs it
     h = _k.new(digest_bits=256); h.update(data); return h.digest()
+
+
+def _check_lineage(pp):
+    """CELL-v3.md §1.1 — derived_from is required, string[], no duplicates, no
+    malformed element, no self-reference. Empty [] is valid and is NOT a
+    LineageRef (LINEAGE-REF.md §4): it is a signed declaration of no known
+    derivation, which is provenance and never proof of independence."""
+    ind = (pp.get("evidence") or {}).get("independence") or {}
+    if "derived_from" not in ind:
+        chk("v3 evidence.independence.derived_from present", False,
+            "absent — v3 requires it; use [] to declare no known derivation")
+        return
+    own = (ind.get("implementation") or {}).get("impl_hash")
+    try:
+        validate_derived_from(ind["derived_from"], own)
+        n = len(ind["derived_from"])
+        chk("v3 derived_from conforms (LINEAGE-REF.md §2)", True,
+            "[] — declares no known derivation" if n == 0 else f"{n} lineage ref(s) declared")
+    except LineageRefError as e:
+        chk("v3 derived_from conforms (LINEAGE-REF.md §2)", False, str(e))
 
 
 def validate(cell_path, nodes_path):
@@ -78,14 +111,17 @@ def validate(cell_path, nodes_path):
         chk("claim_id recomputes", cid == pp["claim_id"], cid)
         chk("claim_id matches directory", cid == "sha256:" + dirname)
         schema = pp.get("schema")
-        chk("schema is crc.cell.v1 or v2", schema in ("crc.cell.v1", "crc.cell.v2"), schema)
-        if schema == "crc.cell.v2":
+        chk("schema is a known crc.cell version", schema in KNOWN_SCHEMAS, schema)
+        if schema in ("crc.cell.v2", "crc.cell.v3"):
             # CELL-v2.md §2: payload-primary registry binding is THE normative check.
             want = this_registry_id()
-            chk("v2 registry_id == this registry (payload-primary)", pp.get("registry_id") == want, pp.get("registry_id"))
+            chk("registry_id == this registry (payload-primary)", pp.get("registry_id") == want, pp.get("registry_id"))
             names = [f["name"] for f in sg["types"]["Cell"]]
-            chk("v2 EIP-712 struct carries registry_id", "registry_id" in names, names)
-            chk("v2 domain version is 2", str(sg["domain"].get("version")) == "2", sg["domain"].get("version"))
+            chk("EIP-712 struct carries registry_id", "registry_id" in names, names)
+            want_dv = DOMAIN_VERSION_FOR[schema]
+            chk(f"domain version is {want_dv}", str(sg["domain"].get("version")) == want_dv, sg["domain"].get("version"))
+        if schema == "crc.cell.v3":
+            _check_lineage(pp)
         chk("as_of binding (payload == preimage)", pp.get("as_of") == pre["as_of"])
         chk("recomputed_at present and a distinct field", isinstance(pp.get("recomputed_at"), str) and pp["recomputed_at"] != "")
         chk("boundary inside payload", isinstance(pp.get("boundary"), str) and pp["boundary"] != "")
@@ -124,12 +160,14 @@ def validate(cell_path, nodes_path):
         chk("claim_id recomputes", cid == pp["claim_id"], cid)
         chk("claim_id matches directory", cid == "sha256:" + dirname)
         schema = pp.get("schema")
-        chk("schema is crc.cell.v1 or v2", schema in ("crc.cell.v1", "crc.cell.v2"), schema)
-        if schema == "crc.cell.v2":
+        chk("schema is a known crc.cell version", schema in KNOWN_SCHEMAS, schema)
+        if schema in ("crc.cell.v2", "crc.cell.v3"):
             # CELL-v2.md §2.3: the Nostr lane has no domain — only a field INSIDE the signed
             # content can bind the registry, which is why payload-primary is THE rule.
             want = this_registry_id()
-            chk("v2 registry_id == this registry (inside signed content)", pp.get("registry_id") == want, pp.get("registry_id"))
+            chk("registry_id == this registry (inside signed content)", pp.get("registry_id") == want, pp.get("registry_id"))
+        if schema == "crc.cell.v3":
+            _check_lineage(pp)
         chk("as_of binding (payload == preimage)", pp.get("as_of") == pre["as_of"])
         chk("boundary inside signed content", isinstance(pp.get("boundary"), str) and pp["boundary"] != "")
         ser = json.dumps([0, ev["pubkey"], ev["created_at"], ev["kind"], ev["tags"], ev["content"]],

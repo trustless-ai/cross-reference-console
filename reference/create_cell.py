@@ -65,6 +65,16 @@ DOMAIN_V2 = {"name": "cross-reference-console", "version": "2", "chainId": 1}
 RESULTS = ("GREEN", "RED", "AMBER")
 
 
+def in_force_schema() -> str:
+    """The schema new Cells must carry: highest CELL-vN.md present. DERIVED, not
+    hardcoded -- a hardcoded version here would emit Cells that CI rejects the
+    moment a new spec lands, which is exactly the deadlock this repo just had
+    between CELL-v3.md and check_sunset.py."""
+    ns = [int(m.group(1)) for f in os.listdir(ROOT)
+          if (m := re.fullmatch(r"CELL-v(\d+)\.md", f))]
+    return f"crc.cell.v{max(ns)}" if ns else "crc.cell.v2"
+
+
 def jcs(o) -> str:
     """RFC 8785 canonical JSON, matching validate_cell.py byte for byte."""
     return json.dumps(o, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -108,6 +118,13 @@ def check_evidence(evidence: dict, result: str) -> None:
     if "claim_preimage" not in evidence:
         die("evidence.claim_preimage is required — it is what makes the verdict re-runnable.")
 
+    if in_force_schema() == "crc.cell.v3":
+        ind = evidence.get("independence") or {}
+        if "derived_from" not in ind:
+            die("crc.cell.v3 requires evidence.independence.derived_from (CELL-v3.md §1.1).\n"
+                "       Use [] to declare no known derivation from another implementation.\n"
+                "       [] is signed provenance, never proof of independence.")
+
     if result == "GREEN":
         missing = [k for k in ("recomputed", "independence") if k not in evidence]
         if missing:
@@ -127,7 +144,7 @@ def build_payload(claim: dict, node: dict, result: str, boundary: str, evidence:
             "       The Cell must carry the exact preimage it verified, byte for byte.")
 
     return {
-        "schema": "crc.cell.v2",
+        "schema": in_force_schema(),
         "claim_id": cid,
         "registry_id": this_registry_id(),
         "result": result,
