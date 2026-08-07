@@ -185,15 +185,24 @@ Cycle does **not** automatically imply NOT_DISTINCT unless necessary conditions 
 
 ---
 
-## 5 · Mechanical v2 sunset
+## 5 · Mechanical v2 sunset (deferred activation)
 
-Mirrors [CELL-v2.md §4 · Mechanical v1 sunset](CELL-v2.md):
+**Merging this file does not activate `crc.cell.v3`.** The version is **minted** here but remains **not in force** until a later **enforcement commit** lands on `main`.
 
-```
-activation_commit = git log --diff-filter=A --format=%H -- CELL-v3.md
-```
+Until that enforcement commit, [CELL-v2.md §4 · Mechanical v1 sunset](CELL-v2.md) admission rules remain authoritative — newly submitted Cells **MUST** continue to be `crc.cell.v2`.
 
-- Cells submitted (PR-merged or bot-committed) **after** the activation commit **MUST** be `crc.cell.v3`.
+### 5.1 · Activation point
+
+**Activation point = the commit on `main` that lands working `crc.cell.v3` enforcement in both:**
+
+- `reference/validate_cell.py` — v3 struct validation, including `derived_from` gate rules (§1)
+- `reference/check_sunset.py` — v3 admission / v2 sunset CI gate
+
+That enforcement commit — **not** the merge of `CELL-v3.md` — is the activation point. The enforcement PR MUST make it mechanically derivable by anyone (same discipline as [CELL-v2.md §4](CELL-v2.md)).
+
+### 5.2 · After activation
+
+- Cells submitted (PR-merged or bot-committed) **after** the activation commit **MUST** be `crc.cell.v3`. CI rejects new v2-shaped Cells with a named rule.
 - Every Cell that exists at activation — v0, v1, and v2 history including the live `#236` edge — **stands as frozen history**. Nothing is re-signed; nothing is invalidated.
 - Same discipline as v2 §4: bind the rule to what was in force at the time; never shift retroactively.
 
