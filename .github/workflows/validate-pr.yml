@@ -2,12 +2,17 @@ name: validate-pr
 # The mechanical review NODES.md promises, as public CI — parse + conformance +
 # checkable keys. If this is green, a registry/cell PR merges; no other approval step.
 on:
+  # Runs on EVERY pull request, deliberately unfiltered.
+  #
+  # It was path-filtered to nodes.json / cells / claims / reference, which was
+  # right while it was advisory: a docs-only PR skipped it and that was fine.
+  # It stops being right the moment the check is REQUIRED for merge -- a
+  # required check that never runs leaves the PR pending forever, so the
+  # filter would silently block exactly the PRs it was meant to spare.
+  #
+  # The suite is seconds long. Running it on a docs PR costs nothing and means
+  # "green" has one meaning rather than two.
   pull_request:
-    paths:
-      - nodes.json
-      - "cells/**"
-      - "claims/**"
-      - "reference/**"
 permissions:
   contents: read
 jobs:
