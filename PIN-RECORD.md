@@ -81,6 +81,27 @@ A confirmation is a claim that **you personally ran the build and got these
 values** — not that you read them in this file and agreed. If you did not run it,
 do not add your node.
 
+### Confirmations are unsigned, deliberately (decided 2026-08-09)
+
+A Cell is signed; a confirmation is not. That is a decision, not an omission, and
+the reason is that a signature here would buy less than it looks like.
+
+`verify_pin.py` **rebuilds the commit itself.** It does not take the confirmations'
+word for the bytes or the CID — it derives both independently and only then checks
+whether the confirmations agree. So a forged confirmation cannot make a bad CID
+verify: if the values are wrong the verifier's own rebuild contradicts them, and if
+the values are right the forgery changed nothing about what gets pinned.
+
+What a signature *would* prevent is someone **falsely attributing agreement** to a
+node that never ran the build. That is a real harm, but it is an attribution and
+reputation problem rather than a route to a bad pin, and it is not worth making
+every confirmation a signing ceremony today.
+
+**The condition that flips this:** the moment anything consumes confirmations
+*without* rebuilding — a dashboard showing "2 ✓", a script that trusts the count,
+any automated gate — the forgery stops being cosmetic and confirmations must be
+signed. If you build such a consumer, sign them first.
+
 ## Verifying one
 
 ```bash
