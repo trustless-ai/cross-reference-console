@@ -117,7 +117,19 @@ def projection_hash(doc: dict, profile: str) -> str:
         raise ProjectionError(
             f"profile {profile!r} matched NO fields in this document — wrong profile "
             f"for this source. Refusing to hash an empty projection.")
-    return "sha256:" + hashlib.sha256(jcs(picked).encode()).hexdigest()
+
+    # Domain-bind the rule and profile into the digest (@pipavlo82). The profile
+    # IS the semantic context: it decides which fields the value speaks for. A
+    # digest over the selected map alone can be compared against one produced
+    # under a different profile as though the two meant the same thing, and two
+    # profiles that happen to select the same values collide outright.
+    #
+    # This module's own docstring says never let a collapsed value hide which
+    # state produced it — and the digest was doing exactly that. Binding them
+    # means a projection_hash cannot outlive, or be compared independently of,
+    # the profile that gave it meaning.
+    return "sha256:" + hashlib.sha256(
+        jcs({"rule": RULE, "profile": profile, "projection": picked}).encode()).hexdigest()
 
 
 def _fetch(src: str) -> dict:
@@ -175,6 +187,21 @@ def _selftest() -> int:
         projection_hash(base, "no.such.profile.v9"); chk("refuses an unknown profile", False)
     except ProjectionError:
         chk("refuses an unknown profile", True)
+
+    # @pipavlo82: the profile is semantic context, so it belongs INSIDE the digest.
+    # Two profiles selecting identical values must not produce identical hashes —
+    # otherwise the value can be compared independently of what gave it meaning.
+    PROFILES["_vec.a.v0"] = ["record.verdict.verdict"]
+    PROFILES["_vec.b.v0"] = ["record.verdict.verdict"]
+    try:
+        doc = {"record": {"verdict": {"verdict": "reject"}}}
+        chk("identical selections under DIFFERENT profiles do not collide",
+            projection_hash(doc, "_vec.a.v0") != projection_hash(doc, "_vec.b.v0"))
+        # And the same profile must still be stable — binding must not add entropy.
+        chk("the same profile is still deterministic",
+            projection_hash(doc, "_vec.a.v0") == projection_hash(doc, "_vec.a.v0"))
+    finally:
+        PROFILES.pop("_vec.a.v0", None); PROFILES.pop("_vec.b.v0", None)
 
     print()
     print("all green — projection" if not fails else f"{fails} failure(s)")
