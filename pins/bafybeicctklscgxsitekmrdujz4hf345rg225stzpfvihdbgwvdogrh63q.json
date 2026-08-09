@@ -15,11 +15,11 @@
   "confirmations": [
     {
       "node_id": "vertice-recompute-lens",
-      "rebuilt_at": "2026-08-09T15:16:01Z",
+      "rebuilt_at": "2026-08-09T15:36:54Z",
       "tree_sha256": "sha256:604fa5d8a2749a4b17b7636473b052e024cba3ed16b8487512c869026c1eb73b",
       "file_sha256": "sha256:604fa5d8a2749a4b17b7636473b052e024cba3ed16b8487512c869026c1eb73b",
       "cid": "bafybeicctklscgxsitekmrdujz4hf345rg225stzpfvihdbgwvdogrh63q",
-      "signature": "0x6ab3ee27e09a628599b69088cb6a422fc823cb1dd159053e56fd4cab17edc34f741ea4add02533a0df081f0367a0f5379237ca87332eea91dddf43c927c45e2a1b"
+      "signature": "0xb22ea4ea272e463f2f14e6c7b8d57a254b30b1b0a619b1c678008e7c8685e7f43087ab16a2bf7268d7121802c51d8d77d234e7f326bc6cc2ae75f3c98966cf8c1b"
     }
   ],
   "pinned_at": null,

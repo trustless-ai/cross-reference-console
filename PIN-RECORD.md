@@ -98,6 +98,25 @@ A confirmation is a claim that **you personally ran the build and got these
 values** — not that you read them in this file and agreed. If you did not run it,
 do not add your node.
 
+### What a signature covers (crc.pin-confirmation.v2)
+
+**Everything the confirmer asserts, plus the record context — by construction,
+not by a list.**
+
+This took two rounds of review to get right, and the way it failed is the useful
+part. v0 enumerated the signed fields and omitted `conf["cid"]`, which counting
+acted on. v1 added `conf["cid"]` to the list — and the *same commit* introduced
+`conf["tree_sha256"]`, also unenumerated, also the field counting acts on for a
+site tree. The identical defect, reintroduced while fixing it.
+
+A hand-maintained allowlist has to be updated every time a field is added, and
+nothing fails when someone forgets. v2 signs the whole confirmation minus its own
+signature, plus the record's identifying context including `cid_params`. A field
+that does not exist yet is covered the moment someone adds it.
+
+*Fixing the instance is not fixing the class, and the difference is invisible
+until the second instance arrives.*
+
 ### Confirmations must be signed (revised 2026-08-09 after review)
 
 They were briefly unsigned, on my argument that `verify_pin.py` rebuilds the
@@ -132,6 +151,18 @@ python3 reference/sign_confirmation.py --record pins/<cid>.json --node yournode
 It rebuilds the record's commit **itself** and refuses to sign if your rebuild
 disagrees, so you cannot confirm bytes you never produced. That refusal is the
 point: the disagreement is the finding, and working around it defeats the rule.
+
+## What a verifier will and will not run
+
+Verifying a `site-tree` record **executes build code from the cloned repo.** So
+the repo is not chosen by the record: `verify_pin.py` carries an allowlist, and a
+record naming anything else is **RED** — not AMBER, because this is not something
+that could-not-be-checked, it is something that must not be run.
+
+A pin record is untrusted input. The people who run this tool are exactly the
+people we ask to check work they did not author, and letting the artifact select
+what code executes on their machine would turn every honest verifier into a
+target.
 
 ## Verifying one
 
