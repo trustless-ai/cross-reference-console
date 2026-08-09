@@ -95,10 +95,17 @@ def confirmation_preimage(rec: dict, conf: dict) -> str:
     pin; this one is not.
     """
     return json.dumps({
-        "schema": "crc.pin-confirmation.v0",
-        "cid": rec.get("cid"),
+        "schema": "crc.pin-confirmation.v1",
+        # record_cid ties the confirmation to THIS pin record (anti-replay).
+        "record_cid": rec.get("cid"),
         "commit": rec.get("commit"),
         "artifact": rec.get("artifact", "ui/index.html"),
+        # Everything the confirmer ASSERTS must be inside the signature. v0 left
+        # `conf["cid"]` out, so the CID attributed to a confirmer could be edited
+        # after signing and still verify — and since verify_pin compares it to
+        # decide AMBER-vs-counted, editing it promoted a parameter disagreement
+        # into a counted confirmation. Found in review by @pipavlo82.
+        "confirmed_cid": conf.get("cid"),
         "file_sha256": conf.get("file_sha256"),
         "node_id": conf.get("node_id"),
         "rebuilt_at": conf.get("rebuilt_at"),
@@ -165,6 +172,71 @@ def verify_confirmation_signature(rec: dict, conf: dict, node: dict):
     return None, f"unknown envelope {env!r} — cannot check"
 
 
+def _confirmations(rep, rec, built, key="file_sha256"):
+    """The two-party rule. Shared by both artifact kinds on purpose: one
+    implementation cannot drift away from the other."""
+    # --- confirmations -----------------------------------------------------
+    confs = rec.get("confirmations") or []
+    known = registered_nodes()
+    seen_nodes = set()
+    # Only confirmations that are BOTH authentic and correct count toward the
+    # rule. Merely appearing in the array is not confirming — that conflation is
+    # what let a single writer satisfy a two-party rule.
+    counted = set()
+
+    for c in confs:
+        nid = c.get("node_id")
+        if nid not in known:
+            rep.add(RED, f"confirmation from unregistered node {nid!r}")
+            continue
+        if nid in seen_nodes:
+            rep.add(RED, f"duplicate confirmation from {nid} — one party, counted twice, "
+                         f"is exactly what the two-party rule exists to prevent")
+            continue
+        seen_nodes.add(nid)
+
+        # Authenticity first: without it, everything below is a claim by whoever
+        # wrote the file, not by the node it names.
+        ok, detail = verify_confirmation_signature(rec, c, known[nid])
+        if ok is False:
+            rep.add(RED, f"{nid}: signature does not verify — {detail}")
+            continue
+        if ok is None:
+            rep.add(AMBER, f"{nid}: {detail} — authorship is NOT established, so this "
+                           f"confirmation cannot count toward the two-party rule")
+            continue
+
+        if c.get(key) != rec.get(key):
+            rep.add(RED, f"{nid} confirms a different file_sha256 than the record")
+        elif built and c.get(key) != built:
+            rep.add(RED, f"{nid} confirms bytes that do not match the rebuild")
+        elif c.get("cid") is None:
+            # An honest abstention: the confirmer could not compute a CID. It is
+            # NOT the same as agreeing with the record's, and must never be
+            # backfilled from it — that would be a value the node never derived.
+            rep.add(AMBER, f"{nid} confirms the bytes but computed no CID (no ipfs) — "
+                           f"the CID half is unestablished, so this does not count")
+        elif c.get("cid") != rec.get("cid"):
+            # Same bytes, different CID = a parameter disagreement, not tampering.
+            rep.add(AMBER, f"{nid} agrees on the bytes but reports a different CID — "
+                           f"parameter mismatch, not a bad page (see PIN-RECORD.md)")
+        else:
+            rep.add(GREEN, f"{nid} signed, independently rebuilt, agrees on bytes and CID")
+            counted.add(nid)
+
+    # Reports the COUNTED set, not the set of names present. The previous version
+    # printed "N distinct nodes confirm — no unilateral pin" off the names alone,
+    # so it asserted the rule was met while a confirmation next to it was RED.
+    if len(counted) >= 2:
+        rep.add(GREEN, f"{len(counted)} authenticated confirmations from distinct nodes "
+                       f"— no unilateral pin")
+    else:
+        rep.add(RED, f"only {len(counted)} confirmation(s) are both authenticated and "
+                     f"correct — the rule is two ({len(seen_nodes)} node(s) named)")
+
+    return _finish(rep)
+
+
 def _finish(rep) -> int:
     v = rep.verdict()
     print()
@@ -208,7 +280,63 @@ def main(argv) -> int:
         return _finish(rep)
     rep.add(GREEN, f"cid_params recorded: {json.dumps(params, sort_keys=True)}")
 
-    # --- rebuild the stated commit ----------------------------------------
+    kind = rec.get("artifact_kind", "file")
+    if kind not in ("file", "site-tree"):
+        rep.add(RED, f"unknown artifact_kind {kind!r}")
+        return _finish(rep)
+
+    # --- site-tree: the artifact the contenthash ACTUALLY points at ---------
+    if kind == "site-tree":
+        # The ENS contenthash is a directory CID covering every published file.
+        # A record covering one file said nothing about the other twenty-eight,
+        # so a confirmation on it could not mean what the rule needs it to mean.
+        repo = rec.get("repo") or "https://github.com/trustless-ai/trustless-ai-landing"
+        built = None
+        with tempfile.TemporaryDirectory() as td:
+            site = pathlib.Path(td) / "site"
+            r = subprocess.run(["git", "clone", "--quiet", "--no-checkout", repo + ".git", str(site)],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                rep.add(AMBER, f"cannot clone {repo} — CID not reproduced")
+            else:
+                r = subprocess.run(["git", "checkout", "--quiet", commit],
+                                   capture_output=True, text=True, cwd=site)
+                if r.returncode != 0:
+                    rep.add(AMBER, f"commit {commit[:8]} not found in {repo}")
+                else:
+                    # The console page must be the build of ITS locked commit, or
+                    # the tree contains a hand-copied file and reproduces by luck.
+                    c = subprocess.run([sys.executable, "build/sync_console.py", "--check"],
+                                       capture_output=True, text=True, cwd=site)
+                    if c.returncode != 0:
+                        rep.add(RED, "the site's console page is not the build of its "
+                                     "locked commit — the tree has drifted from its sources")
+                    else:
+                        rep.add(GREEN, "console page is the build of its locked commit")
+                    s = subprocess.run([sys.executable, "build/site_cid.py", "--json"],
+                                       capture_output=True, text=True, cwd=site)
+                    if s.returncode != 0:
+                        rep.add(RED, "could not derive the site CID from that commit")
+                    else:
+                        got = json.loads(s.stdout)
+                        built = got.get("tree_sha256")
+                        if built == rec.get("tree_sha256"):
+                            rep.add(GREEN, f"tree hash reproduces ({str(built)[:26]}…, "
+                                           f"{got.get('file_count')} files)")
+                        else:
+                            rep.add(RED, f"tree hash MISMATCH\n           record:  "
+                                         f"{rec.get('tree_sha256')}\n           rebuilt: {built}")
+                        if got.get("cid") is None:
+                            rep.add(AMBER, "no usable `ipfs` — directory CID not recomputed "
+                                           "(the tree bytes were still checked)")
+                        elif got["cid"] == rec.get("cid"):
+                            rep.add(GREEN, f"directory CID recomputes: {got['cid'][:26]}…")
+                        else:
+                            rep.add(RED, f"directory CID MISMATCH\n           record:     "
+                                         f"{rec.get('cid')}\n           recomputed: {got['cid']}")
+        return _confirmations(rep, rec, built, key="tree_sha256")
+
+    # --- file: rebuild the stated commit -----------------------------------
     built = None
     with tempfile.TemporaryDirectory() as td:
         wt = pathlib.Path(td) / "wt"
@@ -246,60 +374,7 @@ def main(argv) -> int:
                 subprocess.run(["git", "worktree", "remove", "--force", str(wt)],
                                capture_output=True, cwd=ROOT)
 
-    # --- confirmations -----------------------------------------------------
-    confs = rec.get("confirmations") or []
-    known = registered_nodes()
-    seen_nodes = set()
-    # Only confirmations that are BOTH authentic and correct count toward the
-    # rule. Merely appearing in the array is not confirming — that conflation is
-    # what let a single writer satisfy a two-party rule.
-    counted = set()
-
-    for c in confs:
-        nid = c.get("node_id")
-        if nid not in known:
-            rep.add(RED, f"confirmation from unregistered node {nid!r}")
-            continue
-        if nid in seen_nodes:
-            rep.add(RED, f"duplicate confirmation from {nid} — one party, counted twice, "
-                         f"is exactly what the two-party rule exists to prevent")
-            continue
-        seen_nodes.add(nid)
-
-        # Authenticity first: without it, everything below is a claim by whoever
-        # wrote the file, not by the node it names.
-        ok, detail = verify_confirmation_signature(rec, c, known[nid])
-        if ok is False:
-            rep.add(RED, f"{nid}: signature does not verify — {detail}")
-            continue
-        if ok is None:
-            rep.add(AMBER, f"{nid}: {detail} — authorship is NOT established, so this "
-                           f"confirmation cannot count toward the two-party rule")
-            continue
-
-        if c.get("file_sha256") != rec.get("file_sha256"):
-            rep.add(RED, f"{nid} confirms a different file_sha256 than the record")
-        elif built and c.get("file_sha256") != built:
-            rep.add(RED, f"{nid} confirms bytes that do not match the rebuild")
-        elif c.get("cid") != rec.get("cid"):
-            # Same bytes, different CID = a parameter disagreement, not tampering.
-            rep.add(AMBER, f"{nid} agrees on the bytes but reports a different CID — "
-                           f"parameter mismatch, not a bad page (see PIN-RECORD.md)")
-        else:
-            rep.add(GREEN, f"{nid} signed, independently rebuilt, agrees on bytes and CID")
-            counted.add(nid)
-
-    # Reports the COUNTED set, not the set of names present. The previous version
-    # printed "N distinct nodes confirm — no unilateral pin" off the names alone,
-    # so it asserted the rule was met while a confirmation next to it was RED.
-    if len(counted) >= 2:
-        rep.add(GREEN, f"{len(counted)} authenticated confirmations from distinct nodes "
-                       f"— no unilateral pin")
-    else:
-        rep.add(RED, f"only {len(counted)} confirmation(s) are both authenticated and "
-                     f"correct — the rule is two ({len(seen_nodes)} node(s) named)")
-
-    return _finish(rep)
+    return _confirmations(rep, rec, built)
 
 
 if __name__ == "__main__":

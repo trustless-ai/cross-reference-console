@@ -46,6 +46,22 @@ is what proves two rebuilds agree; the CID is what gets pinned. If two
 confirmations agree on sha256 but not CID, the disagreement is in the parameters
 and nothing is wrong with the page.
 
+## What the record covers
+
+The contenthash is a **directory** CID — every published file, not one page. The
+first version of this record covered `ui/index.html` alone, which meant a
+confirmation on it said nothing about the other twenty-eight files in the tree.
+
+So a record declares its `artifact_kind`:
+
+- **`site-tree`** — the real thing. Names the landing repo and commit, and carries
+  a `tree_sha256` over every published file. Verifying it clones that commit,
+  checks the console page **is the build of its own locked commit** (otherwise the
+  tree holds a hand-copied file and reproduces only by luck), then derives the tree
+  hash and the directory CID.
+- **`file`** — a single artifact. Useful for testing the machinery; not what gets
+  pinned.
+
 ## The record
 
 One file per pin, `pins/<cid>.json`, append-only:
