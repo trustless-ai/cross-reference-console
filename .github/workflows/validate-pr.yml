@@ -49,6 +49,11 @@ jobs:
         run: python3 reference/registry_id.py
       - name: registry_id refuses a truncated history (never a wrong identity)
         run: python3 reference/registry_id.py --selftest
+      - name: source projection — stable across drift, sensitive to substance
+        run: |
+          # inputs[].content_hash on a live endpoint is provenance of one fetch,
+          # not a value two nodes can compare. The projection is what they compare.
+          python3 reference/projection.py --selftest
       - name: LineageRef grammar — negative vector per rule
         run: python3 reference/lineage_ref.py
       - name: create_cell.py loads (the tool an outsider onboards with)
