@@ -32,7 +32,8 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "reference"))
 
-from verify_pin import confirmation_preimage, sha256_file, ipfs_cid  # noqa: E402
+from verify_pin import (ALLOWED_SITE_REPOS, confirmation_preimage,  # noqa: E402
+                        ipfs_cid, sha256_file)
 
 
 def _sign_msg(msg, node, key):
@@ -69,6 +70,14 @@ def _confirm_site_tree(rec, node, args, key):
     only reproduces by luck), then derives the tree hash and directory CID.
     """
     repo = rec.get("repo") or "https://github.com/trustless-ai/trustless-ai-landing"
+    # Same boundary as verify_pin, and it needed saying twice: confirming a
+    # site-tree record also EXECUTES build code from the cloned repo. Fixing the
+    # verifier and not the signer would have left the hole open for exactly the
+    # people doing the most careful work — the ones who bother to confirm.
+    if repo.rstrip("/").removesuffix(".git") not in ALLOWED_SITE_REPOS:
+        print(f"REFUSING TO SIGN — repo {repo!r} is not in the allowlist.\n"
+              "Confirming would execute build code from a record-selected repository.")
+        return 1
     with tempfile.TemporaryDirectory() as td:
         site = pathlib.Path(td) / "site"
         r = subprocess.run(["git", "clone", "--quiet", "--no-checkout", repo + ".git", str(site)],

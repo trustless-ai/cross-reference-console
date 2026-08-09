@@ -228,6 +228,37 @@ def site_tree_vectors():
                 check(f"  ...and refuses to execute its code", refused)
 
 
+def signer_boundary_vector():
+    """The signer must refuse a record-selected repo too.
+
+    Found by auditing for the class after @pipavlo82 found it in verify_pin:
+    the fix had been applied to the verifier and NOT to sign_confirmation, which
+    clones and executes from the same field. Fixing one of two call sites is the
+    same instance-not-class error, one layer up.
+    """
+    print("\nsigner boundary:")
+    import os
+    rec = {"schema": "crc.pin-record.v0", "artifact_kind": "site-tree",
+           "repo": "https://github.com/attacker/evil", "cid": "bafybeitest",
+           "commit": "a" * 40, "tree_sha256": "sha256:" + "e" * 64,
+           "cid_params": {"cid_version": 1}, "confirmations": []}
+    nodes = list(verify_pin.registered_nodes())
+    if not nodes:
+        print("  amber no registered nodes — SKIPPED")
+        return
+    with tempfile.TemporaryDirectory() as td:
+        p = pathlib.Path(td) / "r.json"
+        p.write_text(json.dumps(rec))
+        env = dict(os.environ, CRC_KEY="0x" + "0" * 63 + "1")
+        r = subprocess.run([sys.executable, str(ROOT / "reference" / "sign_confirmation.py"),
+                            "--record", str(p), "--node", nodes[0]],
+                           capture_output=True, text=True, env=env)
+        refused = "not in the allowlist" in r.stdout
+        check("sign_confirmation refuses a record-selected repo", refused)
+        # And it must refuse BEFORE doing anything with the key.
+        check("  ...and refuses before touching the key", "REFUSING TO SIGN" in r.stdout)
+
+
 def real_record_vector():
     """Re-run every committed pin record. @pipavlo82 asked for a real one to
     rerun independently; this makes sure it never rots."""
@@ -252,6 +283,7 @@ if __name__ == "__main__":
     signature_vectors()
     record_vectors()
     site_tree_vectors()
+    signer_boundary_vector()
     real_record_vector()
     print()
     print("all green — pin rule vectors" if not fails else f"{fails} FAILURE(S)")
