@@ -1,0 +1,433 @@
+#!/usr/bin/env python3
+"""Verify a pin record: rebuild the stated commit and check the confirmations.
+
+The ENS contenthash is the one pointer in this stack that is not recomputable, so
+the rule is that no one person can move it: a CID is pinned only when two
+independent parties each rebuilt the stated commit and got the same bytes and the
+same CID (PIN-RECORD.md).
+
+This tool is what a third party runs to check that claim without trusting anyone
+who made it — including whoever wrote the record.
+
+Tri-state on purpose. AMBER is a real answer here and is used whenever something
+could not be established: no `ipfs` binary to recompute the CID with, or a commit
+that cannot be fetched. Could-not-check is never a pass.
+
+    python3 reference/verify_pin.py pins/<cid>.json
+"""
+
+import hashlib
+import json
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# Repos whose build code this verifier is willing to EXECUTE. Deliberately in the
+# verifier and not in the record: a pin record is untrusted input, and letting it
+# choose what code runs would turn every verifier into a target. See the
+# site-tree branch of main().
+ALLOWED_SITE_REPOS = {
+    "https://github.com/trustless-ai/trustless-ai-landing",
+}
+
+GREEN, AMBER, RED = "GREEN", "AMBER", "RED"
+_SYM = {GREEN: "ok   ", AMBER: "amber", RED: "RED  "}
+
+
+class Report:
+    def __init__(self):
+        self.rows = []
+
+    def add(self, state, msg):
+        self.rows.append((state, msg))
+        print(f"  {_SYM[state]} · {msg}")
+
+    def verdict(self):
+        if any(s == RED for s, _ in self.rows):
+            return RED
+        if any(s == AMBER for s, _ in self.rows):
+            return AMBER
+        return GREEN
+
+
+def sha256_file(p: pathlib.Path) -> str:
+    return "sha256:" + hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def ipfs_cid(path: pathlib.Path, params: dict):
+    """Recompute the CID with the RECORDED parameters, or None if not possible.
+
+    The parameters are not decoration. The same bytes produce a different CID
+    under --cid-version=0 vs 1, and different again when wrapped with -w. Two
+    honest people who rebuild the same commit will disagree on the CID if their
+    flags differ, so the record fixes them and this reproduces them exactly.
+    """
+    if not shutil.which("ipfs"):
+        return None
+    args = ["ipfs", "add", "-Q", "-n"]
+    args.append(f"--cid-version={params.get('cid_version', 1)}")
+    if params.get("wrap_with_directory"):
+        args.append("-w")
+    if "chunker" in params:
+        args.append(f"--chunker={params['chunker']}")
+    if "hash" in params:
+        args.append(f"--hash={params['hash']}")
+    if params.get("raw_leaves") is False:
+        args.append("--raw-leaves=false")
+    args.append(str(path))
+    r = subprocess.run(args, capture_output=True, text=True)
+    if r.returncode != 0:
+        return None
+    out = r.stdout.strip().splitlines()
+    return out[-1].strip() if out else None
+
+
+def registered_nodes() -> dict:
+    try:
+        return {n["node_id"]: n for n in json.loads((ROOT / "nodes.json").read_text())["nodes"]
+                if not n.get("retired")}
+    except Exception:
+        return {}
+
+
+def confirmation_preimage(rec: dict, conf: dict) -> str:
+    """The exact bytes a confirming node signs — JCS over the fields that matter.
+
+    Binds the confirmation to THIS record: the CID, the commit, the artifact and
+    the bytes. A signature over "I agree" would be replayable onto a different
+    pin; this one is not.
+    """
+    # v2 signs the WHOLE confirmation and the WHOLE record context, rather than an
+    # enumerated subset. That is the difference between fixing an instance and
+    # fixing a class, and it took two rounds of review to learn:
+    #
+    #   v0 omitted conf["cid"], so the confirmer's CID could be edited after
+    #     signing — and counting acted on it.
+    #   v1 bound conf["cid"] by name... and the same commit introduced
+    #     conf["tree_sha256"], unbound, which is the field site-tree counting
+    #     acts on. The identical defect, reintroduced while fixing it, because
+    #     the list was hand-maintained. (@pipavlo82 found both.)
+    #
+    # An enumerated allowlist has to be updated every time a field is added, and
+    # nothing fails when someone forgets. Signing everything-except-the-signature
+    # inverts that: a new field is covered the moment it exists, and omitting one
+    # takes deliberate effort rather than inattention.
+    confirmed = {k: v for k, v in conf.items() if k != "signature"}
+
+    # The record context prevents replay onto another pin, and binds cid_params
+    # so a record cannot be verified under parameters nobody confirmed.
+    context = {k: rec.get(k) for k in
+               ("cid", "commit", "artifact", "artifact_kind", "repo",
+                "tree_sha256", "file_sha256", "cid_params")}
+
+    return json.dumps({"schema": "crc.pin-confirmation.v2",
+                       "record": context, "confirmation": confirmed},
+                      sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def verify_confirmation_signature(rec: dict, conf: dict, node: dict):
+    """(ok, detail). Uses the node's REGISTERED envelope and key — never the one
+    the confirmation asserts, which is the same rule Cells follow.
+
+    Returns ok=None when the signature is absent, so the caller can distinguish
+    'unsigned' from 'signed and wrong' — very different findings.
+    """
+    sig = conf.get("signature")
+    if not sig:
+        return None, "no signature"
+
+    env = node.get("envelope")
+    msg = confirmation_preimage(rec, conf)
+
+    if env == "eip712":
+        try:
+            from eth_account import Account
+            from eth_account.messages import encode_typed_data
+        except ImportError:
+            return None, "eth-account not installed — cannot check"
+        full = {
+            "types": {
+                "EIP712Domain": [{"name": "name", "type": "string"},
+                                 {"name": "version", "type": "string"},
+                                 {"name": "chainId", "type": "uint256"}],
+                "PinConfirmation": [{"name": "preimage", "type": "string"}],
+            },
+            "primaryType": "PinConfirmation",
+            "domain": {"name": "cross-reference-console", "version": "1", "chainId": 1},
+            "message": {"preimage": msg},
+        }
+        if not re.fullmatch(r"0x[0-9a-f]{130}", str(sig)):
+            return False, "signature grammar (expect 0x + 130 lowercase hex)"
+        try:
+            rec_addr = Account.recover_message(encode_typed_data(full_message=full), signature=sig)
+        except Exception as e:
+            return False, f"recover failed: {type(e).__name__}"
+        want = (node.get("key_ref") or {}).get("address") or ""
+        if rec_addr.lower() != want.lower():
+            return False, f"recovered {rec_addr} != registered {want}"
+        return True, rec_addr
+
+    if env == "nostr-nip01":
+        try:
+            sys.path.insert(0, str(ROOT / "reference"))
+            import bip340
+        except ImportError:
+            return None, "bip340 helper unavailable — cannot check"
+        pub = (node.get("key_ref") or {}).get("pubkey") or ""
+        digest = hashlib.sha256(msg.encode()).hexdigest()
+        try:
+            if not bip340.verify_hex(digest, pub, str(sig)):
+                return False, "schnorr verify failed vs registered pubkey"
+        except Exception as e:
+            return False, f"schnorr check errored: {type(e).__name__}"
+        return True, pub
+
+    return None, f"unknown envelope {env!r} — cannot check"
+
+
+def _confirmations(rep, rec, built, key="file_sha256"):
+    """The two-party rule. Shared by both artifact kinds on purpose: one
+    implementation cannot drift away from the other."""
+    # --- confirmations -----------------------------------------------------
+    confs = rec.get("confirmations") or []
+    known = registered_nodes()
+    seen_nodes = set()
+    # Only confirmations that are BOTH authentic and correct count toward the
+    # rule. Merely appearing in the array is not confirming — that conflation is
+    # what let a single writer satisfy a two-party rule.
+    counted = set()
+
+    for c in confs:
+        nid = c.get("node_id")
+        if nid not in known:
+            rep.add(RED, f"confirmation from unregistered node {nid!r}")
+            continue
+        if nid in seen_nodes:
+            rep.add(RED, f"duplicate confirmation from {nid} — one party, counted twice, "
+                         f"is exactly what the two-party rule exists to prevent")
+            continue
+        seen_nodes.add(nid)
+
+        # Authenticity first: without it, everything below is a claim by whoever
+        # wrote the file, not by the node it names.
+        ok, detail = verify_confirmation_signature(rec, c, known[nid])
+        if ok is False:
+            rep.add(RED, f"{nid}: signature does not verify — {detail}")
+            continue
+        if ok is None:
+            rep.add(AMBER, f"{nid}: {detail} — authorship is NOT established, so this "
+                           f"confirmation cannot count toward the two-party rule")
+            continue
+
+        if c.get(key) != rec.get(key):
+            rep.add(RED, f"{nid} confirms a different file_sha256 than the record")
+        elif built and c.get(key) != built:
+            rep.add(RED, f"{nid} confirms bytes that do not match the rebuild")
+        elif c.get("cid") is None:
+            # An honest abstention: the confirmer could not compute a CID. It is
+            # NOT the same as agreeing with the record's, and must never be
+            # backfilled from it — that would be a value the node never derived.
+            rep.add(AMBER, f"{nid} confirms the bytes but computed no CID (no ipfs) — "
+                           f"the CID half is unestablished, so this does not count")
+        elif c.get("cid") != rec.get("cid"):
+            # Same bytes, different CID = a parameter disagreement, not tampering.
+            rep.add(AMBER, f"{nid} agrees on the bytes but reports a different CID — "
+                           f"parameter mismatch, not a bad page (see PIN-RECORD.md)")
+        else:
+            rep.add(GREEN, f"{nid} signed, independently rebuilt, agrees on bytes and CID")
+            counted.add(nid)
+
+    # Reports the COUNTED set, not the set of names present. The previous version
+    # printed "N distinct nodes confirm — no unilateral pin" off the names alone,
+    # so it asserted the rule was met while a confirmation next to it was RED.
+    if len(counted) >= 2:
+        rep.add(GREEN, f"{len(counted)} authenticated confirmations from distinct nodes "
+                       f"— no unilateral pin")
+    else:
+        rep.add(RED, f"only {len(counted)} confirmation(s) are both authenticated and "
+                     f"correct — the rule is two ({len(seen_nodes)} node(s) named)")
+
+    return _finish(rep)
+
+
+def _finish(rep) -> int:
+    v = rep.verdict()
+    print()
+    print({GREEN: "GREEN — safe to pin: rebuilt, reproduced, and independently confirmed",
+           AMBER: "AMBER — not established. Something could not be checked; that is not a pass",
+           RED:   "RED — do NOT pin"}[v])
+    return 0 if v == GREEN else 1
+
+
+def main(argv) -> int:
+    if len(argv) != 2:
+        print(__doc__)
+        return 2
+    rec_path = pathlib.Path(argv[1])
+    if not rec_path.exists():
+        print(f"RED   pin record not found: {rec_path}")
+        return 1
+
+    rec = json.loads(rec_path.read_text())
+    rep = Report()
+
+    print(f"\nverifying {rec_path}\n")
+
+    # --- shape -------------------------------------------------------------
+    if rec.get("schema") != "crc.pin-record.v0":
+        rep.add(RED, f"schema is {rec.get('schema')!r}, expected 'crc.pin-record.v0'")
+        return _finish(rep)
+    rep.add(GREEN, "schema is crc.pin-record.v0")
+
+    commit = rec.get("commit", "")
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        rep.add(RED, "commit is not a 40-hex sha")
+        return _finish(rep)
+
+    artifact = rec.get("artifact", "ui/index.html")
+    params = rec.get("cid_params") or {}
+    if not params:
+        # Without these the CID cannot be reproduced, so the record cannot be
+        # checked at all — that is a defect in the record, not an abstention.
+        rep.add(RED, "cid_params absent — the CID is not reproducible without them")
+        return _finish(rep)
+    rep.add(GREEN, f"cid_params recorded: {json.dumps(params, sort_keys=True)}")
+
+    kind = rec.get("artifact_kind", "file")
+    if kind not in ("file", "site-tree"):
+        rep.add(RED, f"unknown artifact_kind {kind!r}")
+        return _finish(rep)
+
+    # --- site-tree: the artifact the contenthash ACTUALLY points at ---------
+    if kind == "site-tree":
+        # The ENS contenthash is a directory CID covering every published file.
+        # A record covering one file said nothing about the other twenty-eight,
+        # so a confirmation on it could not mean what the rule needs it to mean.
+        # SECURITY BOUNDARY (@pipavlo82). Verifying a site-tree record executes
+        # build/*.py FROM THE CLONED REPO. If the record chooses that repo, then
+        # anyone who can write a pin record can run arbitrary code on every
+        # verifier's machine — and the people who run this tool are precisely the
+        # people we are asking to check work they did not author.
+        #
+        # So the repo is not record-selected. It must be one of ours, and the
+        # allowlist lives in the verifier, not in the artifact being verified.
+        # A record naming anything else is RED, not AMBER: this is not something
+        # that could-not-be-checked, it is something that must not be run.
+        repo = rec.get("repo") or "https://github.com/trustless-ai/trustless-ai-landing"
+        if repo.rstrip("/").removesuffix(".git") not in ALLOWED_SITE_REPOS:
+            rep.add(RED, f"repo {repo!r} is not in the verifier's allowlist — refusing to "
+                         f"execute build code from a record-selected repository")
+            return _confirmations(rep, rec, None, key="tree_sha256")
+        built = None
+        with tempfile.TemporaryDirectory() as td:
+            site = pathlib.Path(td) / "site"
+            r = subprocess.run(["git", "clone", "--quiet", "--no-checkout", repo + ".git", str(site)],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                rep.add(AMBER, f"cannot clone {repo} — CID not reproduced")
+            else:
+                r = subprocess.run(["git", "checkout", "--quiet", commit],
+                                   capture_output=True, text=True, cwd=site)
+                if r.returncode != 0:
+                    rep.add(AMBER, f"commit {commit[:8]} not found in {repo}")
+                else:
+                    # The console page must be the build of ITS locked commit, or
+                    # the tree contains a hand-copied file and reproduces by luck.
+                    c = subprocess.run([sys.executable, "build/sync_console.py", "--check"],
+                                       capture_output=True, text=True, cwd=site)
+                    if c.returncode != 0:
+                        rep.add(RED, "the site's console page is not the build of its "
+                                     "locked commit — the tree has drifted from its sources")
+                    else:
+                        rep.add(GREEN, "console page is the build of its locked commit")
+                    # The record's cid_params must be the ones actually used.
+                    # Previously verification only checked they were non-empty and
+                    # then let site_cid.py read the CLONED repo's site.pin.json —
+                    # so a record could be verified under parameters nobody
+                    # confirmed, which is the whole thing cid_params exists to stop.
+                    try:
+                        site_params = json.loads((site / "site.pin.json").read_text())["cid_params"]
+                    except Exception:
+                        site_params = None
+                    if site_params is None:
+                        rep.add(RED, "the site commit has no readable site.pin.json — "
+                                     "its cid_params cannot be compared to the record's")
+                    elif site_params != params:
+                        rep.add(RED, "cid_params MISMATCH — the record and the site commit "
+                                     "disagree about how the CID is derived\n"
+                                     f"           record: {json.dumps(params, sort_keys=True)}\n"
+                                     f"           site:   {json.dumps(site_params, sort_keys=True)}")
+                    else:
+                        rep.add(GREEN, "cid_params in the record match the site commit's")
+
+                    s = subprocess.run([sys.executable, "build/site_cid.py", "--json"],
+                                       capture_output=True, text=True, cwd=site)
+                    if s.returncode != 0:
+                        rep.add(RED, "could not derive the site CID from that commit")
+                    else:
+                        got = json.loads(s.stdout)
+                        built = got.get("tree_sha256")
+                        if built == rec.get("tree_sha256"):
+                            rep.add(GREEN, f"tree hash reproduces ({str(built)[:26]}…, "
+                                           f"{got.get('file_count')} files)")
+                        else:
+                            rep.add(RED, f"tree hash MISMATCH\n           record:  "
+                                         f"{rec.get('tree_sha256')}\n           rebuilt: {built}")
+                        if got.get("cid") is None:
+                            rep.add(AMBER, "no usable `ipfs` — directory CID not recomputed "
+                                           "(the tree bytes were still checked)")
+                        elif got["cid"] == rec.get("cid"):
+                            rep.add(GREEN, f"directory CID recomputes: {got['cid'][:26]}…")
+                        else:
+                            rep.add(RED, f"directory CID MISMATCH\n           record:     "
+                                         f"{rec.get('cid')}\n           recomputed: {got['cid']}")
+        return _confirmations(rep, rec, built, key="tree_sha256")
+
+    # --- file: rebuild the stated commit -----------------------------------
+    built = None
+    with tempfile.TemporaryDirectory() as td:
+        wt = pathlib.Path(td) / "wt"
+        r = subprocess.run(["git", "worktree", "add", "--detach", "-q", str(wt), commit],
+                           capture_output=True, text=True, cwd=ROOT)
+        if r.returncode != 0:
+            rep.add(AMBER, f"cannot check out {commit[:8]} — fetch it and re-run "
+                           f"(git fetch origin {commit})")
+        else:
+            try:
+                b = subprocess.run([sys.executable, "ui/embed_snapshot.py"],
+                                   capture_output=True, text=True, cwd=wt)
+                target = wt / artifact
+                if b.returncode != 0 or not target.exists():
+                    rep.add(RED, f"rebuild of {commit[:8]} failed")
+                else:
+                    got_sha = sha256_file(target)
+                    want_sha = rec.get("file_sha256")
+                    if got_sha == want_sha:
+                        rep.add(GREEN, f"rebuild of {commit[:8]} reproduces file_sha256")
+                    else:
+                        rep.add(RED, f"rebuild MISMATCH\n           record: {want_sha}\n"
+                                     f"           rebuilt: {got_sha}")
+                    got_cid = ipfs_cid(target, params)
+                    if got_cid is None:
+                        rep.add(AMBER, "no usable `ipfs` binary — CID not recomputed "
+                                       "(the bytes were still checked)")
+                    elif got_cid == rec.get("cid"):
+                        rep.add(GREEN, f"CID recomputes under the recorded params: {got_cid[:24]}…")
+                    else:
+                        rep.add(RED, f"CID MISMATCH\n           record:   {rec.get('cid')}\n"
+                                     f"           recomputed: {got_cid}")
+                    built = got_sha
+            finally:
+                subprocess.run(["git", "worktree", "remove", "--force", str(wt)],
+                               capture_output=True, cwd=ROOT)
+
+    return _confirmations(rep, rec, built)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

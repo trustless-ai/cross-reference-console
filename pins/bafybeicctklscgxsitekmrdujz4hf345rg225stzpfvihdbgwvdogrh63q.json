@@ -1,0 +1,36 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeicctklscgxsitekmrdujz4hf345rg225stzpfvihdbgwvdogrh63q",
+  "commit": "ca2e65729b0c46565a0729137e2bfef9bf0a7b17",
+  "tree_sha256": "sha256:604fa5d8a2749a4b17b7636473b052e024cba3ed16b8487512c869026c1eb73b",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "confirmations": [
+    {
+      "node_id": "vertice-recompute-lens",
+      "rebuilt_at": "2026-08-09T15:36:54Z",
+      "tree_sha256": "sha256:604fa5d8a2749a4b17b7636473b052e024cba3ed16b8487512c869026c1eb73b",
+      "file_sha256": "sha256:604fa5d8a2749a4b17b7636473b052e024cba3ed16b8487512c869026c1eb73b",
+      "cid": "bafybeicctklscgxsitekmrdujz4hf345rg225stzpfvihdbgwvdogrh63q",
+      "signature": "0xb22ea4ea272e463f2f14e6c7b8d57a254b30b1b0a619b1c678008e7c8685e7f43087ab16a2bf7268d7121802c51d8d77d234e7f326bc6cc2ae75f3c98966cf8c1b"
+    },
+    {
+      "node_id": "invinoveritas",
+      "rebuilt_at": "2026-08-09T16:03:05Z",
+      "tree_sha256": "sha256:604fa5d8a2749a4b17b7636473b052e024cba3ed16b8487512c869026c1eb73b",
+      "file_sha256": "sha256:604fa5d8a2749a4b17b7636473b052e024cba3ed16b8487512c869026c1eb73b",
+      "cid": "bafybeicctklscgxsitekmrdujz4hf345rg225stzpfvihdbgwvdogrh63q",
+      "signature": "5f01b12e7f07d3331a2b3fe2063acf4fa65feab7c36b40c7a1105c2f84e70311cb30c5adda7a306e0d319e80d04cc3863dc9ce4350f7f77510b85743d6cbc6bd"
+    }
+  ],
+  "pinned_at": null,
+  "tx": null,
+  "purpose": "First real pin record. Whether this CID is pinned is a separate decision \u2014 if the site changes before then, a new CID gets a new record and this one simply keeps pinned_at: null."
+}
