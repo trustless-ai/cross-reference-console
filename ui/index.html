@@ -9,12 +9,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital@0;1&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#12130f; --ink-2:#1a1c16; --panel:#1f221b; --line:#33372c;
-    --paper:#efece1; --muted:#a6a394; --dim:#7c7a6d;
-    --brass:#c9a227; --brass-2:#9c7c1e; --ink-brass:#e4c94e;
-    --green:#54c98a; --green-bg:rgba(84,201,138,.12); --green-line:rgba(84,201,138,.5);
-    --red:#e06a4d; --red-bg:rgba(224,106,77,.12); --red-line:rgba(224,106,77,.5);
-    --amber:#d9a441; --amber-bg:rgba(217,164,65,.12); --amber-line:rgba(217,164,65,.5);
+    /* trustless-ai palette. This page is the ORG's console: it renders four
+       nodes' work and belongs to none of them, so it takes the org site's
+       colours (#F5F5F5 ground, #6D5AE6 accent, #2B2644 deep) rather than any
+       one member's brand. Node display names still name their operator,
+       because that is a fact about the node, not a claim about the page.
+       Variable names are unchanged so nothing downstream shifts: --ink is the
+       ground, --paper the type set on it. */
+    --ink:#F5F5F5; --ink-2:#ECECF3; --panel:#FFFFFF; --line:#D8D6E6;
+    --paper:#0b0b0f; --muted:#4a4658; --dim:#6f6b80;
+    --brass:#6D5AE6; --brass-2:#4F3FD0; --ink-brass:#2B2644;
+    --green:#1f9d5f; --green-bg:rgba(31,157,95,.10); --green-line:rgba(31,157,95,.45);
+    --red:#c0442a; --red-bg:rgba(192,68,42,.10); --red-line:rgba(192,68,42,.45);
+    --amber:#a8761a; --amber-bg:rgba(168,118,26,.10); --amber-line:rgba(168,118,26,.45);
     --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
     --disp:"Space Grotesk",system-ui,sans-serif;
     --serif:"Newsreader",Georgia,serif;
@@ -124,7 +131,7 @@
   <header>
     <div class="brand">
       <svg class="vertex" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5 L12 21 L21 5"/><path d="M7 5 L12 14 L17 5"/></svg>
-      <h1>Vértice · Cross-Reference Console</h1>
+      <h1>Cross-Reference Console</h1>
       <span class="tag">Don't trust. Recompute.</span>
     </div>
     <h2>Every cell is recomputable. Never a bare green.</h2>
