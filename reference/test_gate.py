@@ -72,3 +72,38 @@ if failures:
     print(f"\n{len(failures)} failure(s): {failures}")
     sys.exit(1)
 print("\nall green — gate conformant")
+
+
+def _artifact_type_axes():
+    """CLAIM.md — ClaimPreimage.artifact_type is fixed by the lift rule, never
+    copied from the source's verdict.artifact_type.
+
+    A node that "reconciles" the two changes claim_id and breaks every edge on
+    that claim. The ruling is @babyblueviper1's, confirmed against the producing
+    schema: the source value describes WHAT WAS REVIEWED, the claim value
+    describes WHAT KIND OF CLAIM THIS IS. Two axes.
+
+    This vector pins the consequence rather than the prose: reconciling them
+    must move claim_id.
+    """
+    import glob, json, pathlib, sys
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    from claim_id import claim_id
+    fails = 0
+    for p in glob.glob(str(pathlib.Path(__file__).resolve().parent.parent / "claims" / "*.json")):
+        if len(pathlib.Path(p).stem) != 64:
+            continue
+        d = json.load(open(p))
+        pre = d["claim_preimage"]
+        before = claim_id(pre)
+        reconciled = dict(pre, artifact_type="onchain_action")   # the tempting "fix"
+        if claim_id(reconciled) == before:
+            print(f"  FAIL  reconciling artifact_type did NOT change claim_id ({pathlib.Path(p).stem[:12]}…)")
+            fails += 1
+    if not fails:
+        print("  ok    reconciling artifact_type would change claim_id (so: do not)")
+    return fails
+
+
+if __name__ == "__main__" and "--axes" in __import__("sys").argv:
+    raise SystemExit(1 if _artifact_type_axes() else 0)

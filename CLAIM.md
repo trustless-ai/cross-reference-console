@@ -19,7 +19,7 @@ claim_id = "sha256:" + hex( SHA-256( JCS( ClaimPreimage ) ) )
   "profile_id":       "<string>",            // conformance profile / ruleset id   (captured-admission profile_id)
   "policy_version":   "<string>",            // version of that ruleset             (decision_ref)
   "artifact_hash":    "<lowercase-hex>",     // hash of the exact artifact claimed about (decision_ref)
-  "artifact_type":    "<string>",            // review_verdict | recompute_result | onchain_action | ...
+  "artifact_type":    "<string>",            // what KIND OF CLAIM this is — see "two axes" below
   "claim_body":       "<string|null>",       // the assertion itself — e.g. the verdict ("accept"|"reject"|…) for review_verdict; null if the type carries none
   "source_class":     "<string>",            // agent_reported | attested | recomputable   (orthogonal to identity — Pavlo)
   "verifier_profile": "<string>",            // ERC-8274 proofSystem family that resolves it: recompute/* | attestation/* | tee/* | zk/*
@@ -29,6 +29,32 @@ claim_id = "sha256:" + hex( SHA-256( JCS( ClaimPreimage ) ) )
 ```
 
 ## Reconciliation
+
+### `artifact_type` — two axes, do not reconcile them
+
+`ClaimPreimage.artifact_type` and a source verdict's own `artifact_type` answer
+**different questions**, and on every Claim registered so far they differ:
+
+| entry | `ClaimPreimage.artifact_type` | source `verdict.artifact_type` |
+|---|---|---|
+| 236 | `review_verdict` | `onchain_action` |
+| 237 | `review_verdict` | `code_diff` |
+| 238 | `review_verdict` | `code_diff` |
+| 239 | `review_verdict` | `onchain_action` |
+
+**This is correct.** The claim layer's value says *what kind of thing this claim
+is* — here, a claim about a verdict object. The source's value says *what was
+reviewed* — an onchain action, a code diff, a trading decision. Confirmed against
+the producing schema by @babyblueviper1 (2026-08-09): on the `/review` side
+`artifact_type` is bound into `decision_ref`'s preimage as a property **of the
+artifact**, not of the verdict-as-an-object-type.
+
+**Do not reconcile them.** `artifact_type` is claim-bearing: it feeds `claim_id`.
+A node that notices the difference and "fixes" it by copying the source value
+changes `claim_id` and **silently breaks every edge on that claim** — a one-line
+change, made by someone being helpful, with mesh-wide blast radius.
+
+The value is **fixed by the lift rule**, never copied from the source.
 
 - **`decision_ref` → `claim_id`.** `decision_ref`'s preimage fields (`artifact_hash, artifact_type, policy_version, verdict, source_class, …`) are a **subset** of `ClaimPreimage`. A `/review` verdict lifts into a Claim by mapping `verdict → claim_body` and supplying `profile_id, verifier_profile, as_of, claimant`. The `vantage_limitation / related_decision_ref / intended_audience` fields stay on the **verdict record** — they qualify the *verdict*, not the *claim's identity* — and remain recomputable from the artifact.
 - **`admission_id` → `claim_id`.** captured-admission's `admission_id = H(profile_id ‖ canonical_capture_ref)`. Here `claim_id` **is** that discipline, with `canonical_capture_ref = JCS(ClaimPreimage \ {profile_id})` and `profile_id` carried as a field. So the claim binds *profile + capture* the same way, and inherits captured-admission's **`as_of`-strictly-required** and **visibility-filtered-before-validation** rules unchanged.
