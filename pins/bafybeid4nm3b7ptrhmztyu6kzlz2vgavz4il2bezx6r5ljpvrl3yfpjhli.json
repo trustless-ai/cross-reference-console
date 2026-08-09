@@ -1,0 +1,30 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeid4nm3b7ptrhmztyu6kzlz2vgavz4il2bezx6r5ljpvrl3yfpjhli",
+  "commit": "4f8df598511b5edb3a124798eeaa34330e5e9f1b",
+  "artifact": "site tree (29 published files)",
+  "tree_sha256": "sha256:134b1bf943a8817b48a72898f32de249985364557804191a021ce0e1a039f64f",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "confirmations": [
+    {
+      "node_id": "vertice-recompute-lens",
+      "rebuilt_at": "2026-08-09T16:25:30Z",
+      "tree_sha256": "sha256:134b1bf943a8817b48a72898f32de249985364557804191a021ce0e1a039f64f",
+      "file_sha256": "sha256:134b1bf943a8817b48a72898f32de249985364557804191a021ce0e1a039f64f",
+      "cid": "bafybeid4nm3b7ptrhmztyu6kzlz2vgavz4il2bezx6r5ljpvrl3yfpjhli",
+      "signature": "0xd9c276db5584a6787e07209259681b02a035ab7e61827c5e6e39936339da0cde3555b9ec4d8ebce486b6473ffab03ed63c59009a1003fe8a9a44c094cdad68071c"
+    }
+  ],
+  "pinned_at": "2026-08-09T16:40:47Z",
+  "tx": "0x4862d1f276e79d9d3cba6444a7440ad2f8b913ee614aebe369544fd6c3200cf7",
+  "purpose": "Console refresh: v2 Cells, closed v2 edge, 4 claims, crc.cell.v2 join step. PINNED on a single confirmation and superseded ~20 minutes later by the org-palette retheme. Recorded honestly: at pin time this record was RED by the two-party rule \u2014 one authenticated confirmation, not two. It is the one pin so far that did not meet the rule, and the record says so rather than leaving it to be inferred from a missing second signature.",
+  "supersedes": "bafybeicctklscgxsitekmrdujz4hf345rg225stzpfvihdbgwvdogrh63q"
+}
