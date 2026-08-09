@@ -20,6 +20,7 @@ failures = 0
 
 _ORIG_ACTIVATION = ri.activation_commit
 _REAL_V2 = _ORIG_ACTIVATION("CELL-v2.md")
+_REAL_MINT = _ORIG_ACTIVATION("CELL-v3.md")
 _REAL_ENF = ri.v3_enforcement_commit()
 
 
@@ -35,7 +36,11 @@ def _patch_mint_enforce(minted: bool, enforced: bool):
 
     def fake_activation(spec: str = "CELL-v2.md", root: str = ri.ROOT) -> str:
         if spec == "CELL-v3.md":
-            return _REAL_V2 if minted else ""
+            if not minted:
+                return ""
+            # When the spec is not on branch yet, stand in a distinct commit so
+            # patched ancestry tests remain meaningful on enforcement-only main.
+            return _REAL_MINT if _REAL_MINT else _REAL_V2
         if spec == ri.V3_ENFORCEMENT_MARKER:
             return _REAL_ENF if enforced else ""
         return _ORIG_ACTIVATION(spec, root)
@@ -45,6 +50,22 @@ def _patch_mint_enforce(minted: bool, enforced: bool):
 
 def _restore_activation():
     ri.activation_commit = _ORIG_ACTIVATION
+
+
+def _expected_in_force(minted: bool, enforced: bool) -> str:
+    return "crc.cell.v3" if (minted and enforced) else "crc.cell.v2"
+
+
+def _activation_by_ancestry(mint: str, enf: str) -> str:
+    if not mint or not enf:
+        return ""
+    if subprocess.run(["git", "merge-base", "--is-ancestor", mint, enf],
+                      cwd=str(ROOT), capture_output=True).returncode == 0:
+        return enf
+    if subprocess.run(["git", "merge-base", "--is-ancestor", enf, mint],
+                      cwd=str(ROOT), capture_output=True).returncode == 0:
+        return mint
+    raise RuntimeError("divergent mint/enforce commits — activation undefined")
 
 
 def main() -> int:
@@ -59,41 +80,44 @@ def main() -> int:
         chk(label, ri.in_force_schema() == expect)
     _restore_activation()
 
-    print("\n── live branch state — assert the RULE, not whichever state we are in")
-    # These previously asserted "CELL-v3.md is not minted here" and "in-force is
-    # v2", which were true on the enforcement branch and are FALSE the moment the
-    # spec PR mints v3 — i.e. the test failed on the change it exists to describe.
-    #
-    # State is not an invariant. What is invariant is the four-state mapping, so
-    # derive the expectation from the observed conditions and check the mapping
-    # holds either way. Same defect as the lane-distinctness fixtures earlier:
-    # a vector that encodes today's situation passes for an accidental reason and
-    # breaks on a legitimate change.
-    minted = bool(ri.activation_commit("CELL-v3.md"))
-    enforced = bool(ri.v3_enforcement_commit())
-    chk("v3 enforcement marker derivable", enforced)
-    expected = "crc.cell.v3" if (minted and enforced) else "crc.cell.v2"
-    chk(f"in-force schema matches the four-state rule "
-        f"(minted={minted}, enforced={enforced} -> {expected})",
-        ri.in_force_schema() == expected)
-    # And the mapping must be exhaustive, not just right for today's row.
-    for m, e, want in ((False, False, "crc.cell.v2"), (True, False, "crc.cell.v2"),
-                       (False, True, "crc.cell.v2"), (True, True, "crc.cell.v3")):
-        _patch_mint_enforce(m, e)
-        chk(f"  minted={str(m):5} enforced={str(e):5} -> {want}", ri.in_force_schema() == want)
-        _restore_activation()
+    print("\n── live checkout smoke (derived, not hardcoded)")
+    live_minted = bool(_ORIG_ACTIVATION("CELL-v3.md"))
+    live_enforced = bool(_REAL_ENF)
+    live_expect = _expected_in_force(live_minted, live_enforced)
+    chk("v3 enforcement marker derivable when present in history", live_enforced)
+    chk(
+        f"live: minted={live_minted} enforced={live_enforced} → in_force={live_expect}",
+        ri.in_force_schema() == live_expect,
+    )
+    if live_minted and live_enforced:
+        chk("v3 activation commit derivable when both live", bool(ri.schema_activation_commit("crc.cell.v3")))
+    else:
+        chk("v3 activation commit absent until both live", not ri.schema_activation_commit("crc.cell.v3"))
+
+    print("\n── regression: harness passes in enforcement-only and minted+enforced states")
+    for minted, enforced, label in (
+        (False, True, "enforcement-only (simulated)"),
+        (True, True, "minted + enforced (simulated)"),
+    ):
+        _patch_mint_enforce(minted, enforced)
+        expect = _expected_in_force(minted, enforced)
+        chk(f"{label}: in_force_schema() == {expect}", ri.in_force_schema() == expect)
+        if minted and enforced:
+            mint = ri.activation_commit("CELL-v3.md")
+            enf = ri.v3_enforcement_commit()
+            act = ri.schema_activation_commit("crc.cell.v3")
+            want = _activation_by_ancestry(mint, enf)
+            chk(f"{label}: schema_activation_commit() == later(mint, enforce)", act == want)
+        else:
+            chk(f"{label}: schema_activation_commit() empty", not ri.schema_activation_commit("crc.cell.v3"))
+    _restore_activation()
 
     print("\n── v3 sunset activation uses later of mint and enforce")
     _patch_mint_enforce(True, True)
+    mint = ri.activation_commit("CELL-v3.md")
+    enf = ri.v3_enforcement_commit()
     act = ri.schema_activation_commit("crc.cell.v3")
-    # Expectation derived from ANCESTRY directly, never from _later_commit —
-    # the previous version computed it with the function under test, so it was
-    # tautological and could not fail (@pipavlo82).
-    import subprocess as _sp
-    def _is_anc(x, y):
-        return _sp.run(["git", "merge-base", "--is-ancestor", x, y],
-                       cwd=str(ROOT), capture_output=True).returncode == 0
-    expected = _REAL_ENF if _is_anc(_REAL_V2, _REAL_ENF) else _REAL_V2
+    expected = _activation_by_ancestry(mint, enf)
     chk("v3 activation is the descendant of mint/enforce (by ancestry)", act == expected)
     _restore_activation()
 
@@ -106,7 +130,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as td:
         env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
                "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
-        run = lambda *a, **k: _sp.run(a, cwd=td, capture_output=True, text=True,
+        run = lambda *a, **k: subprocess.run(a, cwd=td, capture_output=True, text=True,
                                       env={**env, **k.pop("extra", {})}, **k)
         run("git", "init", "-q", ".")
         pathlib.Path(td, "f1").write_text("a"); run("git", "add", "f1")
@@ -126,6 +150,18 @@ def main() -> int:
             ri._later_commit(parent, child, root=td) == child)
         chk("  and is order-independent",
             ri._later_commit(child, parent, root=td) == child)
+
+        # Divergent histories must refuse — never guess an activation boundary.
+        run("git", "checkout", "-q", parent)
+        pathlib.Path(td, "f3").write_text("c"); run("git", "add", "f3")
+        run("git", "commit", "-q", "-m", "sibling")
+        sibling = run("git", "rev-parse", "HEAD").stdout.strip()
+        diverged = False
+        try:
+            ri._later_commit(child, sibling, root=td)
+        except RuntimeError:
+            diverged = True
+        chk("divergent histories refuse _later_commit (fail-closed)", diverged)
 
     print("\n── existing Cells still validate")
     for c in sorted(ROOT.glob("cells/*/*.cell.json")):
