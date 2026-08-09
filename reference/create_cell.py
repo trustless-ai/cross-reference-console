@@ -103,6 +103,43 @@ def load_node(node_id: str) -> dict:
         f"       Known nodes: {known}")
 
 
+# The lane whose independence legitimately IS this repo's reference script.
+# Every other node citing it is one implementation wearing two names.
+REFERENCE_LANE_NODE = "vertice-recompute-lens"
+THIS_REPO = "https://github.com/trustless-ai/cross-reference-console"
+
+
+def check_own_implementation(evidence: dict, node_id: str) -> None:
+    """Refuse a Cell that claims this repo's reference script as its own lane.
+
+    ONBOARDING has said this since it was written — "copying reference/claim_id.py
+    is not [the point]", "derive the claim_id with your own code". It still
+    happened, and the reason is worth understanding rather than restating the
+    doc louder: onboarding is read once, when you join. The failure lands on your
+    SECOND Cell, months later, when you are not reading onboarding docs and you
+    reach for whatever is closest — which is this repo, already checked out
+    because that is where Cells get submitted.
+
+    So the check belongs in the tool you run every time, not the page you read
+    once. CI caught it before merge, but by then a node has recomputed, signed,
+    pushed and opened a PR — the cost lands on the person who did the work.
+    """
+    ind = (evidence.get("independence") or {})
+    impl = (ind.get("implementation") or {})
+    repo = (impl.get("repo") or "").rstrip("/").removesuffix(".git")
+
+    if repo == THIS_REPO and node_id != REFERENCE_LANE_NODE:
+        die(f"evidence.independence.implementation.repo is {THIS_REPO},\n"
+            f"       which is THIS repo's reference implementation — not yours.\n\n"
+            f"       An edge between two nodes citing one implementation is one\n"
+            f"       implementation wearing two names, and check_lane_distinctness\n"
+            f"       will refuse it: 'impl_hash: IDENTICAL — same implementation,\n"
+            f"       not two lanes'.\n\n"
+            f"       Recompute with your own code and cite that. The claim_id will\n"
+            f"       come out identical — that is the point — but the edge becomes\n"
+            f"       real. See ONBOARDING.md step 5.")
+
+
 def check_evidence(evidence: dict, result: str) -> None:
     """CELL.md: 'Never a bare green — a Cell without a recomputable evidence
     body is not a Cell.' Enforced here rather than left to review, because a
@@ -248,6 +285,7 @@ def main() -> int:
 
     node = load_node(args.node)
     check_evidence(evidence, args.result)
+    check_own_implementation(evidence, args.node)
 
     pp = build_payload(claim, node, args.result, args.boundary, evidence)
     digest = pp["claim_id"].removeprefix("sha256:")

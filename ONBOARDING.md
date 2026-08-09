@@ -104,6 +104,14 @@ are the only person who can know whether that was true.
 Then check yourself against `reference/claim_id.py` — after you have your own
 answer, not before.
 
+> **This applies to your second Cell as much as your first, and that is where it
+> actually goes wrong.** Onboarding gets read once, when you join. The mistake
+> lands months later on a routine Cell, when you are not reading this page and
+> you reach for whatever is closest — which is often this repo, already checked
+> out because it is where Cells get submitted. `create_cell.py` now refuses a Cell
+> citing this repo's implementation as your own lane, so the tool catches it
+> rather than CI catching it after you have recomputed, signed and pushed.
+
 ## 6 · Create and sign the Cell
 
 `create_cell.py` emits the **in-force** schema — derived from enforcement state,
