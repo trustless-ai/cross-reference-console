@@ -31,8 +31,8 @@
       "signature": "5942354640c134990fb372916182d5d235b44844fd7a98b15e670e0c615b75f4a3914cedae241c85e8698362c53672637543058ec357a5560bb273441727669c"
     }
   ],
-  "pinned_at": null,
-  "tx": null,
+  "pinned_at": "2026-08-09T17:00:23Z",
+  "tx": "0x1acef03339ad8faff5d5c70d24f8e52fe27a0dd68790ba7059ec1fb282dde69b",
   "supersedes": "bafybeid4nm3b7ptrhmztyu6kzlz2vgavz4il2bezx6r5ljpvrl3yfpjhli",
   "purpose": "Repin: v2 Cells, closed v2 edge, 4 claims, crc.cell.v2 join step \u2014 and the console in the org's palette rather than one member's brand."
 }
