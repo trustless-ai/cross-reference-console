@@ -1,0 +1,111 @@
+{
+  "proof_payload": {
+    "schema": "crc.cell.v2",
+    "claim_id": "sha256:8c4de29c132d39033bf6467cde4d549b4f764a48b8f66af6cabf448878ec4048",
+    "registry_id": "sha256:9b871ba9cf05e9da7df78e0b15d44fc04059e6af4bda8037d6f456984598d157",
+    "result": "GREEN",
+    "verifier": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
+    "boundary": "ERC-8274 recompute/mycelium — claim_id independently re-derived from the live source using this node's own implementation (argentum-core/examples/conformance/crc-claim-id/claim_id.py, deliberately distinct from reference/claim_id.py per the lane-distinctness rule) and checked against the registered ClaimPreimage; decision_ref taken as-is from the source rather than re-derived from its own sub-preimage. Not run inside the gateway container, so dependency_lock, runtime_image and execution_witness are honestly null rather than carried over. Envelope validity is outside this boundary and is established by EIP-712 signer recovery against the registered address.",
+    "as_of": "2026-08-09T20:29:35Z",
+    "recomputed_at": "2026-08-09T23:02:45Z",
+    "evidence": {
+      "claim_preimage": {
+        "schema": "crc.claim.v0",
+        "profile_id": "invinoveritas.review",
+        "policy_version": "invinoveritas.review.v10",
+        "artifact_hash": "a3e51d36fec41ea1514670d1487940fd4ff229b1ae7dfe5fd5909bcc46a637cc",
+        "artifact_type": "review_verdict",
+        "claim_body": "reject",
+        "source_class": "agent_reported",
+        "verifier_profile": "attestation/invinoveritas",
+        "as_of": "2026-08-09T20:29:35Z",
+        "claimant": 54848
+      },
+      "lane": "recompute",
+      "recomputed": {
+        "claim_id": "sha256:8c4de29c132d39033bf6467cde4d549b4f764a48b8f66af6cabf448878ec4048",
+        "decision_ref": "sha256:a3e51d36fec41ea1514670d1487940fd4ff229b1ae7dfe5fd5909bcc46a637cc",
+        "decision_ref_from": "record.verdict.decision_ref in the live source, taken as-is"
+      },
+      "recipe": "examples/conformance/crc-claim-id/claim_id.py @ giskard09/argentum-core@46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1 -- independent implementation written from CLAIM.md spec text, not from trustless-ai/cross-reference-console/reference/claim_id.py, reusing this repo's own JCS canonicalizer (jcs.py)",
+      "independence": {
+        "implementation": {
+          "repo": "https://github.com/giskard09/argentum-core",
+          "commit": "46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1",
+          "path": "examples/conformance/crc-claim-id/claim_id.py",
+          "impl_hash": "sha256:084ed2169250c99aa19b12c1557b7e5cc4adcac14c70128e2f467ed9d07fbe3b"
+        },
+        "dependency_lock": null,
+        "runtime_image": null,
+        "execution_witness": null,
+        "inputs": [
+          {
+            "url": "https://api.babyblueviper.com/ledger/240",
+            "content_hash": "sha256:fa791cdd4ce402612015f6063290415ecccf4f4960888945008462dfd23f1caa",
+            "retrieved_at": "2026-08-09T23:01:39Z"
+          },
+          {
+            "url": "https://raw.githubusercontent.com/giskard09/argentum-core/46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1/examples/conformance/crc-claim-id/claim_id.py",
+            "content_hash": "sha256:084ed2169250c99aa19b12c1557b7e5cc4adcac14c70128e2f467ed9d07fbe3b",
+            "retrieved_at": "2026-08-09T23:01:39Z"
+          }
+        ]
+      },
+      "source_ledger_entry": "https://api.babyblueviper.com/ledger/240",
+      "cross_check": "First Cell on this claim -- no other node has published one yet, so this opens the edge rather than closing it. Deliberately independent lane: this Cell uses our own implementation (argentum-core/examples/conformance/crc-claim-id/claim_id.py, distinct repo/commit/impl_hash from reference/claim_id.py, same implementation already registered as distinct in this repo's lane-distinctness fixtures for claim #236 and reused byte-identical on claims 237/238/239, PR #34/#35). claim_id and decision_ref both reproduce byte-identical to the registered claim file. Two things deliberately NOT reconciled: (1) claim_preimage.artifact_type is 'review_verdict' (what the CLAIM is) while the source's verdict.artifact_type is 'onchain_action' (what the verdict is ABOUT) -- two different axes, copying one into the other would change claim_id; (2) content_hash above is this node's own fetch of the live (mutable) source, not copied from any other node's citation -- record.relay_anchor/ots_anchor timing fields refresh server-side, so a different content_hash across nodes on the same URL is expected divergence, not disagreement (reference/projection.py, profile invinoveritas.ledger.v0, is the stable comparator if a cross-node projection_hash is needed later)."
+    }
+  },
+  "signature": {
+    "scheme": "eip712",
+    "domain": {
+      "name": "cross-reference-console",
+      "version": "2",
+      "chainId": 1
+    },
+    "primaryType": "Cell",
+    "types": {
+      "Cell": [
+        {
+          "name": "schema",
+          "type": "string"
+        },
+        {
+          "name": "claim_id",
+          "type": "string"
+        },
+        {
+          "name": "registry_id",
+          "type": "string"
+        },
+        {
+          "name": "result",
+          "type": "string"
+        },
+        {
+          "name": "verifier",
+          "type": "address"
+        },
+        {
+          "name": "boundary",
+          "type": "string"
+        },
+        {
+          "name": "as_of",
+          "type": "string"
+        },
+        {
+          "name": "recomputed_at",
+          "type": "string"
+        },
+        {
+          "name": "evidence_hash",
+          "type": "bytes32"
+        }
+      ]
+    },
+    "evidence_hash": "0x7ab0285de3f1f6cc660044d651301a3f61a7ef92b261ab50d29dfd608fabbeb5",
+    "signer": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
+    "signature": "0x1f657f7d17671d6fb6e58e4546fd2eedcabd32946fe0893b4d74fb02e19e0e6b70117a63e2d6528a303e8114887f6fd05c275cfead55077594bee1bacb058a2e1b"
+  },
+  "verify": "gate the claim_preimage; recompute claim_id; recompute evidence_hash=keccak256(JCS(evidence)); recover the signer and check it equals signature.signer AND proof_payload.verifier AND the address registered in nodes.json (quadruple equality, CELL-v1.md §2); check registry_id equals this registry (CELL-v2.md §2); re-run the evidence yourself."
+}
