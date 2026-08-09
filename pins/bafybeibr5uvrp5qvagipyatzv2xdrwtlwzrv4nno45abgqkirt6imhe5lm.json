@@ -21,6 +21,14 @@
       "file_sha256": "sha256:dc0b612b67d23fb8e7df3a62a9e42ddc0e379c329e6e74cd8fbc9362a5b8f225",
       "cid": "bafybeibr5uvrp5qvagipyatzv2xdrwtlwzrv4nno45abgqkirt6imhe5lm",
       "signature": "0xffe30b4332c9900c95cfc9e0790f0521f5633d5a8571f1256ee79282500e613734cf5a334ab67963d983744a0f374893b7b94d5449913e7d8be6e1e1ef620e7f1b"
+    },
+    {
+      "node_id": "invinoveritas",
+      "rebuilt_at": "2026-08-09T17:55:39Z",
+      "tree_sha256": "sha256:dc0b612b67d23fb8e7df3a62a9e42ddc0e379c329e6e74cd8fbc9362a5b8f225",
+      "file_sha256": "sha256:dc0b612b67d23fb8e7df3a62a9e42ddc0e379c329e6e74cd8fbc9362a5b8f225",
+      "cid": "bafybeibr5uvrp5qvagipyatzv2xdrwtlwzrv4nno45abgqkirt6imhe5lm",
+      "signature": "5942354640c134990fb372916182d5d235b44844fd7a98b15e670e0c615b75f4a3914cedae241c85e8698362c53672637543058ec357a5560bb273441727669c"
     }
   ],
   "pinned_at": null,
