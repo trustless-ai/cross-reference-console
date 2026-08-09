@@ -64,12 +64,13 @@ One file per pin, `pins/<cid>.json`, append-only:
     "chunker": "size-262144",
     "hash": "sha2-256"
   },
-  "confirmations": [              // >= 2, from distinct registered nodes
+  "confirmations": [              // >= 2 SIGNED, from distinct registered nodes
     {
       "node_id": "vertice-recompute-lens",
       "rebuilt_at": "2026-08-09T14:00:00Z",
       "file_sha256": "sha256:…",  // what THIS party got, independently
-      "cid": "bafkrei…"
+      "cid": "bafkrei…",
+      "signature": "0x…"          // by the node's REGISTERED key; unsigned = AMBER
     }
   ],
   "pinned_at": null,              // set when the contenthash transaction lands
@@ -81,26 +82,40 @@ A confirmation is a claim that **you personally ran the build and got these
 values** — not that you read them in this file and agreed. If you did not run it,
 do not add your node.
 
-### Confirmations are unsigned, deliberately (decided 2026-08-09)
+### Confirmations must be signed (revised 2026-08-09 after review)
 
-A Cell is signed; a confirmation is not. That is a decision, not an omission, and
-the reason is that a signature here would buy less than it looks like.
+They were briefly unsigned, on my argument that `verify_pin.py` rebuilds the
+commit itself, so a forged confirmation could never make a *bad* CID verify.
 
-`verify_pin.py` **rebuilds the commit itself.** It does not take the confirmations'
-word for the bytes or the CID — it derives both independently and only then checks
-whether the confirmations agree. So a forged confirmation cannot make a bad CID
-verify: if the values are wrong the verifier's own rebuild contradicts them, and if
-the values are right the forgery changed nothing about what gets pinned.
+That argument is true and it defends the wrong property. Pavlo's review named it:
+the rule is **no unilateral pin**, and one writer authoring both entries defeats
+exactly that. Two self-consistent confirmations naming two registered nodes would
+have reached GREEN with a single author. Byte integrity was enforced; the
+two-party property was left as policy while reading as mechanism — which is worse
+than an obvious gap, because the tool said GREEN.
 
-What a signature *would* prevent is someone **falsely attributing agreement** to a
-node that never ran the build. That is a real harm, but it is an attribution and
-reputation problem rather than a route to a bad pin, and it is not worth making
-every confirmation a signing ceremony today.
+So a confirmation is now signed by the confirming node's **registered** key, in
+its registered envelope, exactly as a Cell is. The signature covers the CID, the
+commit, the artifact, the confirmed bytes, the node_id and the timestamp, so it
+cannot be lifted onto a different pin record.
 
-**The condition that flips this:** the moment anything consumes confirmations
-*without* rebuilding — a dashboard showing "2 ✓", a script that trusts the count,
-any automated gate — the forgery stops being cosmetic and confirmations must be
-signed. If you build such a consumer, sign them first.
+An **unsigned** confirmation is AMBER and does not count toward the two — never
+silently ignored, and never a pass.
+
+The general lesson, which is the one worth keeping: *checking integrity is not
+the same as checking authorship, and a rule about who agreed cannot be satisfied
+by a check about what the bytes are.*
+
+## Confirming one
+
+```bash
+export CRC_KEY=0x<your key>      # env, never a flag
+python3 reference/sign_confirmation.py --record pins/<cid>.json --node yournode
+```
+
+It rebuilds the record's commit **itself** and refuses to sign if your rebuild
+disagrees, so you cannot confirm bytes you never produced. That refusal is the
+point: the disagreement is the finding, and working around it defeats the rule.
 
 ## Verifying one
 

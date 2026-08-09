@@ -79,12 +79,90 @@ def ipfs_cid(path: pathlib.Path, params: dict):
     return out[-1].strip() if out else None
 
 
-def registered_nodes() -> set:
+def registered_nodes() -> dict:
     try:
-        return {n["node_id"] for n in json.loads((ROOT / "nodes.json").read_text())["nodes"]
+        return {n["node_id"]: n for n in json.loads((ROOT / "nodes.json").read_text())["nodes"]
                 if not n.get("retired")}
     except Exception:
-        return set()
+        return {}
+
+
+def confirmation_preimage(rec: dict, conf: dict) -> str:
+    """The exact bytes a confirming node signs — JCS over the fields that matter.
+
+    Binds the confirmation to THIS record: the CID, the commit, the artifact and
+    the bytes. A signature over "I agree" would be replayable onto a different
+    pin; this one is not.
+    """
+    return json.dumps({
+        "schema": "crc.pin-confirmation.v0",
+        "cid": rec.get("cid"),
+        "commit": rec.get("commit"),
+        "artifact": rec.get("artifact", "ui/index.html"),
+        "file_sha256": conf.get("file_sha256"),
+        "node_id": conf.get("node_id"),
+        "rebuilt_at": conf.get("rebuilt_at"),
+    }, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def verify_confirmation_signature(rec: dict, conf: dict, node: dict):
+    """(ok, detail). Uses the node's REGISTERED envelope and key — never the one
+    the confirmation asserts, which is the same rule Cells follow.
+
+    Returns ok=None when the signature is absent, so the caller can distinguish
+    'unsigned' from 'signed and wrong' — very different findings.
+    """
+    sig = conf.get("signature")
+    if not sig:
+        return None, "no signature"
+
+    env = node.get("envelope")
+    msg = confirmation_preimage(rec, conf)
+
+    if env == "eip712":
+        try:
+            from eth_account import Account
+            from eth_account.messages import encode_typed_data
+        except ImportError:
+            return None, "eth-account not installed — cannot check"
+        full = {
+            "types": {
+                "EIP712Domain": [{"name": "name", "type": "string"},
+                                 {"name": "version", "type": "string"},
+                                 {"name": "chainId", "type": "uint256"}],
+                "PinConfirmation": [{"name": "preimage", "type": "string"}],
+            },
+            "primaryType": "PinConfirmation",
+            "domain": {"name": "cross-reference-console", "version": "1", "chainId": 1},
+            "message": {"preimage": msg},
+        }
+        if not re.fullmatch(r"0x[0-9a-f]{130}", str(sig)):
+            return False, "signature grammar (expect 0x + 130 lowercase hex)"
+        try:
+            rec_addr = Account.recover_message(encode_typed_data(full_message=full), signature=sig)
+        except Exception as e:
+            return False, f"recover failed: {type(e).__name__}"
+        want = (node.get("key_ref") or {}).get("address") or ""
+        if rec_addr.lower() != want.lower():
+            return False, f"recovered {rec_addr} != registered {want}"
+        return True, rec_addr
+
+    if env == "nostr-nip01":
+        try:
+            sys.path.insert(0, str(ROOT / "reference"))
+            import bip340
+        except ImportError:
+            return None, "bip340 helper unavailable — cannot check"
+        pub = (node.get("key_ref") or {}).get("pubkey") or ""
+        digest = hashlib.sha256(msg.encode()).hexdigest()
+        try:
+            if not bip340.verify_hex(digest, pub, str(sig)):
+                return False, "schnorr verify failed vs registered pubkey"
+        except Exception as e:
+            return False, f"schnorr check errored: {type(e).__name__}"
+        return True, pub
+
+    return None, f"unknown envelope {env!r} — cannot check"
 
 
 def _finish(rep) -> int:
@@ -172,6 +250,11 @@ def main(argv) -> int:
     confs = rec.get("confirmations") or []
     known = registered_nodes()
     seen_nodes = set()
+    # Only confirmations that are BOTH authentic and correct count toward the
+    # rule. Merely appearing in the array is not confirming — that conflation is
+    # what let a single writer satisfy a two-party rule.
+    counted = set()
+
     for c in confs:
         nid = c.get("node_id")
         if nid not in known:
@@ -182,6 +265,18 @@ def main(argv) -> int:
                          f"is exactly what the two-party rule exists to prevent")
             continue
         seen_nodes.add(nid)
+
+        # Authenticity first: without it, everything below is a claim by whoever
+        # wrote the file, not by the node it names.
+        ok, detail = verify_confirmation_signature(rec, c, known[nid])
+        if ok is False:
+            rep.add(RED, f"{nid}: signature does not verify — {detail}")
+            continue
+        if ok is None:
+            rep.add(AMBER, f"{nid}: {detail} — authorship is NOT established, so this "
+                           f"confirmation cannot count toward the two-party rule")
+            continue
+
         if c.get("file_sha256") != rec.get("file_sha256"):
             rep.add(RED, f"{nid} confirms a different file_sha256 than the record")
         elif built and c.get("file_sha256") != built:
@@ -191,13 +286,18 @@ def main(argv) -> int:
             rep.add(AMBER, f"{nid} agrees on the bytes but reports a different CID — "
                            f"parameter mismatch, not a bad page (see PIN-RECORD.md)")
         else:
-            rep.add(GREEN, f"{nid} independently rebuilt and agrees on bytes and CID")
+            rep.add(GREEN, f"{nid} signed, independently rebuilt, agrees on bytes and CID")
+            counted.add(nid)
 
-    if len(seen_nodes) >= 2:
-        rep.add(GREEN, f"{len(seen_nodes)} distinct registered nodes confirm — "
-                       f"no unilateral pin")
+    # Reports the COUNTED set, not the set of names present. The previous version
+    # printed "N distinct nodes confirm — no unilateral pin" off the names alone,
+    # so it asserted the rule was met while a confirmation next to it was RED.
+    if len(counted) >= 2:
+        rep.add(GREEN, f"{len(counted)} authenticated confirmations from distinct nodes "
+                       f"— no unilateral pin")
     else:
-        rep.add(RED, f"only {len(seen_nodes)} distinct node(s) confirm — the rule is two")
+        rep.add(RED, f"only {len(counted)} confirmation(s) are both authenticated and "
+                     f"correct — the rule is two ({len(seen_nodes)} node(s) named)")
 
     return _finish(rep)
 

@@ -58,6 +58,11 @@ jobs:
         run: |
           python3 reference/test_lane_distinctness.py
           python3 reference/check_lane_distinctness.py
+      - name: pin rule — negative matrix (signature binding + record vectors)
+        run: |
+          # Asked for in review: these vectors lived in a terminal, which is the
+          # same defect as a conformance claim nobody can re-run.
+          python3 reference/test_verify_pin.py
       - name: the console page is the deterministic build of this commit
         run: |
           # Makes a submitted IPFS CID checkable: anyone can build main at a
