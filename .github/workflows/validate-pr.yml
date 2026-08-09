@@ -28,7 +28,12 @@ jobs:
       - name: deps (eip712 recover + keccak only — everything else is stdlib)
         run: pip install --quiet eth-account pycryptodome
       - name: gate conformance suite (negative vector per predicate)
-        run: python3 reference/test_gate.py
+        run: |
+          python3 reference/test_gate.py
+          # artifact_type is claim-bearing and is fixed by the lift rule, never
+          # copied from the source. "Reconciling" the two would move claim_id and
+          # break every edge on that claim — this pins the consequence.
+          python3 reference/test_gate.py --axes
       - name: nodes.json — crc.nodes.v0
         run: python3 reference/validate_nodes.py
       - name: every cell verifies under its envelope + the registry
