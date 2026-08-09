@@ -1,0 +1,29 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeid4nm3b7ptrhmztyu6kzlz2vgavz4il2bezx6r5ljpvrl3yfpjhli",
+  "commit": "4f8df598511b5edb3a124798eeaa34330e5e9f1b",
+  "artifact": "site tree (29 published files)",
+  "tree_sha256": "sha256:134b1bf943a8817b48a72898f32de249985364557804191a021ce0e1a039f64f",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "confirmations": [
+    {
+      "node_id": "vertice-recompute-lens",
+      "rebuilt_at": "2026-08-09T16:25:30Z",
+      "tree_sha256": "sha256:134b1bf943a8817b48a72898f32de249985364557804191a021ce0e1a039f64f",
+      "file_sha256": "sha256:134b1bf943a8817b48a72898f32de249985364557804191a021ce0e1a039f64f",
+      "cid": "bafybeid4nm3b7ptrhmztyu6kzlz2vgavz4il2bezx6r5ljpvrl3yfpjhli",
+      "signature": "0xd9c276db5584a6787e07209259681b02a035ab7e61827c5e6e39936339da0cde3555b9ec4d8ebce486b6473ffab03ed63c59009a1003fe8a9a44c094cdad68071c"
+    }
+  ],
+  "pinned_at": null,
+  "tx": null,
+  "purpose": "Repin the console: the live page still names sunset crc.cell.v1 and renders 1 claim. This build carries the v2 Cells, the closed v2 edge and 4 claims."
+}
