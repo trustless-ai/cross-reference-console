@@ -1,0 +1,38 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeibr5uvrp5qvagipyatzv2xdrwtlwzrv4nno45abgqkirt6imhe5lm",
+  "commit": "a3d089d36e06c558b336b56f1361aeeccff8965d",
+  "artifact": "site tree (29 published files)",
+  "tree_sha256": "sha256:dc0b612b67d23fb8e7df3a62a9e42ddc0e379c329e6e74cd8fbc9362a5b8f225",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "confirmations": [
+    {
+      "node_id": "vertice-recompute-lens",
+      "rebuilt_at": "2026-08-09T16:58:15Z",
+      "tree_sha256": "sha256:dc0b612b67d23fb8e7df3a62a9e42ddc0e379c329e6e74cd8fbc9362a5b8f225",
+      "file_sha256": "sha256:dc0b612b67d23fb8e7df3a62a9e42ddc0e379c329e6e74cd8fbc9362a5b8f225",
+      "cid": "bafybeibr5uvrp5qvagipyatzv2xdrwtlwzrv4nno45abgqkirt6imhe5lm",
+      "signature": "0xffe30b4332c9900c95cfc9e0790f0521f5633d5a8571f1256ee79282500e613734cf5a334ab67963d983744a0f374893b7b94d5449913e7d8be6e1e1ef620e7f1b"
+    },
+    {
+      "node_id": "invinoveritas",
+      "rebuilt_at": "2026-08-09T17:55:39Z",
+      "tree_sha256": "sha256:dc0b612b67d23fb8e7df3a62a9e42ddc0e379c329e6e74cd8fbc9362a5b8f225",
+      "file_sha256": "sha256:dc0b612b67d23fb8e7df3a62a9e42ddc0e379c329e6e74cd8fbc9362a5b8f225",
+      "cid": "bafybeibr5uvrp5qvagipyatzv2xdrwtlwzrv4nno45abgqkirt6imhe5lm",
+      "signature": "5942354640c134990fb372916182d5d235b44844fd7a98b15e670e0c615b75f4a3914cedae241c85e8698362c53672637543058ec357a5560bb273441727669c"
+    }
+  ],
+  "pinned_at": null,
+  "tx": null,
+  "supersedes": "bafybeid4nm3b7ptrhmztyu6kzlz2vgavz4il2bezx6r5ljpvrl3yfpjhli",
+  "purpose": "Repin: v2 Cells, closed v2 edge, 4 claims, crc.cell.v2 join step \u2014 and the console in the org's palette rather than one member's brand."
+}
