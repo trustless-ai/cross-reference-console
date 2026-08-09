@@ -59,10 +59,29 @@ def main() -> int:
         chk(label, ri.in_force_schema() == expect)
     _restore_activation()
 
-    print("\n── live branch state (enforcement-only until CELL-v3.md lands)")
-    chk("v3 enforcement marker derivable", bool(ri.v3_enforcement_commit()))
-    chk("CELL-v3.md not minted on branch", not ri.activation_commit("CELL-v3.md"))
-    chk("in-force schema is crc.cell.v2 (enforcement alone)", ri.in_force_schema() == "crc.cell.v2")
+    print("\n── live branch state — assert the RULE, not whichever state we are in")
+    # These previously asserted "CELL-v3.md is not minted here" and "in-force is
+    # v2", which were true on the enforcement branch and are FALSE the moment the
+    # spec PR mints v3 — i.e. the test failed on the change it exists to describe.
+    #
+    # State is not an invariant. What is invariant is the four-state mapping, so
+    # derive the expectation from the observed conditions and check the mapping
+    # holds either way. Same defect as the lane-distinctness fixtures earlier:
+    # a vector that encodes today's situation passes for an accidental reason and
+    # breaks on a legitimate change.
+    minted = bool(ri.activation_commit("CELL-v3.md"))
+    enforced = bool(ri.v3_enforcement_commit())
+    chk("v3 enforcement marker derivable", enforced)
+    expected = "crc.cell.v3" if (minted and enforced) else "crc.cell.v2"
+    chk(f"in-force schema matches the four-state rule "
+        f"(minted={minted}, enforced={enforced} -> {expected})",
+        ri.in_force_schema() == expected)
+    # And the mapping must be exhaustive, not just right for today's row.
+    for m, e, want in ((False, False, "crc.cell.v2"), (True, False, "crc.cell.v2"),
+                       (False, True, "crc.cell.v2"), (True, True, "crc.cell.v3")):
+        _patch_mint_enforce(m, e)
+        chk(f"  minted={str(m):5} enforced={str(e):5} -> {want}", ri.in_force_schema() == want)
+        _restore_activation()
 
     print("\n── v3 sunset activation uses later of mint and enforce")
     _patch_mint_enforce(True, True)
