@@ -5,9 +5,9 @@
     "registry_id": "sha256:9b871ba9cf05e9da7df78e0b15d44fc04059e6af4bda8037d6f456984598d157",
     "result": "GREEN",
     "verifier": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
-    "boundary": "ERC-8274 recompute/mycelium — claim_id independently re-derived from the live source with reference/claim_id.py and checked against the registered ClaimPreimage; decision_ref taken as-is from the source rather than re-derived from its own sub-preimage. Not run inside the gateway container, so dependency_lock, runtime_image and execution_witness are honestly null rather than carried over. Envelope validity is outside this boundary and is established by EIP-712 signer recovery against the registered address.",
+    "boundary": "ERC-8274 recompute/mycelium — claim_id independently re-derived from the live source using this node's own implementation (argentum-core/examples/conformance/crc-claim-id/claim_id.py, deliberately distinct from reference/claim_id.py per the lane-distinctness rule) and checked against the registered ClaimPreimage; decision_ref taken as-is from the source rather than re-derived from its own sub-preimage. Not run inside the gateway container, so dependency_lock, runtime_image and execution_witness are honestly null rather than carried over. Envelope validity is outside this boundary and is established by EIP-712 signer recovery against the registered address.",
     "as_of": "2026-08-08T21:47:17Z",
-    "recomputed_at": "2026-08-09T18:55:35Z",
+    "recomputed_at": "2026-08-09T18:59:04Z",
     "evidence": {
       "claim_preimage": {
         "schema": "crc.claim.v0",
@@ -27,13 +27,13 @@
         "decision_ref": "sha256:d93c685745cbbde73c64ce715864bd62f80b6818de7f6e59b0330c37835a6d9f",
         "decision_ref_from": "record.verdict.decision_ref in the live source, taken as-is"
       },
-      "recipe": "reference/claim_id.py @ trustless-ai/cross-reference-console@9ae3c1186d5ae2d715ba960da7d57a98dc48c8e7 (crc.cell.v2 gate)",
+      "recipe": "examples/conformance/crc-claim-id/claim_id.py @ giskard09/argentum-core@46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1 -- independent implementation written from CLAIM.md spec text, not from trustless-ai/cross-reference-console/reference/claim_id.py, reusing this repo's own JCS canonicalizer (jcs.py)",
       "independence": {
         "implementation": {
-          "repo": "https://github.com/trustless-ai/cross-reference-console",
-          "commit": "9ae3c1186d5ae2d715ba960da7d57a98dc48c8e7",
-          "path": "reference/claim_id.py",
-          "impl_hash": "sha256:da82958a382356b4c4a326ecc1a83dacaa93767539f71436600b1e5053614ffc"
+          "repo": "https://github.com/giskard09/argentum-core",
+          "commit": "46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1",
+          "path": "examples/conformance/crc-claim-id/claim_id.py",
+          "impl_hash": "sha256:084ed2169250c99aa19b12c1557b7e5cc4adcac14c70128e2f467ed9d07fbe3b"
         },
         "dependency_lock": null,
         "runtime_image": null,
@@ -43,11 +43,16 @@
             "url": "https://api.babyblueviper.com/ledger/238",
             "content_hash": "sha256:8ca4621026544ab29ef36f3d71d6e807e3e94439549d790b04b41caebb0b2d84",
             "retrieved_at": "2026-08-09T18:53:46Z"
+          },
+          {
+            "url": "https://raw.githubusercontent.com/giskard09/argentum-core/46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1/examples/conformance/crc-claim-id/claim_id.py",
+            "content_hash": "sha256:084ed2169250c99aa19b12c1557b7e5cc4adcac14c70128e2f467ed9d07fbe3b",
+            "retrieved_at": "2026-08-09T18:58:08Z"
           }
         ]
       },
       "source_ledger_entry": "https://api.babyblueviper.com/ledger/238",
-      "cross_check": "First Cell on this claim — no other node has published one yet, so this opens the edge rather than closing it. Independent recompute using the unmodified reference implementation at the current HEAD commit. claim_id and decision_ref both reproduce byte-identical to the registered claim file. Note claim_preimage.artifact_type is 'review_verdict' (what the CLAIM is) while the source's verdict.artifact_type describes what the verdict is ABOUT; not reconciled by copying, which would change claim_id."
+      "cross_check": "First Cell on this claim — no other node has published one yet, so this opens the edge rather than closing it. Deliberately independent lane: this Cell uses our own implementation (argentum-core/examples/conformance/crc-claim-id/claim_id.py, distinct repo/commit/impl_hash from the reference/claim_id.py used on other claims in this repo, e.g. node2's cells), same implementation already registered as distinct in this repo's lane-distinctness fixtures for claim #236. Note claim_preimage.artifact_type is 'review_verdict' (what the CLAIM is) while the source's verdict.artifact_type describes what the verdict is ABOUT; not reconciled by copying, which would change claim_id."
     }
   },
   "signature": {
@@ -98,9 +103,9 @@
         }
       ]
     },
-    "evidence_hash": "0xee67fddb3736eda444665b6bd000e4e0451741722b0ba2464228398b064a855e",
+    "evidence_hash": "0xac3a2bdf6e405560f0664a8c217f0e22932b5c1eb6dc51d68d185127f3dd3692",
     "signer": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
-    "signature": "0xe0ad5a6bbfe47605069ebc0d61192893e24f00ecff2e206549af48a7687d3da05df4377c9747cd081be946b2a11888da7d4e40c00739e00ecf6875f91a0e0a121b"
+    "signature": "0x0c7c5b6219e525473eb1c6ed1de28438370b5a9bd1bf7be40a9371b1cbb3bfa5598e5b5ba834795f17c0bf58b16d7307b05493f6b9a609fe03c10acd7acfefdd1c"
   },
   "verify": "gate the claim_preimage; recompute claim_id; recompute evidence_hash=keccak256(JCS(evidence)); recover the signer and check it equals signature.signer AND proof_payload.verifier AND the address registered in nodes.json (quadruple equality, CELL-v1.md §2); check registry_id equals this registry (CELL-v2.md §2); re-run the evidence yourself."
 }

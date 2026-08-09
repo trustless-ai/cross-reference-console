@@ -5,9 +5,9 @@
     "registry_id": "sha256:9b871ba9cf05e9da7df78e0b15d44fc04059e6af4bda8037d6f456984598d157",
     "result": "GREEN",
     "verifier": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
-    "boundary": "ERC-8274 recompute/mycelium — claim_id independently re-derived from the live source with reference/claim_id.py and checked against the registered ClaimPreimage; decision_ref taken as-is from the source rather than re-derived from its own sub-preimage. Not run inside the gateway container, so dependency_lock, runtime_image and execution_witness are honestly null rather than carried over. Envelope validity is outside this boundary and is established by EIP-712 signer recovery against the registered address.",
+    "boundary": "ERC-8274 recompute/mycelium — claim_id independently re-derived from the live source using this node's own implementation (argentum-core/examples/conformance/crc-claim-id/claim_id.py, deliberately distinct from reference/claim_id.py per the lane-distinctness rule) and checked against the registered ClaimPreimage; decision_ref taken as-is from the source rather than re-derived from its own sub-preimage. Not run inside the gateway container, so dependency_lock, runtime_image and execution_witness are honestly null rather than carried over. Envelope validity is outside this boundary and is established by EIP-712 signer recovery against the registered address.",
     "as_of": "2026-08-08T00:05:17Z",
-    "recomputed_at": "2026-08-09T18:55:34Z",
+    "recomputed_at": "2026-08-09T18:59:03Z",
     "evidence": {
       "claim_preimage": {
         "schema": "crc.claim.v0",
@@ -27,13 +27,13 @@
         "decision_ref": "sha256:db480c9af26144b55d5c7e8125c29fe453edb9bc927ddc5ca1ca9a366e4cb9e7",
         "decision_ref_from": "record.verdict.decision_ref in the live source, taken as-is"
       },
-      "recipe": "reference/claim_id.py @ trustless-ai/cross-reference-console@9ae3c1186d5ae2d715ba960da7d57a98dc48c8e7 (crc.cell.v2 gate)",
+      "recipe": "examples/conformance/crc-claim-id/claim_id.py @ giskard09/argentum-core@46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1 -- independent implementation written from CLAIM.md spec text, not from trustless-ai/cross-reference-console/reference/claim_id.py, reusing this repo's own JCS canonicalizer (jcs.py)",
       "independence": {
         "implementation": {
-          "repo": "https://github.com/trustless-ai/cross-reference-console",
-          "commit": "9ae3c1186d5ae2d715ba960da7d57a98dc48c8e7",
-          "path": "reference/claim_id.py",
-          "impl_hash": "sha256:da82958a382356b4c4a326ecc1a83dacaa93767539f71436600b1e5053614ffc"
+          "repo": "https://github.com/giskard09/argentum-core",
+          "commit": "46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1",
+          "path": "examples/conformance/crc-claim-id/claim_id.py",
+          "impl_hash": "sha256:084ed2169250c99aa19b12c1557b7e5cc4adcac14c70128e2f467ed9d07fbe3b"
         },
         "dependency_lock": null,
         "runtime_image": null,
@@ -43,11 +43,16 @@
             "url": "https://api.babyblueviper.com/ledger/237",
             "content_hash": "sha256:55b4d37540623ce7106876a753d48dd10cca790e2c830e57f8fe65c715a1d885",
             "retrieved_at": "2026-08-09T18:53:46Z"
+          },
+          {
+            "url": "https://raw.githubusercontent.com/giskard09/argentum-core/46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1/examples/conformance/crc-claim-id/claim_id.py",
+            "content_hash": "sha256:084ed2169250c99aa19b12c1557b7e5cc4adcac14c70128e2f467ed9d07fbe3b",
+            "retrieved_at": "2026-08-09T18:58:08Z"
           }
         ]
       },
       "source_ledger_entry": "https://api.babyblueviper.com/ledger/237",
-      "cross_check": "Second Cell on this claim (first: vertice-recompute-lens/node2, GREEN). Independent recompute using the unmodified reference implementation at the current HEAD commit — impl_hash of reference/claim_id.py is identical to node2's citation (da82958a...), confirming the script has not changed between commits 3f654d47...->9ae3c118.... claim_id and decision_ref both reproduce byte-identical to node2's GREEN cell. content_hash for this fetch matches node2's exactly (55b4d375...), consistent with a stable, unmutated source at ledger entry 237. Note claim_preimage.artifact_type is 'review_verdict' (what the CLAIM is) while the source's verdict.artifact_type describes what the verdict is ABOUT; not reconciled by copying, which would change claim_id."
+      "cross_check": "Second Cell on this claim (first: vertice-recompute-lens/node2, GREEN, using reference/claim_id.py). Deliberately independent lane: this Cell uses our own implementation (argentum-core/examples/conformance/crc-claim-id/claim_id.py, distinct repo/commit/impl_hash from node2's reference/claim_id.py citation), same one already registered as distinct in this repo's lane-distinctness fixtures for claim #236. claim_id and decision_ref both reproduce byte-identical to node2's GREEN cell despite the independent implementation. Note claim_preimage.artifact_type is 'review_verdict' (what the CLAIM is) while the source's verdict.artifact_type describes what the verdict is ABOUT; not reconciled by copying, which would change claim_id."
     }
   },
   "signature": {
@@ -98,9 +103,9 @@
         }
       ]
     },
-    "evidence_hash": "0x1034b210aff174fa4db3603e66da75308d871333d2c6502ee3a7d7f4f0737cec",
+    "evidence_hash": "0xb4dac1d9fdf3685475082ff08effb929045a5af494ad20e5784022478525c1a6",
     "signer": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
-    "signature": "0x886c3ea867c2a28e103574800586c4fecbb8ba16421f78a90d1c789a3495b269325bf6c113a861ec574a24c7f4ddbb274fb18b2f5d8702e46709525ed67a03c41b"
+    "signature": "0x6e9078941f9506eaa45cf16960a21f5c717b531f1a7052a9b5ced958fabdfc37515205d541c6a2c942c86f90af31477a9aba68f971e025f0e8668606f4f7cca91b"
   },
   "verify": "gate the claim_preimage; recompute claim_id; recompute evidence_hash=keccak256(JCS(evidence)); recover the signer and check it equals signature.signer AND proof_payload.verifier AND the address registered in nodes.json (quadruple equality, CELL-v1.md §2); check registry_id equals this registry (CELL-v2.md §2); re-run the evidence yourself."
 }
