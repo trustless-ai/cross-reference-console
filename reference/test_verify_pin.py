@@ -26,6 +26,8 @@ sys.path.insert(0, str(ROOT / "reference"))
 
 import verify_pin  # noqa: E402
 
+verify_confirmation_sig_or_skip = verify_pin.verify_confirmation_signature
+
 fails = 0
 
 
@@ -111,6 +113,33 @@ def signature_vectors():
     check("backfilling a null cid from the record breaks the signature",
           ok is False, str(d))
 
+    # @pipavlo82, round 2: v1 bound conf["cid"] by NAME, and the same commit
+    # added conf["tree_sha256"] — unbound, and the field site-tree counting acts
+    # on. v2 signs every confirmation field by construction, so this holds for
+    # fields that do not exist yet.
+    tree_conf = dict(conf, tree_sha256="sha256:" + "c" * 64)
+    signed_tree = dict(tree_conf, signature=sign(acct, c=tree_conf))
+    ok, d = verify_confirmation_sig_or_skip(rec, signed_tree, node)
+    check("a site-tree confirmation verifies", ok is True, str(d))
+    ok, d = verify_confirmation_sig_or_skip(
+        rec, dict(signed_tree, tree_sha256="sha256:" + "d" * 64), node)
+    check("editing tree_sha256 after signing breaks the signature", ok is False, str(d))
+
+    # The class, not the instance: a field nobody has written yet must be covered
+    # the moment it exists, or we are back to maintaining a list by hand.
+    future = dict(conf, some_future_field="original")
+    signed_future = dict(future, signature=sign(acct, c=future))
+    ok, d = verify_confirmation_sig_or_skip(
+        rec, dict(signed_future, some_future_field="tampered"), node)
+    check("editing an ARBITRARY new field breaks the signature (class, not instance)",
+          ok is False, str(d))
+
+    # cid_params live in the signed record context, so a record cannot be
+    # re-verified under parameters nobody confirmed.
+    ok, d = verify_confirmation_sig_or_skip(
+        dict(rec, cid_params={"cid_version": 0}), good, node)
+    check("changing the record's cid_params breaks the signature", ok is False, str(d))
+
     bad_grammar = dict(conf, signature="0xdeadbeef")
     ok, d = verify_pin.verify_confirmation_signature(rec, bad_grammar, node)
     check("malformed signature grammar is rejected", ok is False, str(d))
@@ -156,10 +185,74 @@ def record_vectors():
             check(f"not GREEN: {label}", not green)
 
 
+def site_tree_vectors():
+    """End-to-end site-tree records — @pipavlo82 noted the matrix only covered
+    the signature layer and the file lane."""
+    print("\nsite-tree lane (end to end through verify_pin.py):")
+    nodes = list(verify_pin.registered_nodes())
+    if len(nodes) < 2:
+        print("  amber fewer than 2 registered nodes — SKIPPED")
+        return
+    a, b = nodes[0], nodes[1]
+    tree = "sha256:" + "e" * 64
+    base = {"schema": "crc.pin-record.v0", "artifact_kind": "site-tree",
+            "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+            "cid": "bafybeitest", "commit": "a" * 40, "tree_sha256": tree,
+            "cid_params": {"cid_version": 1, "wrap_with_directory": False},
+            "confirmations": [], "pinned_at": None, "tx": None}
+    mk = lambda **kw: {**base, **kw}
+    conf = lambda n: {"node_id": n, "rebuilt_at": "2026-08-09T00:00:00Z",
+                      "tree_sha256": tree, "file_sha256": tree, "cid": "bafybeitest"}
+
+    cases = [
+        # THE SECURITY BOUNDARY: a record must not be able to choose what code runs.
+        ("a record naming an arbitrary repo (arbitrary code execution)",
+         mk(repo="https://github.com/attacker/evil", confirmations=[conf(a), conf(b)])),
+        ("a repo that merely looks like ours",
+         mk(repo="https://github.com/trustless-ai-evil/trustless-ai-landing",
+            confirmations=[conf(a), conf(b)])),
+        ("unsigned site-tree confirmations", mk(confirmations=[conf(a), conf(b)])),
+        ("a site-tree record with one confirmation", mk(confirmations=[conf(a)])),
+    ]
+    with tempfile.TemporaryDirectory() as td:
+        for label, rec in cases:
+            p = pathlib.Path(td) / "r.json"
+            p.write_text(json.dumps(rec))
+            r = subprocess.run([sys.executable, str(ROOT / "reference" / "verify_pin.py"), str(p)],
+                               capture_output=True, text=True)
+            out = r.stdout.strip().splitlines()
+            green = out[-1].startswith("GREEN") if out else False
+            check(f"not GREEN: {label}", not green)
+            if "arbitrary repo" in label or "looks like ours" in label:
+                refused = any("allowlist" in ln for ln in out)
+                check(f"  ...and refuses to execute its code", refused)
+
+
+def real_record_vector():
+    """Re-run every committed pin record. @pipavlo82 asked for a real one to
+    rerun independently; this makes sure it never rots."""
+    print("\ncommitted pin records:")
+    pins = sorted((ROOT / "pins").glob("*.json")) if (ROOT / "pins").is_dir() else []
+    if not pins:
+        print("  amber no pins/*.json committed — nothing to re-run")
+        return
+    for p in pins:
+        r = subprocess.run([sys.executable, str(ROOT / "reference" / "verify_pin.py"), str(p)],
+                           capture_output=True, text=True)
+        out = r.stdout.strip().splitlines()
+        last = out[-1] if out else "(no output)"
+        # Any verdict is acceptable; a CRASH is not. The record must remain
+        # runnable by a third party, which is the entire point of committing it.
+        check(f"{p.name[:26]}… runs and reports a verdict ({last.split(' ')[0]})",
+              bool(out) and last.split(" ")[0] in ("GREEN", "AMBER", "RED"))
+
+
 if __name__ == "__main__":
     print("pin rule — negative matrix")
     signature_vectors()
     record_vectors()
+    site_tree_vectors()
+    real_record_vector()
     print()
     print("all green — pin rule vectors" if not fails else f"{fails} FAILURE(S)")
     raise SystemExit(1 if fails else 0)

@@ -27,6 +27,14 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
+# Repos whose build code this verifier is willing to EXECUTE. Deliberately in the
+# verifier and not in the record: a pin record is untrusted input, and letting it
+# choose what code runs would turn every verifier into a target. See the
+# site-tree branch of main().
+ALLOWED_SITE_REPOS = {
+    "https://github.com/trustless-ai/trustless-ai-landing",
+}
+
 GREEN, AMBER, RED = "GREEN", "AMBER", "RED"
 _SYM = {GREEN: "ok   ", AMBER: "amber", RED: "RED  "}
 
@@ -94,22 +102,32 @@ def confirmation_preimage(rec: dict, conf: dict) -> str:
     the bytes. A signature over "I agree" would be replayable onto a different
     pin; this one is not.
     """
-    return json.dumps({
-        "schema": "crc.pin-confirmation.v1",
-        # record_cid ties the confirmation to THIS pin record (anti-replay).
-        "record_cid": rec.get("cid"),
-        "commit": rec.get("commit"),
-        "artifact": rec.get("artifact", "ui/index.html"),
-        # Everything the confirmer ASSERTS must be inside the signature. v0 left
-        # `conf["cid"]` out, so the CID attributed to a confirmer could be edited
-        # after signing and still verify — and since verify_pin compares it to
-        # decide AMBER-vs-counted, editing it promoted a parameter disagreement
-        # into a counted confirmation. Found in review by @pipavlo82.
-        "confirmed_cid": conf.get("cid"),
-        "file_sha256": conf.get("file_sha256"),
-        "node_id": conf.get("node_id"),
-        "rebuilt_at": conf.get("rebuilt_at"),
-    }, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    # v2 signs the WHOLE confirmation and the WHOLE record context, rather than an
+    # enumerated subset. That is the difference between fixing an instance and
+    # fixing a class, and it took two rounds of review to learn:
+    #
+    #   v0 omitted conf["cid"], so the confirmer's CID could be edited after
+    #     signing — and counting acted on it.
+    #   v1 bound conf["cid"] by name... and the same commit introduced
+    #     conf["tree_sha256"], unbound, which is the field site-tree counting
+    #     acts on. The identical defect, reintroduced while fixing it, because
+    #     the list was hand-maintained. (@pipavlo82 found both.)
+    #
+    # An enumerated allowlist has to be updated every time a field is added, and
+    # nothing fails when someone forgets. Signing everything-except-the-signature
+    # inverts that: a new field is covered the moment it exists, and omitting one
+    # takes deliberate effort rather than inattention.
+    confirmed = {k: v for k, v in conf.items() if k != "signature"}
+
+    # The record context prevents replay onto another pin, and binds cid_params
+    # so a record cannot be verified under parameters nobody confirmed.
+    context = {k: rec.get(k) for k in
+               ("cid", "commit", "artifact", "artifact_kind", "repo",
+                "tree_sha256", "file_sha256", "cid_params")}
+
+    return json.dumps({"schema": "crc.pin-confirmation.v2",
+                       "record": context, "confirmation": confirmed},
+                      sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def verify_confirmation_signature(rec: dict, conf: dict, node: dict):
@@ -290,7 +308,21 @@ def main(argv) -> int:
         # The ENS contenthash is a directory CID covering every published file.
         # A record covering one file said nothing about the other twenty-eight,
         # so a confirmation on it could not mean what the rule needs it to mean.
+        # SECURITY BOUNDARY (@pipavlo82). Verifying a site-tree record executes
+        # build/*.py FROM THE CLONED REPO. If the record chooses that repo, then
+        # anyone who can write a pin record can run arbitrary code on every
+        # verifier's machine — and the people who run this tool are precisely the
+        # people we are asking to check work they did not author.
+        #
+        # So the repo is not record-selected. It must be one of ours, and the
+        # allowlist lives in the verifier, not in the artifact being verified.
+        # A record naming anything else is RED, not AMBER: this is not something
+        # that could-not-be-checked, it is something that must not be run.
         repo = rec.get("repo") or "https://github.com/trustless-ai/trustless-ai-landing"
+        if repo.rstrip("/").removesuffix(".git") not in ALLOWED_SITE_REPOS:
+            rep.add(RED, f"repo {repo!r} is not in the verifier's allowlist — refusing to "
+                         f"execute build code from a record-selected repository")
+            return _confirmations(rep, rec, None, key="tree_sha256")
         built = None
         with tempfile.TemporaryDirectory() as td:
             site = pathlib.Path(td) / "site"
@@ -313,6 +345,26 @@ def main(argv) -> int:
                                      "locked commit — the tree has drifted from its sources")
                     else:
                         rep.add(GREEN, "console page is the build of its locked commit")
+                    # The record's cid_params must be the ones actually used.
+                    # Previously verification only checked they were non-empty and
+                    # then let site_cid.py read the CLONED repo's site.pin.json —
+                    # so a record could be verified under parameters nobody
+                    # confirmed, which is the whole thing cid_params exists to stop.
+                    try:
+                        site_params = json.loads((site / "site.pin.json").read_text())["cid_params"]
+                    except Exception:
+                        site_params = None
+                    if site_params is None:
+                        rep.add(RED, "the site commit has no readable site.pin.json — "
+                                     "its cid_params cannot be compared to the record's")
+                    elif site_params != params:
+                        rep.add(RED, "cid_params MISMATCH — the record and the site commit "
+                                     "disagree about how the CID is derived\n"
+                                     f"           record: {json.dumps(params, sort_keys=True)}\n"
+                                     f"           site:   {json.dumps(site_params, sort_keys=True)}")
+                    else:
+                        rep.add(GREEN, "cid_params in the record match the site commit's")
+
                     s = subprocess.run([sys.executable, "build/site_cid.py", "--json"],
                                        capture_output=True, text=True, cwd=site)
                     if s.returncode != 0:
