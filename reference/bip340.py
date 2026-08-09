@@ -1,8 +1,31 @@
 #!/usr/bin/env python3
 """Pure-stdlib BIP-340 schnorr verification (secp256k1), for nostr-nip01 Cell
 envelopes in CI — no native dependency. Follows the BIP-340 reference verifier.
-Verification only; there is deliberately no signing here."""
+
+Verification is pure-stdlib deliberately -- CI needs to check any node's Cell
+without assuming every possible native crypto lib is installed. Signing has no
+such constraint (it only ever runs locally, by the one node that holds the key),
+so sign_hex below uses coincurve (imported lazily, inside the function) rather
+than reimplementing scalar/point signing math in pure Python -- the verify path
+above stays exactly as dependency-free as before.
+
+Found live 2026-08-09 (invinoveritas, confirming a real pin record): this file
+had NO signing function at all, so sign_confirmation.py's `bip340.sign_hex(...)`
+call for the nostr-nip01 envelope was unreachable dead code -- the only
+registered nostr-nip01 node (this one) could never actually produce a signed
+confirmation. Round-trip tested before use: sign_hex output verifies correctly
+against this same file's own verify_hex() for the actual pubkey/key pair used."""
 import hashlib
+
+
+def sign_hex(msg_hex: str, privkey_hex: str) -> str:
+    """BIP-340 schnorr sign msg_hex (32-byte digest, hex) with privkey_hex (32-byte
+    raw private key, hex). Returns the 64-byte signature as hex, matching
+    verify_hex's expected format exactly."""
+    from coincurve import PrivateKey
+    sk = PrivateKey(bytes.fromhex(privkey_hex))
+    sig = sk.sign_schnorr(bytes.fromhex(msg_hex))
+    return sig.hex()
 
 P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
 N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
