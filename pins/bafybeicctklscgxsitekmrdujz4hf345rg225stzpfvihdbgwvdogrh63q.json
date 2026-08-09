@@ -1,0 +1,28 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeicctklscgxsitekmrdujz4hf345rg225stzpfvihdbgwvdogrh63q",
+  "commit": "ca2e65729b0c46565a0729137e2bfef9bf0a7b17",
+  "tree_sha256": "sha256:604fa5d8a2749a4b17b7636473b052e024cba3ed16b8487512c869026c1eb73b",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "confirmations": [
+    {
+      "node_id": "vertice-recompute-lens",
+      "rebuilt_at": "2026-08-09T15:16:01Z",
+      "tree_sha256": "sha256:604fa5d8a2749a4b17b7636473b052e024cba3ed16b8487512c869026c1eb73b",
+      "file_sha256": "sha256:604fa5d8a2749a4b17b7636473b052e024cba3ed16b8487512c869026c1eb73b",
+      "cid": "bafybeicctklscgxsitekmrdujz4hf345rg225stzpfvihdbgwvdogrh63q",
+      "signature": "0x6ab3ee27e09a628599b69088cb6a422fc823cb1dd159053e56fd4cab17edc34f741ea4add02533a0df081f0367a0f5379237ca87332eea91dddf43c927c45e2a1b"
+    }
+  ],
+  "pinned_at": null,
+  "tx": null,
+  "purpose": "First real pin record. Whether this CID is pinned is a separate decision \u2014 if the site changes before then, a new CID gets a new record and this one simply keeps pinned_at: null."
+}
