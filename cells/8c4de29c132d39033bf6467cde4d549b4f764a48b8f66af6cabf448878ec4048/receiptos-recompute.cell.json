@@ -1,0 +1,108 @@
+{
+  "proof_payload": {
+    "schema": "crc.cell.v2",
+    "claim_id": "sha256:8c4de29c132d39033bf6467cde4d549b4f764a48b8f66af6cabf448878ec4048",
+    "registry_id": "sha256:9b871ba9cf05e9da7df78e0b15d44fc04059e6af4bda8037d6f456984598d157",
+    "result": "GREEN",
+    "verifier": "0x347aeeF3a6f8fD71C93289ab90c8dC0b26A8300a",
+    "boundary": "ERC-8274 recompute/receiptos — claim_id independently re-derived from the live /ledger #240 source using lift.v0 on proof_event.content and a from-scratch crc.claim.v0 gate + JCS canonicalizer (tools/cross_reference_console/receiptos_crc_claim_id.py, not reference/claim_id.py); projection_hash computed via reference/projection.py invinoveritas.ledger.v0 profile for cross-node comparison. Checked against the registered ClaimPreimage only after independent derivation completed. Second independent Cell on this claim — closes the edge opened by PR #36. dependency_lock, runtime_image, and execution_witness are honestly null. claim_preimage.artifact_type stays review_verdict (claim layer) while the source verdict.artifact_type is onchain_action; reconciling by copying would change claim_id. Envelope validity is outside this recomputation boundary and is established by EIP-712 signer recovery and registry binding.",
+    "as_of": "2026-08-09T20:29:35Z",
+    "recomputed_at": "2026-08-09T23:04:13Z",
+    "evidence": {
+      "claim_preimage": {
+        "schema": "crc.claim.v0",
+        "profile_id": "invinoveritas.review",
+        "policy_version": "invinoveritas.review.v10",
+        "artifact_hash": "a3e51d36fec41ea1514670d1487940fd4ff229b1ae7dfe5fd5909bcc46a637cc",
+        "artifact_type": "review_verdict",
+        "claim_body": "reject",
+        "source_class": "agent_reported",
+        "verifier_profile": "attestation/invinoveritas",
+        "as_of": "2026-08-09T20:29:35Z",
+        "claimant": 54848
+      },
+      "recomputed": {
+        "claim_id": "sha256:8c4de29c132d39033bf6467cde4d549b4f764a48b8f66af6cabf448878ec4048",
+        "decision_ref": "sha256:a3e51d36fec41ea1514670d1487940fd4ff229b1ae7dfe5fd5909bcc46a637cc",
+        "decision_ref_from": "proof_event.content decision_ref in the live /ledger #240 source, taken as-is (lift.v0 maps decision_ref bare hex to artifact_hash; the decision_ref itself is not recomputed from its own hidden sub-preimage by this node)",
+        "projection_hash": "sha256:0fb27ace732f20388deaac94967800ffb19d6ea3f0b3d32f2edf9ad7911c1b2e",
+        "projection_profile": "crc.projection.v0 / invinoveritas.ledger.v0"
+      },
+      "lane": "recompute/receiptos",
+      "recipe": "independent tools/cross_reference_console/receiptos_crc_claim_id.py in pipavlo82/crystal-receipt, written from CLAIM.md + CELL-v1.md pre-hash gate section without importing reference/claim_id.py; ClaimPreimage derived by applying lift.v0 to proof_event.content; claim_id = sha256(JCS(ClaimPreimage)); stable cross-node comparison via reference/projection.py invinoveritas.ledger.v0 profile",
+      "independence": {
+        "implementation": {
+          "repo": "https://github.com/pipavlo82/crystal-receipt",
+          "commit": "a078a125aee00225439d10cee30d1c3f563a5425",
+          "path": "tools/cross_reference_console/receiptos_crc_claim_id.py",
+          "impl_hash": "sha256:39461fd0aa0d42eb14648d2dc5361d717ed26efff14c530e9da9f6ca36234981"
+        },
+        "dependency_lock": null,
+        "runtime_image": null,
+        "execution_witness": null,
+        "inputs": [
+          {
+            "url": "https://api.babyblueviper.com/ledger/240",
+            "content_hash": "sha256:29a194d6b17c708146d1019beb53c60826c2462e159ce16768aa33b04d166bb2",
+            "retrieved_at": "2026-08-09T22:45:24Z"
+          }
+        ]
+      },
+      "source_ledger_entry": "https://api.babyblueviper.com/ledger/240",
+      "cross_check": "Second independent Cell on claim 240 — closes the edge opened by PR #36. claim_preimage.artifact_type stays review_verdict (claim layer) while the source verdict.artifact_type is onchain_action (reviewed artifact); reconciling by copying would change claim_id (CLAIM.md). Input content_hash is provenance of this fetch only; projection_hash is the stable comparison value across nodes (reference/projection.py). Compared against the registered ClaimPreimage only after independent lift.v0 + receiptos_crc_claim_id derivation completed: byte-identical on all ten ClaimPreimage fields and claim_id."
+    }
+  },
+  "signature": {
+    "scheme": "eip712",
+    "domain": {
+      "name": "cross-reference-console",
+      "version": "2",
+      "chainId": 1
+    },
+    "primaryType": "Cell",
+    "types": {
+      "Cell": [
+        {
+          "name": "schema",
+          "type": "string"
+        },
+        {
+          "name": "claim_id",
+          "type": "string"
+        },
+        {
+          "name": "registry_id",
+          "type": "string"
+        },
+        {
+          "name": "result",
+          "type": "string"
+        },
+        {
+          "name": "verifier",
+          "type": "address"
+        },
+        {
+          "name": "boundary",
+          "type": "string"
+        },
+        {
+          "name": "as_of",
+          "type": "string"
+        },
+        {
+          "name": "recomputed_at",
+          "type": "string"
+        },
+        {
+          "name": "evidence_hash",
+          "type": "bytes32"
+        }
+      ]
+    },
+    "evidence_hash": "0x9ee14caed8e299e8daf09c3d80ca95fbd605ba2b7592090470893b708a47fdb9",
+    "signer": "0x347aeeF3a6f8fD71C93289ab90c8dC0b26A8300a",
+    "signature": "0xf0a3802b1b75e67be4ef471f156356a874c2934b066401c94058f48d2b56fe9674d70a3459ec46f64d09308c71b7a0c358a80ab0f36ea2396bfcc71bd94ce8111c"
+  },
+  "verify": "gate the claim_preimage; recompute claim_id; recompute evidence_hash=keccak256(JCS(evidence)); recover the signer and check it equals signature.signer AND proof_payload.verifier AND the address registered in nodes.json (quadruple equality, CELL-v1.md §2); check registry_id equals this registry (CELL-v2.md §2); re-run the evidence yourself."
+}
