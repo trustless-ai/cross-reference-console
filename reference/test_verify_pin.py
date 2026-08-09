@@ -91,6 +91,26 @@ def signature_vectors():
         rec, dict(good, file_sha256="sha256:" + "f" * 64), node)
     check("editing file_sha256 after signing breaks the signature", ok is False, str(d))
 
+    # The gap @pipavlo82 found: conf["cid"] was outside the signed preimage, so
+    # the CID attributed to a confirmer could be rewritten after signing. Since
+    # verify_pin compares it to decide AMBER-vs-counted, editing it promoted a
+    # parameter disagreement into a counted confirmation.
+    ok, d = verify_pin.verify_confirmation_signature(
+        rec, dict(good, cid="bafkreiSOMETHING-ELSE"), node)
+    check("editing the confirmer's OWN cid after signing breaks the signature",
+          ok is False, str(d))
+
+    # A null CID is an honest abstention and must be signed as such — it must not
+    # be interchangeable with a real one under the same signature.
+    null_cid = dict(conf, cid=None)
+    signed_null = dict(null_cid, signature=sign(acct, c=null_cid))
+    ok, d = verify_pin.verify_confirmation_signature(rec, signed_null, node)
+    check("a null-cid confirmation can be signed honestly", ok is True, str(d))
+    ok, d = verify_pin.verify_confirmation_signature(
+        rec, dict(signed_null, cid=rec["cid"]), node)
+    check("backfilling a null cid from the record breaks the signature",
+          ok is False, str(d))
+
     bad_grammar = dict(conf, signature="0xdeadbeef")
     ok, d = verify_pin.verify_confirmation_signature(rec, bad_grammar, node)
     check("malformed signature grammar is rejected", ok is False, str(d))
@@ -123,6 +143,8 @@ def record_vectors():
         ("wrong schema", mk(schema="crc.pin-record.v9", confirmations=[conf(a), conf(b)])),
         ("commit is not a sha", mk(commit="not-a-sha", confirmations=[conf(a), conf(b)])),
         ("no confirmations at all", mk(confirmations=[])),
+        ("both confirmers computed no CID (null) — bytes only",
+         mk(confirmations=[dict(conf(a), cid=None), dict(conf(b), cid=None)])),
     ]
     with tempfile.TemporaryDirectory() as td:
         for label, rec in cases:
