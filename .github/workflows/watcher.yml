@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # registry_id is DERIVED from history; a shallow clone cannot see genesis
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -40,6 +42,7 @@ jobs:
           python3 reference/test_gate.py
           python3 reference/validate_nodes.py
           python3 reference/registry_id.py
+          python3 reference/registry_id.py --selftest
           python3 reference/lineage_ref.py
           python3 reference/test_lane_distinctness.py
           python3 reference/check_lane_distinctness.py

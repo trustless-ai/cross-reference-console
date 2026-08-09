@@ -47,6 +47,8 @@ jobs:
           python3 reference/check_sunset.py "origin/${{ github.base_ref }}" HEAD
       - name: registry identity is derivable and stable
         run: python3 reference/registry_id.py
+      - name: registry_id refuses a truncated history (never a wrong identity)
+        run: python3 reference/registry_id.py --selftest
       - name: LineageRef grammar — negative vector per rule
         run: python3 reference/lineage_ref.py
       - name: create_cell.py loads (the tool an outsider onboards with)
