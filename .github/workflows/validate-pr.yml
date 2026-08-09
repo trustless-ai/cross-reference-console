@@ -58,6 +58,13 @@ jobs:
         run: |
           python3 reference/test_lane_distinctness.py
           python3 reference/check_lane_distinctness.py
+      - name: the console names the in-force schema (it said v1 two versions on)
+        run: |
+          # The public console is the first thing a newcomer reads. Its join step
+          # names the schema to sign, and that line went stale without any commit
+          # touching it — correct when written, wrong by the time it mattered.
+          # Derived now, and checked here so a hand-edit cannot silently undo it.
+          python3 reference/check_console_schema.py
       - name: every claim file re-derives
         run: |
           python3 - <<'EOF'

@@ -16,7 +16,9 @@ for d in sorted(os.listdir(root + "/cells")):
         snap["cells"][d] = {}
         for cf in sorted(os.listdir(p)):
             if cf.endswith(".cell.json"):
-                snap["cells"][d][cf.replace(".cell.json", "")] = json.load(open(p + "/" + cf))
+                # removesuffix, not replace: replace() strips EVERY occurrence, so a
+                # node_id that itself contains ".cell.json" would be silently truncated.
+                snap["cells"][d][cf.removesuffix(".cell.json")] = json.load(open(p + "/" + cf))
 rej = root + "/claims/rejected"
 if os.path.isdir(rej):
     for fn in sorted(os.listdir(rej)):
@@ -31,11 +33,25 @@ wrapped = {"schema": "crc.console-snapshot.v0",
            "digest": "sha256:" + hashlib.sha256(canonical.encode()).hexdigest(),
            "data": snap}
 blob = json.dumps(wrapped, separators=(",", ":"), ensure_ascii=False)
+
+# The join instruction names the schema a newcomer must sign. Hand-written, it
+# was still saying crc.cell.v1 two schema versions later — correct when typed and
+# wrong with no commit touching it, the same failure mode as a stale image path.
+# So derive it here from the CELL-vN.md files, exactly as gen_in_force.py and
+# check_sunset.py do, and let the build stamp it in.
+_versions = [int(m.group(1)) for f in os.listdir(root)
+             if (m := re.fullmatch(r"CELL-v(\d+)\.md", f))]
+in_force = f"crc.cell.v{max(_versions)}" if _versions else "crc.cell.v2"
+
 for t in targets:
     s = open(t).read()
     s2 = re.sub(r'(<script type="application/json" id="seed-registry">)[\s\S]*?(</script>)',
                 lambda m: m.group(1) + blob + m.group(2), s, count=1)
     assert 'id="seed-registry"' in s2
+    s2, n = re.subn(r'(<b id="in-force-schema">)crc\.cell\.v\d+(</b>)',
+                    lambda m: m.group(1) + in_force + m.group(2), s2)
+    # Fail loudly rather than pin a page that names a sunset schema.
+    assert n == 1, f"in-force-schema marker not found in {t} (found {n}) — refusing to write"
     open(t, "w").write(s2)
     print(f"snapshot embedded -> {t} ({len(blob)//1024} KB, {wrapped['digest'][:18]}…, "
           f"{len(snap['claims'])} claims, {sum(len(v) for v in snap['cells'].values())} cells, "
