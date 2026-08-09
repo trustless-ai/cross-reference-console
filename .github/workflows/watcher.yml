@@ -19,8 +19,36 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: deps for the validation gate
+        run: pip install --quiet eth-account pycryptodome
       - name: poll intake, gate, register (stdlib only)
         run: python3 reference/watcher.py
+
+      # This workflow pushes straight to main, so nothing downstream can catch a
+      # bad write. "Just open a PR instead" does not work: a PR opened with
+      # GITHUB_TOKEN does not trigger workflows, so it would arrive unchecked and
+      # a required status check would then block it forever.
+      #
+      # The real risk was never the mechanism, it was that an UNVALIDATED write
+      # reached main at all — this job ran the intake gate and nothing else. So
+      # the suite runs here, against the tree that is about to be pushed, and a
+      # red result means no push. Which mechanism carries the validation is
+      # secondary to there being one.
+      - name: validate the tree about to be pushed (refuse on red)
+        run: |
+          set -e
+          python3 reference/test_gate.py
+          python3 reference/validate_nodes.py
+          python3 reference/registry_id.py
+          python3 reference/lineage_ref.py
+          python3 reference/test_lane_distinctness.py
+          python3 reference/check_lane_distinctness.py
+          for f in cells/*/*.cell.json; do
+            [ -e "$f" ] || continue
+            python3 reference/validate_cell.py "$f" > /dev/null
+          done
+          echo "validation green — safe to push"
+
       - name: commit registry changes (public log = audit trail)
         run: |
           git config user.name "crc-watcher[bot]"
