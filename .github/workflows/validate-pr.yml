@@ -58,6 +58,11 @@ jobs:
         run: |
           python3 reference/test_lane_distinctness.py
           python3 reference/check_lane_distinctness.py
+      - name: the console page is the deterministic build of this commit
+        run: |
+          # Makes a submitted IPFS CID checkable: anyone can build main at a
+          # stated commit and compare, instead of trusting whoever sent it.
+          python3 reference/check_console_reproducible.py
       - name: the console names the in-force schema (it said v1 two versions on)
         run: |
           # The public console is the first thing a newcomer reads. Its join step

@@ -26,10 +26,29 @@ if os.path.isdir(rej):
             snap["rejected"].append(json.load(open(rej + "/" + fn)))
 
 targets = sys.argv[1:] or [os.path.join(root, "ui", "index.html")]
-import hashlib, datetime
+import hashlib
 canonical = json.dumps(snap, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-wrapped = {"schema": "crc.console-snapshot.v0",
-           "generated_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+
+# crc.console-snapshot.v1 — `data_as_of` replaces v0's `generated_at`.
+#
+# v0 stamped wall-clock build time, which made the page unreproducible: the same
+# repo state built twice produced different bytes and therefore a different IPFS
+# CID. That is fine for a page one person pins, and fatal for a page anyone may
+# pin — a CID handed to us could not be checked against main, and the console's
+# embedded snapshot is the matrix's PRIMARY source, so a doctored build could
+# show fabricated nodes and GREEN cells on the org's own domain. The contenthash
+# is the one pointer in this stack that is not recomputable; the build feeding it
+# should at least be.
+#
+# So the timestamp is now derived from the data: the newest observation the
+# snapshot actually contains. It answers the question a reader has ("how current
+# is this?") instead of the one they don't ("when did someone run a script?"),
+# and it makes the whole build a pure function of repo state.
+_stamps = re.findall(r'"(20\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ)"', canonical)
+data_as_of = max(_stamps) if _stamps else "1970-01-01T00:00:00Z"
+
+wrapped = {"schema": "crc.console-snapshot.v1",
+           "data_as_of": data_as_of,
            "digest": "sha256:" + hashlib.sha256(canonical.encode()).hexdigest(),
            "data": snap}
 blob = json.dumps(wrapped, separators=(",", ":"), ensure_ascii=False)
