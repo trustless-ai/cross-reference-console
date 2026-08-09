@@ -97,18 +97,45 @@ def v3_enforcement_commit(root: str = ROOT) -> str:
 
 
 def _later_commit(a: str, b: str, root: str = ROOT) -> str:
-    """Chronologically later of two commits on this branch (both must be non-empty)."""
+    """The later of two commits by REPOSITORY ANCESTRY, never by wall-clock.
+
+    Commit timestamps are not a history-order relation. A descendant may legally
+    carry an earlier %ct than its parent — rebases, cherry-picks, imported
+    history, a skewed clock, or simply `GIT_COMMITTER_DATE`. Ordering activation
+    by timestamp can therefore select the ANCESTOR and move the activation
+    boundary backwards, which is a silent correctness failure in a rule whose
+    entire job is saying when something became enforceable.
+
+    Reproduced by @pipavlo82 and confirmed here on a two-commit repo: child a
+    descendant of parent, given an earlier %ct, and the timestamp rule picked the
+    parent.
+
+    Ancestry answers the question actually being asked — which state of main
+    already contained the other — and it cannot be skewed by how a commit was
+    dated.
+    """
     if not a:
         return b
     if not b:
         return a
-    ta = int(subprocess.run(
-        ["git", "show", "-s", "--format=%ct", a], cwd=root, capture_output=True, text=True, check=True,
-    ).stdout.strip())
-    tb = int(subprocess.run(
-        ["git", "show", "-s", "--format=%ct", b], cwd=root, capture_output=True, text=True, check=True,
-    ).stdout.strip())
-    return a if ta >= tb else b
+    if a == b:
+        return a
+
+    def is_ancestor(x: str, y: str) -> bool:
+        return subprocess.run(["git", "merge-base", "--is-ancestor", x, y],
+                              cwd=root, capture_output=True).returncode == 0
+
+    if is_ancestor(a, b):
+        return b
+    if is_ancestor(b, a):
+        return a
+    # Neither contains the other: they are on divergent history, so "later" is
+    # not defined between them. Guessing here would fabricate an activation
+    # boundary, so refuse and say why.
+    raise RuntimeError(
+        f"commits {a[:8]} and {b[:8]} are on divergent history — neither is an "
+        f"ancestor of the other, so there is no 'later' between them. Activation "
+        f"cannot be derived until both are on one line of history.")
 
 
 def in_force_schema(root: str = ROOT) -> str:

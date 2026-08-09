@@ -3,6 +3,7 @@
 
 Run:  python3 reference/test_cell_admission.py
 """
+import os
 import pathlib
 import subprocess
 import sys
@@ -66,9 +67,46 @@ def main() -> int:
     print("\n── v3 sunset activation uses later of mint and enforce")
     _patch_mint_enforce(True, True)
     act = ri.schema_activation_commit("crc.cell.v3")
-    later = ri._later_commit(_REAL_V2, _REAL_ENF)
-    chk("v3 activation commit derivable when both present", act == later)
+    # Expectation derived from ANCESTRY directly, never from _later_commit —
+    # the previous version computed it with the function under test, so it was
+    # tautological and could not fail (@pipavlo82).
+    import subprocess as _sp
+    def _is_anc(x, y):
+        return _sp.run(["git", "merge-base", "--is-ancestor", x, y],
+                       cwd=str(ROOT), capture_output=True).returncode == 0
+    expected = _REAL_ENF if _is_anc(_REAL_V2, _REAL_ENF) else _REAL_V2
+    chk("v3 activation is the descendant of mint/enforce (by ancestry)", act == expected)
     _restore_activation()
+
+    print("\n── activation follows history order, NOT commit timestamps")
+    # A descendant may legally carry an earlier %ct than its parent — rebase,
+    # cherry-pick, imported history, a skewed clock. Ordering by timestamp then
+    # selects the ANCESTOR and moves the activation boundary backwards.
+    # Reproduced by @pipavlo82; this pins it.
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+               "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+        run = lambda *a, **k: _sp.run(a, cwd=td, capture_output=True, text=True,
+                                      env={**env, **k.pop("extra", {})}, **k)
+        run("git", "init", "-q", ".")
+        pathlib.Path(td, "f1").write_text("a"); run("git", "add", "f1")
+        run("git", "commit", "-q", "-m", "parent",
+            extra={"GIT_AUTHOR_DATE": "2026-08-09T12:00:00",
+                   "GIT_COMMITTER_DATE": "2026-08-09T12:00:00"})
+        parent = run("git", "rev-parse", "HEAD").stdout.strip()
+        pathlib.Path(td, "f2").write_text("b"); run("git", "add", "f2")
+        run("git", "commit", "-q", "-m", "child",          # descendant, EARLIER date
+            extra={"GIT_AUTHOR_DATE": "2026-08-09T09:00:00",
+                   "GIT_COMMITTER_DATE": "2026-08-09T09:00:00"})
+        child = run("git", "rev-parse", "HEAD").stdout.strip()
+
+        ct = lambda x: int(run("git", "show", "-s", "--format=%ct", x).stdout.strip())
+        chk("  fixture is genuinely skewed (child older by clock)", ct(child) < ct(parent))
+        chk("picks the descendant despite the earlier timestamp",
+            ri._later_commit(parent, child, root=td) == child)
+        chk("  and is order-independent",
+            ri._later_commit(child, parent, root=td) == child)
 
     print("\n── existing Cells still validate")
     for c in sorted(ROOT.glob("cells/*/*.cell.json")):
