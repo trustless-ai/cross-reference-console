@@ -185,28 +185,48 @@ Cycle does **not** automatically imply NOT_DISTINCT unless necessary conditions 
 
 ---
 
-## 5 · Mechanical v2 sunset (deferred activation)
+## 5 · Mechanical v2 sunset (deferred v3 activation)
 
-**Merging this file does not activate `crc.cell.v3`.** The version is **minted** here but remains **not in force** until a later **enforcement commit** lands on `main`.
+**Merging this file mints `crc.cell.v3` but does not put it in force.** Until both activation conditions in §5.1 are true on `main`, [CELL-v2.md §4 · Mechanical v1 sunset](CELL-v2.md) admission rules remain authoritative — newly submitted Cells **MUST** continue to be `crc.cell.v2`.
 
-Until that enforcement commit, [CELL-v2.md §4 · Mechanical v1 sunset](CELL-v2.md) admission rules remain authoritative — newly submitted Cells **MUST** continue to be `crc.cell.v2`.
+### 5.1 · Minted, enforced, and in force (four-state model)
 
-### 5.1 · Activation point
+Two independent conditions are derived from repository history. **Neither alone activates `crc.cell.v3` admission.**
 
-**Activation point = the commit on `main` that lands working `crc.cell.v3` enforcement in both:**
+| Condition | Meaning | Derived as |
+|---|---|---|
+| **Minted** | This spec has landed on `main` | the commit that **added** `CELL-v3.md` |
+| **Enforced** | The v3 enforcement marker has landed on `main` | the commit that **added** `reference/lineage_ref.py` |
 
-- `reference/validate_cell.py` — v3 struct validation, including `derived_from` gate rules (§1)
-- `reference/check_sunset.py` — v3 admission / v2 sunset CI gate
-
-That enforcement commit — **not** the merge of `CELL-v3.md` — is the activation point. Mechanically derivable:
+Mechanically (oldest add-commit wins within each log — same discipline as [CELL-v2.md §4](CELL-v2.md)):
 
 ```
-activation_commit = git log --diff-filter=A --format=%H -- reference/lineage_ref.py
+mint_commit    = git log --diff-filter=A --format=%H -- CELL-v3.md          | tail -1
+enforce_commit = git log --diff-filter=A --format=%H -- reference/lineage_ref.py | tail -1
 ```
 
-(the commit that **added** `reference/lineage_ref.py` on `main` — the v3 gate module shipped with enforcement). The enforcement PR MUST keep this derivable by anyone (same discipline as [CELL-v2.md §4](CELL-v2.md)).
+**In-force admission schema** (`reference/registry_id.py` · `in_force_schema()`):
 
-### 5.2 · After activation
+| Minted | Enforced | Newly submitted Cells MUST be |
+|---|---|---|
+| no | no | `crc.cell.v2` |
+| yes | no | `crc.cell.v2` |
+| no | yes | `crc.cell.v2` |
+| yes | yes | `crc.cell.v3` |
+
+`crc.cell.v3` is **in force** only when **both** minted **and** enforced are true. Until then, `crc.cell.v2` remains the admission schema.
+
+**Activation commit** (sunset / admission ordering for newly submitted Cells): the **later** of `mint_commit` and `enforce_commit` by **repository ancestry**, never wall-clock timestamps. If neither commit is an ancestor of the other (divergent history), activation **cannot** be derived and MUST be refused rather than guessed.
+
+Reference derivation (`reference/registry_id.py`):
+
+- `in_force_schema()` — four-state table above
+- `schema_activation_commit("crc.cell.v3")` — activation commit for sunset checks
+- `_later_commit(a, b)` — ancestry-ordered “later”; rejects divergent pairs
+
+The enforcement marker file (`reference/lineage_ref.py`) is the normative gate module for `derived_from` grammar ([LINEAGE-REF.md](LINEAGE-REF.md)). CI enforcement (`reference/validate_cell.py`, `reference/check_sunset.py`) ships with that marker; the marker path alone is what `v3_enforcement_commit()` derives — not a hand-recorded commit hash.
+
+### 5.2 · After v3 is in force
 
 - Cells submitted (PR-merged or bot-committed) **after** the activation commit **MUST** be `crc.cell.v3`. CI rejects new v2-shaped Cells with a named rule.
 - Every Cell that exists at activation — v0, v1, and v2 history including the live `#236` edge — **stands as frozen history**. Nothing is re-signed; nothing is invalidated.
