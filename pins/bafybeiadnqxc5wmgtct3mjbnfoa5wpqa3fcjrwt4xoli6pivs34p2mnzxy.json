@@ -1,0 +1,19 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeiadnqxc5wmgtct3mjbnfoa5wpqa3fcjrwt4xoli6pivs34p2mnzxy",
+  "commit": "a7fcff64efba31934b537a340bc2d108057dcb6f",
+  "artifact": "site tree (29 published files)",
+  "tree_sha256": "sha256:91e1f4924eb5da6570391ac545e889956bada37ab8a7964f1fceef01b521d1a9",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "supersedes": "bafybeibr5uvrp5qvagipyatzv2xdrwtlwzrv4nno45abgqkirt6imhe5lm",
+  "purpose": "Repin: edges render their lineage state as a third answer rather than an implied one. Every claim now reads 'independence NOT PROVEN' \u2014 all live Cells are pre-v3, so derived_from does not exist to be checked. Publishing that is the point: the previous page said 'edge holds ... on distinct lanes' and left a reader to infer independence it had never established.",
+  "confirmations": []
+}
