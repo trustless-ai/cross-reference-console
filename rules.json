@@ -1,0 +1,50 @@
+{
+  "schema": "crc.rules.v0",
+  "note": [
+    "One deciding module per rule. Every other site delegates.",
+    "Where a second implementation is genuinely required, it is registered here",
+    "with a comparator that runs both over the same input, and with a mutation",
+    "that the comparator MUST fail on. A comparator that has never disagreed with",
+    "anything is unverified in exactly the way the [] / [] checker was.",
+    "",
+    "Vectors derive from the SPEC, not from the implementation. The [] / []",
+    "inversion survived review because the checker's own vectors encoded the same",
+    "guess it did — a cross-check cannot catch two implementations inheriting one",
+    "wrong assumption through shared vectors. So `vectors` must cite `spec`.",
+    "",
+    "Unregistered duplicates are not caught by CI. They stay a review finding.",
+    "The manifest does not make the question enforceable; it makes it answerable."
+  ],
+  "rules": [
+    {
+      "rule": "lineage pair state",
+      "spec": "CELL-v3.md",
+      "spec_section": "4",
+      "decides": "reference/lineage_graph.py",
+      "vectors": "reference/test_lineage_graph.py",
+      "duplicates": [
+        {
+          "impl": "ui/index.html",
+          "symbol": "linPairState",
+          "reason": "the console must compute lineage in the browser with no server, so the rule cannot live only in Python",
+          "comparator": "reference/check_console_lineage.py",
+          "mutation": {
+            "file": "ui/index.html",
+            "find": "return [LIN_UNPROVEN,`${n.node_id} is ${n.schema}",
+            "replace": "return [LIN_INDEPENDENT,`${n.node_id} is ${n.schema}",
+            "why": "the flattering drift: report a pre-v3 cell as INDEPENDENT rather than demoting it"
+          }
+        }
+      ]
+    },
+    {
+      "rule": "lane distinctness sufficient condition",
+      "spec": "CELL-v3.md",
+      "spec_section": "4",
+      "decides": "reference/lineage_graph.py",
+      "vectors": "reference/test_lineage_graph.py",
+      "duplicates": [],
+      "history": "check_lane_distinctness.py used to re-encode this rule and inverted it: it tested `None` for no-known-derivation while the spec shipped `[]`, so `[] / []` reported as 'one derives from the other'. The fix was deleting the copy, not repairing it. Registered here with zero duplicates so a future re-encoding is a visible change to this file."
+    }
+  ]
+}
