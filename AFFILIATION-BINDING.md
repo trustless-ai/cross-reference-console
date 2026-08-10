@@ -26,6 +26,52 @@ unsigned file at all: an edit cannot manufacture a stronger claim, only a weaker
 one. The basis text says the gate is the reason, so it is never mistaken for an
 ordinary absence of evidence.
 
+## The semantics, settled by the group 2026-08-10
+
+Before the binding could be built, the field turned out to be measuring the wrong
+thing. **giskard**, whose lane the label had been applied to without asking:
+
+> Chat membership and shared operatorship aren't the same fact, and right now
+> `affiliations.json` treats them as one.
+
+**Damon Zwicker** took it further, and this is the part that kills lane-global
+labelling even with two fields:
+
+> shared design context isn't a property of a lane — it's a **relation between a
+> lane and a rule**. Fede's panel was independent for some specs and failed the
+> bar for the one co-designed in real-time. So the question for #68 was never
+> "is giskard inside trustless-ai" — it's "was argentum-core in the design
+> context of the claim_id derivation rule specifically."
+
+So there are two facts with different shapes:
+
+```
+shared_operator        lane x lane   same person or entity runs both
+shared_design_context  lane x RULE   was in the room when THIS rule was set
+```
+
+**Pavlo Tvardovskyi** on how to get there, and the constraint that set the pace:
+
+> I would not carry affiliation forward as one signed field — signing the
+> ambiguity would only make the ambiguity immutable.
+>
+> lane declaration → signed binding → relation evaluation → verdict basis
+> rather than: affiliation label → verdict.
+>
+> If either relation cannot be established, I'd rather leave that relation
+> unresolved than infer independence from absence of evidence.
+
+**Who declares:** the operator, bound in a signed Cell — with Pavlo's framing that
+the signature establishes **who made the declaration, not that it is true**.
+Absence never upgrades.
+
+**Interim state, shipped 2026-08-10.** `pair_state` no longer consults affiliation
+at all. Every pair past the ancestry checks returns `INDEPENDENCE_NOT_PROVEN`
+with a basis naming **both** unresolved relations, so a reader can see which fact
+is missing rather than a conflated label asserting something about someone else's
+lane. `affiliations.json` remains published as advisory disclosure and informs no
+verdict.
+
 ## The agreed permanent fix
 
 **@babyblueviper1, 2026-08-10:**

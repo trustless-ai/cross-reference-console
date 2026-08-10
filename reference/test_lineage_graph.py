@@ -122,8 +122,8 @@ try:
     _lg._AFFIL.update({"A": "wg", "B": "wg", "D": "outsider"})
     st, basis = state(g(cell("A", []), cell("B", [])), "A", "B")
     chk("same affiliation -> NOT_PROVEN, not INDEPENDENT", st == NOT_PROVEN, st)
-    chk("  and the basis names the shared affiliation",
-        any("not adverse" in b for b in basis))
+    chk("  and the basis names BOTH unresolved relations, not a conflated label",
+        any("shared_operator" in b and "shared_design_context" in b for b in basis))
 
     # Was: "different affiliation -> INDEPENDENT". Pavlo's audit closed that
     # branch — affiliation is read from live nodes.json and bound by no signed
@@ -133,7 +133,7 @@ try:
     chk("different affiliation is NOT ENOUGH while affiliation is unbound",
         st == NOT_PROVEN, st)
     chk("  and the basis says why, rather than reading as ordinary not-proven",
-        any("bound by no signed Cell" in b for b in basis))
+        any("is not inferred from" in b for b in basis))
 
     _lg._AFFIL.update({"C": None})
     st, basis = state(g(cell("A", []), cell("C", [])), "A", "C")

@@ -41,6 +41,11 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def _affiliations() -> dict:
+    """NOT consulted by pair_state any more — see the WG decision in pair_state.
+    Kept because affiliations.json is still published as advisory disclosure, and
+    deleting the loader would make the file look unused rather than deliberately
+    non-authoritative. It informs no verdict.
+    """
     """node_id -> affiliation, from nodes.json. Absent reads as UNKNOWN, never as
     'unaffiliated' — an unstated affiliation is exactly the thing a reader cannot
     weigh, so it must not be silently treated as the strong case."""
@@ -212,45 +217,35 @@ def pair_state(graph: dict, a: str, b: str):
         basis.append(f"shared_ancestor: both derive from {names}")
         return DERIVED, basis
 
-    aa, ab = na.get("affiliation"), nb.get("affiliation")
-    if aa is None or ab is None:
-        basis.append("derived_from declared on both, no shared ancestry — but affiliation "
-                     "is not recorded for one or both lanes, so adversity cannot be weighed")
-        return NOT_PROVEN, basis
-    if aa == ab:
-        basis.append(f"derived_from declared on both, no shared ancestry — but both lanes are "
-                     f"operated within {aa}, so the declarations are not adverse to each other")
-        return NOT_PROVEN, basis
-    # Pavlo (@pipavlo82), 2026-08-10, auditing #55/#56:
+    # WG decision, 2026-08-10. giskard: "chat membership and shared operatorship
+    # aren't the same fact." Damon, going further: shared design context is not a
+    # property of a lane at all — it is a RELATION BETWEEN A LANE AND A RULE. His
+    # panel was independent for some specs and failed the bar only for the one
+    # co-designed in real time. So the question was never "is this lane inside the
+    # group", it is "was this lane in the design context of THIS rule".
     #
-    #   "affiliation is read from live nodes.json, while existing v3 Cells and
-    #    registry_id do not bind that field. So a nodes.json-only affiliation edit
-    #    can change a historical pair from INDEPENDENCE_NOT_PROVEN to INDEPENDENT
-    #    without changing either signed Cell."
+    #   shared_operator        lane x lane   — same person or entity runs both
+    #   shared_design_context  lane x RULE   — was in the room when this rule was set
     #
-    # Demonstrated, not argued: editing one line of an UNSIGNED file flips the pair
-    # to the strongest verdict in the system, both Cells still validate, and nothing
-    # detects it. That is worse than the overstatement #55/#56 fixed, because the
-    # input driving the verdict is mutable and bound to nothing.
+    # Neither is recorded yet, and Pavlo's constraint on getting there is the one
+    # that matters: "signing the ambiguity would only make the ambiguity
+    # immutable." So the schema waits. What could not wait is this basis text
+    # asserting shared operatorship — a claim about other people's lanes that we
+    # wrote ourselves, that giskard disputes for his, and that the group agrees
+    # conflates two facts.
     #
-    # It also falsifies the note above: affiliation can only demote WITHIN this
-    # function, but the system around it can upgrade by editing the input. A claim
-    # about an algorithm is not a claim about a system.
-    #
-    # The agreed permanent fix is written down in AFFILIATION-BINDING.md rather
-    # than left in a chat log: the next Cell version signs a nodes_snapshot_hash
-    # over the node entries AS THEY READ AT SIGNING TIME, and evaluation reads
-    # affiliation from the Cell's own committed snapshot instead of the live file.
-    #
-    # So INDEPENDENT is unreachable until affiliation is bound at signing time —
-    # crc.nodes.v1 plus a Cell version carrying affiliation or a registry-snapshot
-    # commitment. Pavlo's call on the shape; this is only the gate that stops an
-    # unbound field from establishing the strongest verdict in the meantime.
-    basis.append(f"derived_from declared on both, no shared ancestry, and the lanes are "
-                 f"operated by unaffiliated parties ({aa} / {ab}) — but affiliation is "
-                 f"read from live nodes.json and is bound by no signed Cell, so it cannot "
-                 f"establish independence: an unsigned edit could manufacture this verdict")
+    # Pavlo again: if a relation cannot be established, leave it unresolved rather
+    # than infer independence from absence. The verdict is unchanged; the REASON
+    # is now the honest one — not "we found shared operatorship" but "neither
+    # relation is established".
+    UNRESOLVED = ("derived_from declared on both, no shared ancestry — but neither "
+                  "shared_operator (lane x lane) nor shared_design_context (lane x rule) "
+                  "is established for this pair, and independence is not inferred from "
+                  "the absence of either")
+    basis.append(UNRESOLVED)
     return NOT_PROVEN, basis
+
+
 
 
 def load_claim(claim_dir: pathlib.Path) -> list:

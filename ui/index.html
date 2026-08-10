@@ -819,8 +819,8 @@ function linPairState(g,a,b){
          read unsigned because INDEPENDENT is gated: this can only demote. */
       const fa=REG.affiliations||{};
       const aa=fa[na.node_id], ab=fa[nb.node_id];
-      if(!aa||!ab) return [LIN_UNPROVEN,'declared on both, no shared ancestry — but affiliation is not recorded for one or both lanes'];
-      if(aa===ab)  return [LIN_UNPROVEN,`declared on both, no shared ancestry — but both lanes are operated within ${aa}, so the declarations are not adverse`];
+      if(!aa||!ab) return [LIN_UNPROVEN,`declared on both, no shared ancestry — but neither shared_operator (lane x lane) nor shared_design_context (lane x rule) is established for this pair, and independence is not inferred from the absence of either`];
+      if(aa===ab)  return [LIN_UNPROVEN,`declared on both, no shared ancestry — but neither shared_operator (lane x lane) nor shared_design_context (lane x rule) is established for this pair, and independence is not inferred from the absence of either`];
       /* Pavlo's audit: affiliation comes from live nodes.json and is bound by no
          signed Cell, so an unsigned edit could manufacture this verdict. Gated
          here too — a gate that exists only in Python leaves the PUBLISHED page
