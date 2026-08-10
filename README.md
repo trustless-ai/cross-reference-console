@@ -4,6 +4,10 @@
 
 > **Don't trust. Recompute — continuously, and about each other.**
 
+*The recompute discipline is not ours. `recompute → compare → confirm inclusion` is the
+Verification Invariant of [ERC-8281, the Observation Commitment Protocol](https://github.com/ethereum/ERCs/pull/1788) (Damon Zwicker). This project applies it
+across multiple operators; it did not invent it.*
+
 **Status:** first edge **LIVE** (2026-08-04): `/ledger #236` carries two independently-signed Cells on two lanes (attestation/invinoveritas · recompute/cross-reference-console), same `claim_id`, recomputable in-browser (`ui/`). Hardening pass landed 2026-08-05 ([`CELL-v1.md`](CELL-v1.md)) answering Pavlo's five conformance points: observation/evaluation time split, full boundary binding + triple signer equality, a universal pre-hash gate (duplicate members, hash grammar, claimant range — enforced in Python **and** the browser, negative vectors in [`reference/test_gate.py`](reference/test_gate.py)), recomputable independence evidence, and the operational AMBER/RED split (AMBER abstains, only a computed mismatch earns RED).
 
 ---
@@ -22,6 +26,7 @@ Every part already exists in the family:
 
 | Piece | Provided by |
 |---|---|
+| **Recompute discipline / verification invariant** | **ERC-8281 (Observation Commitment Protocol), Damon Zwicker** — `recompute → compare → confirm inclusion`. The name of this project and its tagline are that invariant; everything below is built on it |
 | **Claim format** | Fede's `decision_ref` (content-addressed preimage tuple) reconciled with captured-admission's `admission_id` |
 | **Verifier boundary** | ERC-8274 `IProofVerifier` — proven to carry confidential ⊕ attested ⊕ recomputable through one interface (t/28083 → `/ledger #236`) |
 | **Node** | Fede's `/verify-proof` (free, no-auth, recompute-and-confirm, schnorr-checked) — the reference node; each participant runs one |
