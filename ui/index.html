@@ -107,6 +107,10 @@
   .cell.nap{cursor:default}
   .edge{display:flex; align-items:center; gap:10px; margin:20px 2px 0; font-family:var(--mono); font-size:12px; color:var(--dim)}
   .edge .b{color:var(--muted)} .edge.match .b{color:var(--green)}
+  /* Three states, not two-plus-a-footnote: DERIVED and NOT-PROVEN are answers. */
+  .edge.lin-derived .b{color:var(--amber)}
+  .edge.lin-unproven .b{color:var(--dim)}
+  .edge.lin-independent .b{color:var(--green)}
   .how{margin-top:34px; border:1px solid var(--line); border-radius:12px; background:var(--ink-2); padding:22px 22px 8px}
   .how h3{margin:0 0 4px; font-size:16px; letter-spacing:.02em}
   .how .sub{color:var(--dim); font-size:12.5px; margin:0 0 14px}
@@ -703,10 +707,104 @@ function updateDynEdge(hex){
   const total=activeNodes().length, silent=total-res.length, ambers=res.length-greens.length;
   if(greens.length>=2&&greens.every(c=>c.cid===greens[0].cid)){
     e.classList.add('match');
-    t.textContent=`edge holds — ${greens.length} GREEN crc.cell.v1 Cells on distinct lanes, byte-equal ${short(greens[0].cid)}`+((ambers+silent)?` (${ambers+silent} abstaining)`:'')+`.`;
+    /* The edge holding is a NECESSARY-conditions result. Whether the lanes are
+       actually independent is a separate question with its own answer, and
+       stating only the first lets a reader infer the second. */
+    const lin=linClaimState(hex);
+    let tail='';
+    if(lin){
+      const [lst,why]=lin;
+      if(lst===LIN_INDEPENDENT){ e.classList.add('lin-independent'); tail=` · INDEPENDENT — ${why}`; }
+      else if(lst===LIN_DERIVED){ e.classList.remove('match'); e.classList.add('lin-derived');
+        tail=` · DERIVED — ${why}. The claim_ids agree, but these lanes share lineage, so this edge is weaker than two independent recomputations.`; }
+      else { e.classList.add('lin-unproven');
+        tail=` · independence NOT PROVEN — ${why}. Distinctness is necessary, not sufficient.`; }
+    }
+    t.textContent=`edge holds — ${greens.length} GREEN Cells on distinct lanes, byte-equal ${short(greens[0].cid)}`+((ambers+silent)?` (${ambers+silent} abstaining)`:'')+tail;
   } else if(greens.length>=2){ t.textContent='edge broken — GREEN cells disagree on claim_id.'; }
   else { t.textContent='edge pending — fewer than two GREEN cells (absent and AMBER cells abstain, never break).'; }
 }
+/* ── Lineage pair state in the browser — CELL-v3.md §4, mirroring
+   reference/lineage_graph.py so the page cannot claim more than the checker.
+
+   Why this is not a footnote: "edge holds — 2 GREEN on distinct lanes" states
+   a NECESSARY condition and reads like a SUFFICIENT one. Distinct implementations
+   can still share an ancestor. Until v3's derived_from is declared on both sides,
+   independence is not established — and a page that renders that as a plain green
+   edge is exactly the collapsed value this project exists to refuse. */
+const LIN_INDEPENDENT='INDEPENDENT', LIN_DERIVED='DERIVED', LIN_UNPROVEN='INDEPENDENCE_NOT_PROVEN';
+
+function linNodeKey(ind){
+  const impl=(ind&&ind.implementation)||{};
+  return impl.impl_hash || [impl.repo||'',impl.commit||'',impl.path||''].join('|');
+}
+function linPayload(cell){
+  if(cell && cell.event) { try { return JSON.parse(cell.event.content); } catch(e){ return {}; } }
+  return (cell && cell.proof_payload) || {};
+}
+function linBuildGraph(hex){
+  const cells=(REG.cells&&REG.cells[hex])||{}, nodes={}, byHash={}, byTuple={};
+  for(const [nid,c] of Object.entries(cells)){
+    const pp=linPayload(c); if(pp.result!=='GREEN') continue;          /* §4.1 GREEN only */
+    const ind=(pp.evidence&&pp.evidence.independence)||{}, k=linNodeKey(ind);
+    nodes[k]={node_id:nid,schema:pp.schema,ind,derived_from:ind.derived_from,edges:new Set(),unresolved:false};
+    const impl=ind.implementation||{};
+    if(impl.impl_hash) byHash[impl.impl_hash]=k;
+    byTuple[[impl.repo||'',impl.commit||'',impl.path||''].join('|')]=k;
+  }
+  const P='crc.lineage.v0:';
+  for(const [k,n] of Object.entries(nodes)){
+    if(n.derived_from==null) continue;                                 /* pre-v3: absent */
+    for(const ref of n.derived_from){
+      let t=null;
+      if(typeof ref==='string' && ref.startsWith(P+'impl/')) t=byHash[ref.slice((P+'impl/').length)]||null;
+      else if(typeof ref==='string' && ref.startsWith(P+'repo/')){
+        const m=ref.match(/^crc\.lineage\.v0:repo\/([^#]+)#commit\/([0-9a-f]{40})#path\/(.+)$/);
+        if(m) t=byTuple[[m[1],m[2],decodeURIComponent(m[3])].join('|')]||null;
+      }
+      if(t===null) n.unresolved=true;                                  /* §4.2 never invent */
+      else if(t!==k) n.edges.add(t);
+    }
+  }
+  return nodes;
+}
+function linAncestors(g,start){
+  const seen=new Set(); const stack=[...((g[start]||{edges:new Set()}).edges)];
+  while(stack.length){ const c=stack.pop(); if(seen.has(c)) continue; seen.add(c);
+    stack.push(...((g[c]||{edges:new Set()}).edges)); }
+  return seen;                                                         /* cycle-safe */
+}
+function linPairState(g,a,b){
+  const na=g[a], nb=g[b];
+  if(!na||!nb) return [LIN_UNPROVEN,'one side is not in the graph'];
+  for(const [n,l] of [[na,'A'],[nb,'B']])
+    if(n.derived_from==null)
+      return [LIN_UNPROVEN,`${n.node_id} is ${n.schema} — derived_from absent (pre-v3), so nothing is declared`];
+  const aa=linAncestors(g,a), ab=linAncestors(g,b);
+  if(aa.has(b)&&ab.has(a)) return [LIN_UNPROVEN,`lineage cycle: ${na.node_id} ↔ ${nb.node_id}`];
+  if(na.unresolved||nb.unresolved)
+    return [LIN_UNPROVEN,`unresolved lineage ref on ${na.unresolved?na.node_id:nb.node_id} — a cited ancestor resolves to nothing here`];
+  if(aa.has(b)) return [LIN_DERIVED,`${na.node_id} derives from ${nb.node_id}`];
+  if(ab.has(a)) return [LIN_DERIVED,`${nb.node_id} derives from ${na.node_id}`];
+  const shared=[...aa].filter(x=>ab.has(x));
+  if(shared.length) return [LIN_DERIVED,`shared ancestor: ${shared.map(x=>(g[x]||{}).node_id||'?').join(', ')}`];
+  return [LIN_INDEPENDENT,'both declare derived_from and share no ancestry'];
+}
+/* Worst state across all GREEN pairs on the claim — a single DERIVED pair is
+   what the reader needs to know, so it must not be averaged away. */
+function linClaimState(hex){
+  const g=linBuildGraph(hex), keys=Object.keys(g);
+  if(keys.length<2) return null;
+  let worst=LIN_INDEPENDENT, why='';
+  for(let i=0;i<keys.length;i++) for(let j=i+1;j<keys.length;j++){
+    const [st,basis]=linPairState(g,keys[i],keys[j]);
+    if(st===LIN_UNPROVEN && worst!==LIN_UNPROVEN){ worst=LIN_UNPROVEN; why=basis; }
+    else if(st===LIN_DERIVED && worst===LIN_INDEPENDENT){ worst=LIN_DERIVED; why=basis; }
+    else if(!why) why=basis;
+  }
+  return [worst,why];
+}
+
 function updateAllDynEdges(){ for(const hex of Object.keys(REG.claims)) updateDynEdge(hex); }
 
 function dynAllThunks(){

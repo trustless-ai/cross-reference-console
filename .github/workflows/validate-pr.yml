@@ -102,6 +102,14 @@ jobs:
           # touching it — correct when written, wrong by the time it mattered.
           # Derived now, and checked here so a hand-edit cannot silently undo it.
           python3 reference/check_console_schema.py
+      - name: the console's lineage answer equals the reference implementation's
+        run: |
+          # ui/index.html carries a hand-ported copy of lineage_graph.py so the
+          # page needs no server. Two implementations of one rule is exactly what
+          # this repo exists to distrust, and the port would drift toward the
+          # flattering answer — INDEPENDENT is what makes the matrix look strong.
+          # Both run over the same embedded snapshot and must agree per claim.
+          python3 reference/check_console_lineage.py
       - name: every claim file re-derives
         run: |
           python3 - <<'EOF'
