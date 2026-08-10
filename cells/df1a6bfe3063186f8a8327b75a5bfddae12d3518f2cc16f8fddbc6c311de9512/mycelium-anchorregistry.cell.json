@@ -1,12 +1,13 @@
 {
   "proof_payload": {
-    "schema": "crc.cell.v1",
+    "schema": "crc.cell.v3",
     "claim_id": "sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512",
+    "registry_id": "sha256:9b871ba9cf05e9da7df78e0b15d44fc04059e6af4bda8037d6f456984598d157",
     "result": "GREEN",
     "verifier": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
-    "boundary": "ERC-8274 recompute/mycelium -- claim_id AND decision_ref independently re-derived from /ledger #236 source with our own claim_id.py; signature = EIP-712 v1 by the Mycelium/Rama owner wallet",
+    "boundary": "ERC-8274 recompute/mycelium -- claim_id AND decision_ref independently re-derived from /ledger #236 source with our own claim_id.py; derived_from: [] (no dependency on this repo's reference implementation); signature = EIP-712 v3 by the Mycelium/Rama owner wallet",
     "as_of": "2026-08-04T00:11:24Z",
-    "recomputed_at": "2026-08-06T13:41:34Z",
+    "recomputed_at": "2026-08-10T15:31:56Z",
     "evidence": {
       "claim_preimage": {
         "schema": "crc.claim.v0",
@@ -36,30 +37,31 @@
         },
         "dependency_lock": null,
         "runtime_image": null,
+        "derived_from": [],
         "inputs": [
           {
             "url": "https://api.babyblueviper.com/ledger/236",
-            "content_hash": "sha256:bc3afa72fdaed3d830d0d6071d9eafbff41b4620076cdf8b1aa7d8a8f5ffa9a0",
-            "retrieved_at": "2026-08-06T13:41:34Z"
+            "content_hash": "sha256:9e9bc5d24797573920d2148885de1f2e448d03a5ddbf32c2f23813d4109df428",
+            "retrieved_at": "2026-08-10T15:31:15Z"
           },
           {
             "url": "https://raw.githubusercontent.com/giskard09/argentum-core/46517aa86156b3ec1ef20a3d5d0356f6df9fe9b1/examples/conformance/crc-claim-id/claim_id.py",
             "content_hash": "sha256:084ed2169250c99aa19b12c1557b7e5cc4adcac14c70128e2f467ed9d07fbe3b",
-            "retrieved_at": "2026-08-06T13:41:34Z"
+            "retrieved_at": "2026-08-10T15:31:15Z"
           }
         ],
         "execution_witness": null
       },
-      "note": "Node 4 (mycelium-anchorregistry) first Cell. Both claim_id AND decision_ref independently re-derived from the live /ledger #236 source using our own claim_id.py (jcs.py canonicalizer, pre-existing in this repo for an unrelated RFC 8785 fix, reused as-is). No container pinning available in this run -- dependency_lock/runtime_image/execution_witness left honestly null rather than fabricated.",
+      "note": "Node 4 (mycelium-anchorregistry) v3 upgrade of its first Cell on this claim. Both claim_id AND decision_ref independently re-derived from the live /ledger #236 source (fetched fresh at recomputed_at) using our own claim_id.py -- unchanged since the v1/v2 Cell, written from CLAIM.md, never from reference/claim_id.py. derived_from: [] is accurate: this implementation does not import, copy, or wrap this repo's reference script; it reuses only our own pre-existing jcs.py (added 2026-08-06 for an unrelated RFC 8785 fix in argentum.py/mycelium_trails.py), which is not part of this registry at all. No container pinning available in this run -- dependency_lock/runtime_image/execution_witness left honestly null rather than fabricated.",
       "source_ledger_entry": "https://api.babyblueviper.com/ledger/236",
-      "cross_check": "node 1 (Fede /verify-proof, verifier 54848) and node 2 (Vertice recompute-lens, 0x85Fa...Bf1A) both carry this same claim_id on distinct lanes; this Cell adds a third, independently-implemented recompute lane on the same claim."
+      "cross_check": "node 1 (Fede /verify-proof, verifier 54848) and node 2 (Vertice recompute-lens, 0x85Fa...Bf1A) both carry this same claim_id on distinct lanes; this Cell is a third, independently-implemented recompute lane on the same claim -- and per CELL-v3.md the only lane on this claim outside the WG's own real-time chat context, since node 1/node 2/node 3 all coordinate directly with each other while this implementation was written from the published spec text alone."
     }
   },
   "signature": {
     "scheme": "eip712",
     "domain": {
       "name": "cross-reference-console",
-      "version": "1",
+      "version": "3",
       "chainId": 1
     },
     "primaryType": "Cell",
@@ -71,6 +73,10 @@
         },
         {
           "name": "claim_id",
+          "type": "string"
+        },
+        {
+          "name": "registry_id",
           "type": "string"
         },
         {
@@ -99,9 +105,9 @@
         }
       ]
     },
-    "evidence_hash": "0x18254db34b6b8653de9abcf2f1de867976d1fd3e7619e94e4b8bc40f571b6029",
+    "evidence_hash": "0x8c0bc91dc058699817c4553a356fb926943a81d72e805f18652fcba93b96a2e2",
     "signer": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
-    "signature": "0x60c6b670fc59a37215019fd71ebc605839764cbe706839b38b51d5bc3f7c4fa2547f002e717113f224b948b25cbcf42764fb8781d9daaae5b3d07a3ef3b3a6fc1b"
+    "signature": "0xa5feac8b9e141ac007214c9c6e2fe501cfbbeae624ee20e09ba44a4a2b0cf2bf191f0e33ee0671c23a45b52ad3cae9cb167ea7afa99c72fa71b2153c4f04f6501c"
   },
-  "verify": "gate the claim_preimage; recompute evidence_hash=keccak256(JCS(evidence)); recoverTypedData(domain,{Cell},{schema,claim_id,result,verifier,boundary,as_of,recomputed_at,evidence_hash},signature) must equal signature.signer AND proof_payload.verifier (triple equality, CELL-v1.md §2); re-run the evidence (claim_id + decision_ref from source_ledger_entry); re-derive independence from evidence.independence refs; check proof_payload.as_of == evidence.claim_preimage.as_of."
+  "verify": "gate the claim_preimage; recompute claim_id; recompute evidence_hash=keccak256(JCS(evidence)); recover the signer and check it equals signature.signer AND proof_payload.verifier AND the address registered in nodes.json (quadruple equality, CELL-v1.md §2); check registry_id equals this registry (CELL-v2.md §2); re-run the evidence yourself."
 }
