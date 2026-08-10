@@ -16,10 +16,13 @@ here is transcribed, so nothing here can disagree with what CI does.
 
 | schema | `crc.cell.v3` |
 |---|---|
-| activation commit | `90233ad3a000` |
-| derived from | `git log --diff-filter=A -- reference/lineage_ref.py` |
+| mint commit (`CELL-v3.md`) | `c3678551cbc4` |
+| enforcement commit (`reference/lineage_ref.py`) | `90233ad3a000` |
+| activation commit | `c3678551cbc4` |
+| activation rule | later(mint, enforce) by ancestry — v3 in force only when **both** landed |
 
-Cells added after that commit must carry this schema. Everything older stands as
+v3 is in force because **CELL-v3.md is minted** and the **enforcement marker** is present — neither alone activates admission. The activation boundary is the **later** of the mint and enforcement commits by ancestry (same rule as `check_sunset.py` and `registry_id.schema_activation_commit()`).
+Cells added after the activation commit must carry this schema. Everything older stands as
 frozen history and is never re-signed or re-judged.
 
 ## The signed struct

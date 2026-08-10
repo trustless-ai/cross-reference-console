@@ -20,12 +20,12 @@ transcribed from prose, so nothing here can disagree with the code.
 
     python3 reference/gen_in_force.py            # write CELL-IN-FORCE.md
     python3 reference/gen_in_force.py --check    # CI: fail if it would change
+    python3 reference/gen_in_force.py --selftest # activation derivation vectors
 
 Stdlib + the repo's own modules only.
 """
 
 import argparse
-import datetime
 import json
 import os
 import pathlib
@@ -121,10 +121,50 @@ def build_and_capture(schema: str):
         return checks, struct
 
 
+def activation_block(schema: str) -> tuple[str, list[str]]:
+    """Markdown table rows for the in-force activation boundary (derived, not hand-written)."""
+    if schema == "crc.cell.v3":
+        mint = ri.activation_commit("CELL-v3.md")
+        enf = ri.v3_enforcement_commit()
+        act = ri.schema_activation_commit(schema)
+        if mint and enf and act:
+            marker = ri.V3_ENFORCEMENT_MARKER
+            return act, [
+                f"| mint commit (`CELL-v3.md`) | `{mint[:12]}` |",
+                f"| enforcement commit (`{marker}`) | `{enf[:12]}` |",
+                f"| activation commit | `{act[:12]}` |",
+                "| activation rule | later(mint, enforce) by ancestry — v3 in force only when **both** landed |",
+            ]
+    ver = schema.rsplit(".v", 1)[1]
+    spec = f"CELL-v{ver}.md"
+    act = ri.schema_activation_commit(schema) or ri.activation_commit(spec)
+    return act, [
+        f"| activation commit | `{act[:12] if act else 'n/a'}` |",
+        f"| derived from | `git log --diff-filter=A -- {spec}` |",
+    ]
+
+
+def _verify_activation(schema: str, text: str) -> None:
+    """Regression: generated view must use schema_activation_commit, not enforce-only."""
+    act, _ = activation_block(schema)
+    if schema != "crc.cell.v3" or not act:
+        return
+    want = ri.schema_activation_commit(schema)
+    enf = ri.v3_enforcement_commit()
+    if not want:
+        return
+    if f"| activation commit | `{want[:12]}` |" not in text:
+        raise SystemExit(
+            "CELL-IN-FORCE.md activation commit does not match "
+            "registry_id.schema_activation_commit() — regenerate with gen_in_force.py")
+    if enf and want != enf and f"| activation commit | `{enf[:12]}` |" in text:
+        raise SystemExit(
+            "CELL-IN-FORCE.md uses enforcement-only activation — v3 requires "
+            "later(mint, enforce) by ancestry (see CELL-v3.md §5.1)")
+
+
 def render(schema: str, checks, struct) -> str:
-    anchor = getattr(ri, "V3_ENFORCEMENT_MARKER", None) if schema == "crc.cell.v3" else None
-    anchor = anchor or f"CELL-v{schema.rsplit('.v', 1)[1]}.md"
-    act = ri.activation_commit(anchor)
+    act, act_rows = activation_block(schema)
 
     L = []
     a = L.append
@@ -146,10 +186,15 @@ def render(schema: str, checks, struct) -> str:
     a("")
     a(f"| schema | `{schema}` |")
     a("|---|---|")
-    a(f"| activation commit | `{act[:12] if act else 'n/a'}` |")
-    a(f"| derived from | `git log --diff-filter=A -- {anchor}` |")
+    for row in act_rows:
+        a(row)
     a("")
-    a("Cells added after that commit must carry this schema. Everything older stands as")
+    if schema == "crc.cell.v3" and act and ri.activation_commit("CELL-v3.md") and ri.v3_enforcement_commit():
+        a("v3 is in force because **CELL-v3.md is minted** and the **enforcement marker** "
+          "is present — neither alone activates admission. The activation boundary is the "
+          "**later** of the mint and enforcement commits by ancestry (same rule as "
+          "`check_sunset.py` and `registry_id.schema_activation_commit()`).")
+    a("Cells added after the activation commit must carry this schema. Everything older stands as")
     a("frozen history and is never re-signed or re-judged.")
     a("")
     a("## The signed struct")
@@ -196,15 +241,62 @@ def render(schema: str, checks, struct) -> str:
     return "\n".join(L) + "\n"
 
 
+def _selftest() -> int:
+    """Regression vectors for activation derivation in the generated view."""
+    fails = 0
+    schema = in_force_schema()
+
+    if schema == "crc.cell.v3":
+        mint = ri.activation_commit("CELL-v3.md")
+        enf = ri.v3_enforcement_commit()
+        act = ri.schema_activation_commit(schema)
+        ok = bool(mint and enf and act)
+        print(f"  {'ok  ' if ok else 'FAIL'}  v3 minted + enforced on branch")
+        fails += not ok
+
+        if act and enf and act != enf:
+            _, rows = activation_block(schema)
+            ok = (f"| activation commit | `{act[:12]}` |" in rows
+                  and f"| activation commit | `{enf[:12]}` |" not in rows)
+            print(f"  {'ok  ' if ok else 'FAIL'}  activation row uses later(mint,enforce), not enforce-only")
+            fails += not ok
+
+            text = render(schema, ["specimen check"], ["schema"])
+            try:
+                _verify_activation(schema, text)
+                print("  ok    render + _verify_activation agree with schema_activation_commit()")
+            except SystemExit as e:
+                print(f"  FAIL  _verify_activation: {e}")
+                fails += 1
+
+            ok = act == ri.schema_activation_commit(schema)
+            print(f"  {'ok  ' if ok else 'FAIL'}  activation_block matches check_sunset derivation")
+            fails += not ok
+    else:
+        print(f"  ok    skip v3 activation vectors — in-force schema is {schema}")
+
+    if fails:
+        print(f"\n{fails} gen_in_force selftest check(s) failed.")
+        return 1
+    print("\nall green — gen_in_force activation derivation")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true",
                     help="exit 1 if the file on disk is not what would be generated")
+    ap.add_argument("--selftest", action="store_true",
+                    help="run activation-derivation regression vectors")
     args = ap.parse_args()
+
+    if args.selftest:
+        return _selftest()
 
     schema = in_force_schema()
     checks, struct = build_and_capture(schema)
     text = render(schema, checks, struct)
+    _verify_activation(schema, text)
 
     if args.check:
         if not OUT.exists():
