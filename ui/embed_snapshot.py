@@ -63,7 +63,7 @@ _versions = [int(m.group(1)) for f in os.listdir(root)
 in_force = f"crc.cell.v{max(_versions)}" if _versions else "crc.cell.v2"
 
 for t in targets:
-    s = open(t).read()
+    s = open(t, encoding="utf-8").read()
     s2 = re.sub(r'(<script type="application/json" id="seed-registry">)[\s\S]*?(</script>)',
                 lambda m: m.group(1) + blob + m.group(2), s, count=1)
     assert 'id="seed-registry"' in s2
@@ -71,7 +71,7 @@ for t in targets:
                     lambda m: m.group(1) + in_force + m.group(2), s2)
     # Fail loudly rather than pin a page that names a sunset schema.
     assert n == 1, f"in-force-schema marker not found in {t} (found {n}) — refusing to write"
-    open(t, "w").write(s2)
+    open(t, "w", encoding="utf-8", newline="\n").write(s2)
     print(f"snapshot embedded -> {t} ({len(blob)//1024} KB, {wrapped['digest'][:18]}…, "
           f"{len(snap['claims'])} claims, {sum(len(v) for v in snap['cells'].values())} cells, "
           f"{len(snap['nodes']['nodes'])} nodes)")
