@@ -139,6 +139,18 @@ jobs:
           # flattering answer — INDEPENDENT is what makes the matrix look strong.
           # Both run over the same embedded snapshot and must agree per claim.
           python3 reference/check_console_lineage.py
+      - name: every registered duplicate has a comparator that demonstrably bites
+        run: |
+          # Damon Zwicker's amendment: "name the module that decides rule X" is a
+          # human audit unless recorded. rules.json records it; this enforces the
+          # mechanical half — every sanctioned duplicate names a comparator, the
+          # comparator is ACTUALLY RUN against a mutated copy, and it must fail.
+          # A comparator that has never disagreed with anything is unverified in
+          # exactly the way the [] / [] checker was.
+          #
+          # Also: vectors must cite the SPEC. The inversion survived because the
+          # checker's own vectors encoded the same guess it did.
+          python3 reference/check_rule_manifest.py
       - name: every claim file re-derives
         run: |
           python3 - <<'EOF'
