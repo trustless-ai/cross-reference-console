@@ -39,9 +39,39 @@ from lineage_ref import LineageRefError, parse  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
+
+def _affiliations() -> dict:
+    """node_id -> affiliation, from nodes.json. Absent reads as UNKNOWN, never as
+    'unaffiliated' — an unstated affiliation is exactly the thing a reader cannot
+    weigh, so it must not be silently treated as the strong case."""
+    try:
+        reg = json.loads((ROOT / "nodes.json").read_text())
+    except Exception:
+        return {}
+    return {n["node_id"]: n.get("affiliation") for n in reg.get("nodes", [])}
+
+
+_AFFIL = _affiliations()
+
 INDEPENDENT = "INDEPENDENT"
 DERIVED = "DERIVED"
 NOT_PROVEN = "INDEPENDENCE_NOT_PROVEN"
+# Damon Zwicker, 2026-08-10, on the first pair to reach the strongest state:
+# "two v3 Cells with derived_from: [] from two lanes of this group flip the edge
+# to INDEPENDENT. Your own tool says [] is signed provenance, never proof of
+# independence — that caveat applies to the VERDICT, not just the field."
+#
+# He is right, and the fix belongs here rather than in the wording. `[]` is a
+# declaration by the lane operator. When both operators are the same working
+# group, the declarations are not adverse to each other: nobody had an interest
+# in contradicting the other, and no amount of signing changes that. The result
+# is real — it still catches implementation divergence — but it is not the
+# strongest word in the system, and the founding claim must not carry the
+# strongest word on the weakest evidence for it.
+#
+# INDEPENDENT is reserved for a pair with no shared affiliation. Until such a
+# lane exists, the honest ceiling is DECLARED_NOT_ADVERSE.
+DECLARED = "INDEPENDENCE_DECLARED_NOT_ADVERSE"
 
 
 def node_key(independence: dict) -> str:
@@ -77,6 +107,7 @@ def build_graph(cells: list) -> dict:
         ind = (pp.get("evidence") or {}).get("independence") or {}
         k = node_key(ind)
         nodes[k] = {"node_id": node_id, "schema": pp.get("schema"),
+                    "affiliation": _AFFIL.get(node_id),
                     "result": pp.get("result"), "independence": ind,
                     "derived_from": ind.get("derived_from"), "edges": set(),
                     "unresolved": False}
@@ -152,7 +183,17 @@ def pair_state(graph: dict, a: str, b: str):
         basis.append(f"shared_ancestor: both derive from {names}")
         return DERIVED, basis
 
-    basis.append("derived_from declared on both, no shared ancestry — independent")
+    aa, ab = na.get("affiliation"), nb.get("affiliation")
+    if aa is None or ab is None:
+        basis.append("derived_from declared on both, no shared ancestry — but affiliation "
+                     "is not recorded for one or both lanes, so adversity cannot be weighed")
+        return DECLARED, basis
+    if aa == ab:
+        basis.append(f"derived_from declared on both, no shared ancestry — but both lanes are "
+                     f"operated within {aa}, so the declarations are not adverse to each other")
+        return DECLARED, basis
+    basis.append(f"derived_from declared on both, no shared ancestry, and the lanes are "
+                 f"operated by unaffiliated parties ({aa} / {ab}) — independent")
     return INDEPENDENT, basis
 
 

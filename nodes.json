@@ -3,7 +3,7 @@
   "nodes": [
     {
       "node_id": "invinoveritas",
-      "display": "Node 1 — invinoveritas (Fede)",
+      "display": "Node 1 \u2014 invinoveritas (Fede)",
       "verifier": 54848,
       "lane": "attestation/invinoveritas",
       "envelope": "nostr-nip01",
@@ -14,11 +14,12 @@
       },
       "cell_url_template": null,
       "since": "2026-08-04T18:56:00Z",
-      "retired": null
+      "retired": null,
+      "affiliation": "trustless-ai-wg"
     },
     {
       "node_id": "vertice-recompute-lens",
-      "display": "Node 2 — Vértice recompute-lens (Tiago)",
+      "display": "Node 2 \u2014 V\u00e9rtice recompute-lens (Tiago)",
       "verifier": "0x85Fa13511D170FBe173761b63D7f8DD4A6f6Bf1A",
       "lane": "recompute/cross-reference-console",
       "envelope": "eip712",
@@ -29,11 +30,12 @@
       },
       "cell_url_template": "https://raw.githubusercontent.com/trustless-ai/cross-reference-console/main/cells/{claim_id_hex}/vertice-recompute-lens.cell.json",
       "since": "2026-08-04T19:38:20Z",
-      "retired": null
+      "retired": null,
+      "affiliation": "trustless-ai-wg"
     },
     {
       "node_id": "receiptos-recompute",
-      "display": "Node 3 — ReceiptOS recompute (Pavlo)",
+      "display": "Node 3 \u2014 ReceiptOS recompute (Pavlo)",
       "verifier": "0x347aeeF3a6f8fD71C93289ab90c8dC0b26A8300a",
       "lane": "recompute/receiptos",
       "envelope": "eip712",
@@ -44,11 +46,12 @@
       },
       "cell_url_template": null,
       "since": "2026-08-05T19:35:31Z",
-      "retired": null
+      "retired": null,
+      "affiliation": "trustless-ai-wg"
     },
     {
       "node_id": "mycelium-anchorregistry",
-      "display": "Node 4 — Mycelium AnchorRegistry (Giskard)",
+      "display": "Node 4 \u2014 Mycelium AnchorRegistry (Giskard)",
       "verifier": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
       "lane": "recompute/mycelium",
       "envelope": "eip712",
@@ -59,7 +62,8 @@
       },
       "cell_url_template": null,
       "since": "2026-08-06T13:43:49Z",
-      "retired": null
+      "retired": null,
+      "affiliation": "trustless-ai-wg"
     }
   ],
   "claim_sources": [
@@ -67,7 +71,9 @@
       "source_id": "invinoveritas-ledger",
       "url": "https://api.babyblueviper.com/ledger/submit",
       "admission": "sats per entry, signature-verified, auto-accepted (type: self_submitted_verdict)",
-      "lifts": ["review_verdict"],
+      "lifts": [
+        "review_verdict"
+      ],
       "since": "2026-08-05T00:00:00Z",
       "retired": null
     }

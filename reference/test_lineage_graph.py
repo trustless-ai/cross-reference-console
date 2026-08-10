@@ -15,8 +15,9 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from lineage_graph import (DERIVED, INDEPENDENT, NOT_PROVEN,  # noqa: E402
+from lineage_graph import (DECLARED, DERIVED, INDEPENDENT, NOT_PROVEN,  # noqa: E402
                            ancestors, build_graph, pair_state)
+import lineage_graph as _lg  # noqa: E402
 
 fails = 0
 
@@ -47,6 +48,11 @@ def g(*cells):
 def state(graph, a, b):
     return pair_state(graph, H[a], H[b])
 
+
+# The lineage rows below test LINEAGE, so the synthetic lanes are given distinct
+# affiliations: otherwise every one of them would read DECLARED for a reason that
+# has nothing to do with the row being tested. Affiliation gets its own block.
+_lg._AFFIL.update({n: f"org-{n.lower()}" for n in ("A", "B", "C", "X", "D")})
 
 print("VECTOR-MATRIX-v3-independence — lineage rows\n")
 
@@ -96,6 +102,36 @@ chk("V-13 fork laundering (distinct hashes, declared parent) -> DERIVED", st == 
 # V-14 · honest [] on both, genuinely unrelated
 st, basis = state(g(cell("A", []), cell("D", [])), "A", "D")
 chk("V-14 honest [] both sides -> INDEPENDENT", st == INDEPENDENT, st)
+
+print("\n── affiliation: [] is a declaration, and declarations from one group are not adverse")
+
+# Damon, 2026-08-10: "reserve INDEPENDENT for a lane nobody in this group runs."
+# `[]` is signed provenance from the lane OPERATOR. Two lanes run inside one
+# working group had no interest in contradicting each other, and no amount of
+# signing manufactures adversity. The result still catches implementation
+# divergence — it is simply not the strongest word in the system.
+_saved = dict(_lg._AFFIL)
+try:
+    _lg._AFFIL.update({"A": "wg", "B": "wg", "D": "outsider"})
+    st, basis = state(g(cell("A", []), cell("B", [])), "A", "B")
+    chk("same affiliation -> DECLARED, not INDEPENDENT", st == DECLARED, st)
+    chk("  and the basis names the shared affiliation",
+        any("not adverse" in b for b in basis))
+
+    st, basis = state(g(cell("A", []), cell("D", [])), "A", "D")
+    chk("different affiliation -> INDEPENDENT", st == INDEPENDENT, st)
+
+    _lg._AFFIL.update({"C": None})
+    st, basis = state(g(cell("A", []), cell("C", [])), "A", "C")
+    chk("unrecorded affiliation -> DECLARED (absence is not the strong case)",
+        st == DECLARED, st)
+
+    # Affiliation must never RESCUE a pair. It can only ever demote.
+    st, _ = state(g(cell("A", []), cell("D", ["crc.lineage.v0:impl/" + H["A"]])), "A", "D")
+    chk("unaffiliated + declared derivation is still DERIVED (affiliation cannot rescue)",
+        st == DERIVED, st)
+finally:
+    _lg._AFFIL.clear(); _lg._AFFIL.update(_saved)
 
 print("\n── properties that must hold regardless of row")
 
