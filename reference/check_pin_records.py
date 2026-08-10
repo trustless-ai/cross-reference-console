@@ -97,13 +97,20 @@ def check(rec: pathlib.Path) -> None:
 
 
 def main() -> int:
+    # "Nothing to check" is not a pass. This repo HAS pin records; if none are
+    # visible, the check is pointed at the wrong tree or they have been moved,
+    # and exiting 0 would report green having verified nothing. Found the hard
+    # way by running this file from /tmp, where ROOT resolved to "/" and it
+    # cheerfully announced success.
     if not PINS.is_dir():
-        print("no pins/ — nothing to check")
-        return 0
+        print(f"FAIL  no pins/ directory under {ROOT} — nothing was checked.\n"
+              f"      This is a could-not-check, not an empty set.", file=sys.stderr)
+        return 1
     records = sorted(PINS.glob("*.json"))
     if not records:
-        print("pins/ is empty — nothing to check")
-        return 0
+        print(f"FAIL  pins/ exists under {ROOT} but holds no records — nothing was "
+              f"checked.", file=sys.stderr)
+        return 1
     print(f"checking {len(records)} pin record(s) — structural only, signatures NOT asserted")
     for rec in records:
         check(rec)
