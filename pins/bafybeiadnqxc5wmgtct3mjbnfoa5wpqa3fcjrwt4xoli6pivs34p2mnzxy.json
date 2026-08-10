@@ -26,6 +26,14 @@
       "file_sha256": "sha256:91e1f4924eb5da6570391ac545e889956bada37ab8a7964f1fceef01b521d1a9",
       "cid": "bafybeiadnqxc5wmgtct3mjbnfoa5wpqa3fcjrwt4xoli6pivs34p2mnzxy",
       "signature": "702e50d69876795c6f6b77fbc967be5ddc22682a0a046d08778f80f8d992930471289ed5350a3718b0ca1832fe21bde898e590c5ef0ba545b8c0e095b76ab709"
+    },
+    {
+      "node_id": "vertice-recompute-lens",
+      "rebuilt_at": "2026-08-10T09:21:18Z",
+      "tree_sha256": "sha256:91e1f4924eb5da6570391ac545e889956bada37ab8a7964f1fceef01b521d1a9",
+      "file_sha256": "sha256:91e1f4924eb5da6570391ac545e889956bada37ab8a7964f1fceef01b521d1a9",
+      "cid": "bafybeiadnqxc5wmgtct3mjbnfoa5wpqa3fcjrwt4xoli6pivs34p2mnzxy",
+      "signature": "0x8d4ac84c95f716d3ad7a38aeaa7b57a096cc0222c57a4e205557260634d21c4807e6c40659b63bc20f68a18fcd28090cd11d8bc9daaccbbfe44641bb3fbeadb71b"
     }
   ]
 }
