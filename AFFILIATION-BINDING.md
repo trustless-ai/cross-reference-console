@@ -97,6 +97,65 @@ It is the house rule applied to our own registry: *don't trust the live mutable
 file; commit what you actually saw.* A Cell already does this for its claim and
 its inputs. Affiliation was the one input still read live at evaluation time.
 
+## The design, settled 2026-08-10 — writable, not yet written
+
+Four questions were open. All four are answered; nothing below is ours alone.
+
+**1 · `INDEPENDENT` is defined but unavailable, not deleted.** (Pavlo, composed
+with Damon.) Keep it in the verdict model behind an explicit prerequisite —
+`lineage_binding_available && required_relations_resolved` — which is false today
+because the schema does not exist. *Damon's addition:* a vector asserts the
+prerequisite is false today and flips when binding lands, so the same fact lives
+in the model and in the suite and is mechanically compared. That is clause 2 of
+our own rules manifest applied to ourselves.
+
+**2 · The basis text says why EACH relation could not be evaluated.** (Pavlo.)
+
+```
+shared_operator:       not evaluated — no bound operator relation evidence
+shared_design_context: not evaluated — no bound lane x rule declaration
+```
+
+`not evaluated` is distinct from `false` and from `unknown`. Absence must not
+upgrade.
+
+**3 · `affiliations.json` keeps its provenance and loses its authority.** (Pavlo.)
+Explicit `used_for_verdict = false` plus advisory/deprecated marking, or move it
+off the decision surface entirely. Deleting erases provenance; leaving it plain
+creates a second ambiguity.
+
+**4 · Rule scope: the Cell's own citations are the enumeration.** (Damon — this
+was the blocker.) A Cell attests to having executed a derivation against named
+specs, so the design-context question is scoped to exactly those `rule_ref`s, one
+declaration per cited rule:
+
+```
+lane_id + rule_ref/rule_commitment + design_context_declaration
+```
+
+where `rule_ref` identifies an immutable rule/version, not a field name. **If a
+Cell depended on a rule it does not cite, that is the defect — one decision site —
+not a scoping ambiguity.** #68 looked unambiguous because one rule was cited; the
+general case is the same shape with more citations.
+
+**5 · The basis text must name the evidence CEILING per relation.** (Damon.)
+Because the two relations are asymmetric — `shared_operator` can be externally
+verified and then bound; `shared_design_context` tops out at a signed declaration
+that public history can corroborate or contradict but never prove absent
+(Pavlo's correction) — two identical labels can rest on different evidence.
+So the basis states `verified` or `declared-and-corroborated` per relation, or the
+asymmetry disappears exactly where a reader needs it.
+
+**Layering, unchanged:** `declaration → binding → relation evaluation → verdict
+basis`, with the evidence model permitted to differ by relation type.
+
+**Open, and time-boxed by something outside this repo:** Damon proposes aligning
+this vocabulary with the ReceiptOS boundary sections and ERC-8281's
+authenticated-vs-informational split "while all three documents are still
+mutable." ReceiptOS v0.7 is a freeze candidate for Zenodo. If the terminology is
+to be shared rather than reinvented, that freeze is the deadline, and it is
+Pavlo's call whether it is worth holding for.
+
 ## What must be true before the gate lifts
 
 - a Cell version carrying `nodes_snapshot_hash` over a canonical projection of
