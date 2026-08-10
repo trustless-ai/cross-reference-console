@@ -1,0 +1,24 @@
+{
+  "schema": "crc.affiliations.advisory.v0",
+  "advisory": true,
+  "note": [
+    "ADVISORY. Not part of crc.nodes.v0, and deliberately not added to it \u2014",
+    "@pipavlo82, 2026-08-10: 'frozen v0 should stay frozen. The permanent path",
+    "should be crc.nodes.v1 plus a signed registry-snapshot commitment in the",
+    "next Cell version.'",
+    "",
+    "Nothing here can establish a verdict. lineage_graph gates INDEPENDENT off",
+    "entirely while affiliation is unbound, so this file's only power is to",
+    "DEMOTE a pair to NOT_PROVEN by disclosing that two lanes share an operator.",
+    "That asymmetry is the whole reason it is safe to read an unsigned file at",
+    "all: editing it cannot manufacture a stronger claim, only a weaker one.",
+    "",
+    "Who operates a lane is worth stating even when it cannot yet be proven."
+  ],
+  "affiliations": {
+    "invinoveritas": "trustless-ai-wg",
+    "vertice-recompute-lens": "trustless-ai-wg",
+    "receiptos-recompute": "trustless-ai-wg",
+    "mycelium-anchorregistry": "trustless-ai-wg"
+  }
+}

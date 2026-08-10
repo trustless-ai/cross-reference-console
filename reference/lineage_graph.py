@@ -44,11 +44,14 @@ def _affiliations() -> dict:
     """node_id -> affiliation, from nodes.json. Absent reads as UNKNOWN, never as
     'unaffiliated' — an unstated affiliation is exactly the thing a reader cannot
     weigh, so it must not be silently treated as the strong case."""
+    # affiliations.json, NOT nodes.json: frozen crc.nodes.v0 stays frozen
+    # (@pipavlo82's call). Reading an unsigned advisory file is only defensible
+    # because INDEPENDENT is gated off entirely — this input can demote a pair,
+    # never promote one.
     try:
-        reg = json.loads((ROOT / "nodes.json").read_text())
+        return json.loads((ROOT / "affiliations.json").read_text()).get("affiliations", {})
     except Exception:
         return {}
-    return {n["node_id"]: n.get("affiliation") for n in reg.get("nodes", [])}
 
 
 _AFFIL = _affiliations()

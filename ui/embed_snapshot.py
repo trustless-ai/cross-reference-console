@@ -7,6 +7,12 @@ import json, os, re, sys
 
 root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 snap = {"nodes": json.load(open(root + "/nodes.json")), "claims": {}, "cells": {}, "rejected": []}
+# Advisory, and kept OUT of snap["nodes"] on purpose: frozen crc.nodes.v0 stays
+# frozen, so affiliation must not ride inside the registry object even here.
+try:
+    snap["affiliations"] = json.load(open(root + "/affiliations.json"))["affiliations"]
+except Exception:
+    snap["affiliations"] = {}
 for fn in sorted(os.listdir(root + "/claims")):
     if fn.endswith(".json") and not fn.startswith("."):
         snap["claims"][fn[:-5]] = json.load(open(root + "/claims/" + fn))

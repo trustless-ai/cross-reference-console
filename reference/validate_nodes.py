@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from claim_id import loads_strict
 
 NODE_FIELDS = {"node_id", "display", "verifier", "lane", "envelope",
-               "key_ref", "cell_url_template", "since", "retired", "affiliation"}
+               "key_ref", "cell_url_template", "since", "retired"}
 KEY_FIELDS = {"pubkey", "address", "keys_url"}
 SOURCE_FIELDS = {"source_id", "url", "admission", "lifts", "since", "retired"}
 ENVELOPES = {"nostr-nip01", "eip712"}
@@ -32,15 +32,6 @@ def nonempty_str(v):
     return isinstance(v, str) and v != ""
 
 
-# `affiliation` names who OPERATES the lane. It is required, not optional: an
-# unstated affiliation is precisely what a reader cannot weigh, and lineage
-# already treats absence as the weak case. Requiring it here means a lane cannot
-# join the board without saying whose it is.
-#
-# NOTE for @pipavlo82: this widens the crc.nodes.v0 field set rather than minting
-# crc.nodes.v1. Done this way because absence was already handled conservatively
-# downstream and the live console was overstating an edge; the version question
-# is real and is yours.
 def main(path):
     text = open(path).read()
     try:
