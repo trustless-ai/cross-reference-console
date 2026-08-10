@@ -91,6 +91,16 @@ jobs:
           # Asked for in review: these vectors lived in a terminal, which is the
           # same defect as a conformance claim nobody can re-run.
           python3 reference/test_verify_pin.py
+      - name: every pin record reproduces its own CID (structural, not signatures)
+        run: |
+          # test_verify_pin.py proves the VERIFIER is right. Nothing proved the
+          # RECORDS were. A record whose CID did not recompute could merge and sit
+          # there looking authoritative — and it is the artifact people sign
+          # against, so a wrong one collects real signatures over a false claim.
+          # Signatures are deliberately NOT asserted here: a record is supposed to
+          # land unsigned and collect them after, and a check that is red by design
+          # is one people learn to ignore.
+          python3 reference/check_pin_records.py
       - name: the console page is the deterministic build of this commit
         run: |
           # Makes a submitted IPFS CID checkable: anyone can build main at a
