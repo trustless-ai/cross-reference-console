@@ -15,6 +15,8 @@
   },
   "supersedes": "bafybeigryfhrdiuicuwnrsjdhrkid4l2it5otneqimch463mdlup6wvdg4",
   "purpose": "Cut after the whole review round settled rather than after each fix. Carries the lineage correction (an intramural pair reads NOT PROVEN), the page stating its own provenance, the affiliation binding gate, the rules manifest, and the crc.nodes.v0 revert. Three earlier CIDs were superseded BEFORE pinning rather than pinned and corrected.",
+  "tx": "0x748a362a6c4dc1d4fa0e62f234e85fd2c8c26031a1ce945785efcde512abc11d",
+  "pinned_at": "2026-08-10T14:05:00Z",
   "confirmations": [
     {
       "node_id": "vertice-recompute-lens",
