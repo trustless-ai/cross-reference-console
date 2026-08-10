@@ -113,6 +113,44 @@ def signature_vectors():
     check("backfilling a null cid from the record breaks the signature",
           ok is False, str(d))
 
+    # ---- which BYTE of a signature you tamper with decides what the test proves.
+    #
+    # An eip712 signature is r||s||v. `v` is the recovery id, and v=0 recovers the
+    # same address as v=27 (likewise 1/28) — malleable by construction. So the
+    # obvious adversarial test, "flip the last byte and watch it break", flips the
+    # one byte that CANNOT break, and reports GREEN while proving nothing.
+    #
+    # This was not hypothetical: that exact test was run against node 2's leg on the
+    # bafybeiadnq… record and passed vacuously, after the same mutation had been
+    # posted as real evidence on #49 — where it WAS sound, because invinoveritas
+    # signs schnorr, which has no recovery byte. One mutation, meaningful on one
+    # lane and worthless on the other.
+    #
+    # Both facts are asserted here so the next person reads them instead of
+    # rediscovering them. Neither is a vulnerability: forging still needs the key.
+    def flip(sig, i):
+        return sig[:i] + ("0" if sig[i] != "0" else "1") + sig[i + 1:]
+
+    body = good["signature"][2:] if good["signature"].startswith("0x") else good["signature"]
+    pre = "0x" if good["signature"].startswith("0x") else ""
+
+    v_int = int(body[128:130], 16)
+    alt_v = {27: 0, 28: 1, 0: 27, 1: 28}.get(v_int)
+    if alt_v is not None:
+        malleable = pre + body[:128] + f"{alt_v:02x}"
+        ok, d = verify_pin.verify_confirmation_signature(
+            rec, dict(good, signature=malleable), node)
+        check("eip712 v-byte is MALLEABLE — v=27/0 recover the same signer "
+              "(so a last-byte flip proves nothing)", ok is True, str(d))
+
+    ok, d = verify_pin.verify_confirmation_signature(
+        rec, dict(good, signature=pre + flip(body, 8)), node)
+    check("tampering a byte of r IS detected", ok is False, str(d))
+
+    ok, d = verify_pin.verify_confirmation_signature(
+        rec, dict(good, signature=pre + flip(body, 80)), node)
+    check("tampering a byte of s IS detected", ok is False, str(d))
+
     # @pipavlo82, round 2: v1 bound conf["cid"] by NAME, and the same commit
     # added conf["tree_sha256"] — unbound, and the field site-tree counting acts
     # on. v2 signs every confirmation field by construction, so this holds for
