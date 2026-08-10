@@ -15,7 +15,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from lineage_graph import (DECLARED, DERIVED, INDEPENDENT, NOT_PROVEN,  # noqa: E402
+from lineage_graph import (DERIVED, INDEPENDENT, NOT_PROVEN,  # noqa: E402
                            ancestors, build_graph, pair_state)
 import lineage_graph as _lg  # noqa: E402
 
@@ -114,7 +114,7 @@ _saved = dict(_lg._AFFIL)
 try:
     _lg._AFFIL.update({"A": "wg", "B": "wg", "D": "outsider"})
     st, basis = state(g(cell("A", []), cell("B", [])), "A", "B")
-    chk("same affiliation -> DECLARED, not INDEPENDENT", st == DECLARED, st)
+    chk("same affiliation -> NOT_PROVEN, not INDEPENDENT", st == NOT_PROVEN, st)
     chk("  and the basis names the shared affiliation",
         any("not adverse" in b for b in basis))
 
@@ -123,8 +123,8 @@ try:
 
     _lg._AFFIL.update({"C": None})
     st, basis = state(g(cell("A", []), cell("C", [])), "A", "C")
-    chk("unrecorded affiliation -> DECLARED (absence is not the strong case)",
-        st == DECLARED, st)
+    chk("unrecorded affiliation -> NOT_PROVEN (absence is not the strong case)",
+        st == NOT_PROVEN, st)
 
     # Affiliation must never RESCUE a pair. It can only ever demote.
     st, _ = state(g(cell("A", []), cell("D", ["crc.lineage.v0:impl/" + H["A"]])), "A", "D")

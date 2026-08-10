@@ -69,9 +69,34 @@ NOT_PROVEN = "INDEPENDENCE_NOT_PROVEN"
 # strongest word in the system, and the founding claim must not carry the
 # strongest word on the weakest evidence for it.
 #
-# INDEPENDENT is reserved for a pair with no shared affiliation. Until such a
-# lane exists, the honest ceiling is DECLARED_NOT_ADVERSE.
-DECLARED = "INDEPENDENCE_DECLARED_NOT_ADVERSE"
+# INDEPENDENT is reserved for a pair with no shared affiliation. Until a lane
+# from outside this group lands a Cell, the honest state for every pair on this
+# board is INDEPENDENCE_NOT_PROVEN — see the note below on why that is the
+# label rather than a softer intermediate one.
+# Fede (@babyblueviper1), 2026-08-10, arguing against the third bucket I added
+# for Damon's catch — and he is right:
+#
+#   "I'd lean toward holding the pair unlabeled until a genuinely outside lane
+#    lands a v3 Cell -- simpler than adding a third display bucket, and it keeps
+#    the actual bar (a check from outside the room) visible instead of quietly
+#    softened into a new label."
+#
+# A new intermediate state becomes a target. People report reaching it, and the
+# bar it was measured against stops being the thing anyone aims at. That is this
+# repo's own recurring defect wearing a new costume.
+#
+# And NOT_PROVEN loses nothing here: the edge line already displays the byte
+# agreement separately ("N GREEN Cells on distinct lanes, byte-equal ..."). The
+# lineage state answers only the independence question, and for an intramural
+# pair the honest answer to that question is that it is not proven.
+#
+# His precedent is the decisive part: the 4-party PQ-key-binding panel failed
+# this same bar because the spec was co-designed in one real-time conversation.
+# SHARED DRAFTING CONTEXT IS SHARED LINEAGE EVEN WHEN THE CODE DIFFERS. He and
+# node 2 are in exactly that position on 236.
+#
+# The affiliation machinery stays — it is what computes this, and recording who
+# operates a lane is disclosure that stands on its own. Only the extra label goes.
 
 
 def node_key(independence: dict) -> str:
@@ -187,11 +212,11 @@ def pair_state(graph: dict, a: str, b: str):
     if aa is None or ab is None:
         basis.append("derived_from declared on both, no shared ancestry — but affiliation "
                      "is not recorded for one or both lanes, so adversity cannot be weighed")
-        return DECLARED, basis
+        return NOT_PROVEN, basis
     if aa == ab:
         basis.append(f"derived_from declared on both, no shared ancestry — but both lanes are "
                      f"operated within {aa}, so the declarations are not adverse to each other")
-        return DECLARED, basis
+        return NOT_PROVEN, basis
     basis.append(f"derived_from declared on both, no shared ancestry, and the lanes are "
                  f"operated by unaffiliated parties ({aa} / {ab}) — independent")
     return INDEPENDENT, basis
