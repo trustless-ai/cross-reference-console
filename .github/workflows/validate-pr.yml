@@ -75,6 +75,12 @@ jobs:
           # A create tool that has broken imports fails silently for everyone
           # EXCEPT us, because nothing in this repo's tests exercises it.
           python3 reference/create_cell.py --help > /dev/null
+      - name: lineage graph — CELL-v3 §4 transitivity, cycles, unresolved refs
+        run: |
+          # §4 marks its own prose [PENDING-VECTOR] until these run here. This
+          # is what makes the lineage section normative rather than aspirational.
+          python3 reference/test_lineage_graph.py
+          python3 reference/lineage_graph.py > /dev/null
       - name: lane distinctness — the edge rule's predicate, derived not labelled
         run: |
           python3 reference/test_lane_distinctness.py

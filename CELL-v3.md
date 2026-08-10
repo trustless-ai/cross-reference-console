@@ -147,7 +147,7 @@ When **VALIDITY_DISPUTED**, independence pair basis among remaining GREEN Cells 
 
 ## 4 · Lineage resolution and transitivity
 
-**Normative algorithm:** specified here for implementers. **Final normative prose** for edge cases marked `[PENDING-VECTOR]` until matching rows in [`docs/VECTOR-MATRIX-v3-independence.md`](docs/VECTOR-MATRIX-v3-independence.md) are executable in CI.
+**Normative algorithm.** The `[PENDING-VECTOR]` condition set on this section is now **discharged**: every lineage row in [`docs/VECTOR-MATRIX-v3-independence.md`](docs/VECTOR-MATRIX-v3-independence.md) (V-01…V-06, V-12…V-14) runs in CI via `reference/test_lineage_graph.py`, against the resolver in `reference/lineage_graph.py`. This section is normative rather than provisional.
 
 ### 4.1 · Resolution scope
 
