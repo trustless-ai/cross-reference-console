@@ -66,6 +66,7 @@ jobs:
           # and this file doesn't, the newcomer-facing answer silently becomes
           # wrong -- which is the drift a hand-written unified spec would have.
           python3 reference/gen_in_force.py --check
+          python3 reference/gen_in_force.py --selftest
       - name: LineageRef grammar — negative vector per rule
         run: python3 reference/lineage_ref.py
       - name: cell admission — deferred v3 activation vectors
