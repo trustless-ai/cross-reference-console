@@ -18,5 +18,14 @@
   "pinned_at": "2026-08-10T00:52:00Z",
   "note": "The contenthash was set BEFORE this record collected its two confirmations. Recorded rather than backfilled: the two-party rule in verify_pin.py is a precondition for pinning, and on this pin it was not met at pin time. Any confirmations added below are therefore post-hoc verification of a live pointer, not authorisation of it. The distinction is the whole point of the rule and collapsing it here would make the record lie about its own history.",
   "tx": "0x629806468c3a6e17696585cfc0b7efb14785e4136e9b93395193b369e61214f2",
-  "confirmations": []
+  "confirmations": [
+    {
+      "node_id": "invinoveritas",
+      "rebuilt_at": "2026-08-10T01:09:04Z",
+      "tree_sha256": "sha256:91e1f4924eb5da6570391ac545e889956bada37ab8a7964f1fceef01b521d1a9",
+      "file_sha256": "sha256:91e1f4924eb5da6570391ac545e889956bada37ab8a7964f1fceef01b521d1a9",
+      "cid": "bafybeiadnqxc5wmgtct3mjbnfoa5wpqa3fcjrwt4xoli6pivs34p2mnzxy",
+      "signature": "702e50d69876795c6f6b77fbc967be5ddc22682a0a046d08778f80f8d992930471289ed5350a3718b0ca1832fe21bde898e590c5ef0ba545b8c0e095b76ab709"
+    }
+  ]
 }
