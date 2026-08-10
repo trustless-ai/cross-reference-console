@@ -23,6 +23,14 @@
       "file_sha256": "sha256:0dbfdeaa4c8f15fb80188d23d46eaf40ab7edd873845f247172e406d10d0b814",
       "cid": "bafybeigryfhrdiuicuwnrsjdhrkid4l2it5otneqimch463mdlup6wvdg4",
       "signature": "0xb773391e193bbd81d95459f1973489578cb7923b07430e229200c04ad4a969b6025f3f751a5cd0b3a17626b619c8407b78b5b783af22f9a123313aac899c6ac81c"
+    },
+    {
+      "node_id": "invinoveritas",
+      "rebuilt_at": "2026-08-10T11:55:35Z",
+      "tree_sha256": "sha256:0dbfdeaa4c8f15fb80188d23d46eaf40ab7edd873845f247172e406d10d0b814",
+      "file_sha256": "sha256:0dbfdeaa4c8f15fb80188d23d46eaf40ab7edd873845f247172e406d10d0b814",
+      "cid": "bafybeigryfhrdiuicuwnrsjdhrkid4l2it5otneqimch463mdlup6wvdg4",
+      "signature": "511a738b380aa86d887c3294f644f70f3f51b064a1f93a2cc72342fd749d1ec871a590c97c2b906607045eb56714e7e8dbad16ac44389cd7db1e1abd3467a494"
     }
   ]
 }
