@@ -14,8 +14,7 @@
       },
       "cell_url_template": null,
       "since": "2026-08-04T18:56:00Z",
-      "retired": null,
-      "affiliation": "trustless-ai-wg"
+      "retired": null
     },
     {
       "node_id": "vertice-recompute-lens",
@@ -30,8 +29,7 @@
       },
       "cell_url_template": "https://raw.githubusercontent.com/trustless-ai/cross-reference-console/main/cells/{claim_id_hex}/vertice-recompute-lens.cell.json",
       "since": "2026-08-04T19:38:20Z",
-      "retired": null,
-      "affiliation": "trustless-ai-wg"
+      "retired": null
     },
     {
       "node_id": "receiptos-recompute",
@@ -46,8 +44,7 @@
       },
       "cell_url_template": null,
       "since": "2026-08-05T19:35:31Z",
-      "retired": null,
-      "affiliation": "trustless-ai-wg"
+      "retired": null
     },
     {
       "node_id": "mycelium-anchorregistry",
@@ -62,8 +59,7 @@
       },
       "cell_url_template": null,
       "since": "2026-08-06T13:43:49Z",
-      "retired": null,
-      "affiliation": "trustless-ai-wg"
+      "retired": null
     }
   ],
   "claim_sources": [
