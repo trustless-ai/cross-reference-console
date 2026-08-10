@@ -106,6 +106,11 @@
   .rejstrip .rj{color:var(--red); margin-top:4px}
   .cell.nap{cursor:default}
   .edge{display:flex; align-items:center; gap:10px; margin:20px 2px 0; font-family:var(--mono); font-size:12px; color:var(--dim)}
+.prov{font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dim);
+        margin:.35rem 0 .9rem;display:flex;flex-wrap:wrap;gap:.4rem;align-items:baseline}
+  .prov-k{color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-size:11px}
+  .prov-sep{opacity:.5}
+  .prov-note{color:var(--amber);flex-basis:100%}
   .edge .b{color:var(--muted)} .edge.match .b{color:var(--green)}
   /* Three states, not two-plus-a-footnote: DERIVED and NOT-PROVEN are answers. */
   .edge.lin-derived .b{color:var(--amber)}
@@ -147,6 +152,19 @@
     <button class="ghost" id="reset">Reset</button>
     <a class="ghost" href="https://github.com/trustless-ai/cross-reference-console" target="_blank" rel="noopener">repo · registry · claims ↗</a>
     <span class="src" id="src"><span class="dot seed"></span>node&nbsp;2: loading…</span>
+    </div>
+
+  <!-- Damon Zwicker's suggestion, 2026-08-10, after the code/data split failed in
+       BOTH directions in one week: a pinned page that refreshes data from main
+       runs OLD code against NEW data, and a merge that fixes the code changes
+       nothing anyone can see until a repin. Both diagnoses needed someone
+       grepping the live page by hand. So the page answers "what am I looking at"
+       itself, and the next divergence is visible to every reader on arrival. -->
+  <div class="prov" id="prov">
+    <span class="prov-k">code</span> <span id="prov-code">unpinned build</span>
+    <span class="prov-sep">·</span>
+    <span class="prov-k">data</span> <span id="prov-data">resolving…</span>
+    <span class="prov-note" id="prov-note"></span>
   </div>
 
   <div class="matrix">
@@ -863,6 +881,45 @@ async function refreshLive(){
 }
 renderMatrix(); renderRejected();
 snapMetaLine().then(m=>{ document.getElementById('src').innerHTML='<span class="dot seed"></span>registry: '+m; });
+/* ── self-provenance ──────────────────────────────────────────────────────
+   CONSOLE_SOURCE_COMMIT is rewritten by the landing repo's build/sync_console.py
+   when the page is installed for pinning. It stays the literal placeholder in
+   this repo, so ui/index.html remains byte-reproducible here and the PUBLISHED
+   page is the only one that carries a commit — which is correct, because only
+   the published page has one to carry. */
+const CONSOLE_SOURCE_COMMIT = '__CONSOLE_SOURCE_COMMIT__';
+
+async function showProvenance(){
+  const codeEl=document.getElementById('prov-code'),
+        dataEl=document.getElementById('prov-data'),
+        noteEl=document.getElementById('prov-note');
+  if(!codeEl) return;
+  const pinned = /^[0-9a-f]{40}$/.test(CONSOLE_SOURCE_COMMIT);
+  codeEl.textContent = pinned
+    ? CONSOLE_SOURCE_COMMIT.slice(0,12) + ' (built and pinned)'
+    : 'unpinned build — served straight from the repo, not from a CID';
+  try{
+    const r=await fetch(`https://api.github.com/repos/${FP_REPO}/commits/main`,{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const sha=(await r.json()).sha;
+    dataEl.textContent = 'main@' + sha.slice(0,12) + ' fetched ' + new Date().toISOString().slice(0,19) + 'Z';
+    /* The whole point. Equal is not required and not usually true — what matters
+       is that a reader can SEE the gap instead of discovering it by grepping. */
+    if(pinned && sha !== CONSOLE_SOURCE_COMMIT){
+      noteEl.textContent = 'This page runs code built at ' + CONSOLE_SOURCE_COMMIT.slice(0,12)
+        + ' and is displaying data from ' + sha.slice(0,12)
+        + '. If a rule changed between them, what you see is the OLDER rule applied to NEWER data.'
+        + ' A merge alone does not change this page — only a repin does.';
+    }
+  }catch(e){
+    /* Could-not-check is never a pass: an unresolved data ref must not read as
+       agreement between code and data. */
+    dataEl.textContent = 'NOT RESOLVED (' + (e.message||e) + ')';
+    noteEl.textContent = 'The data ref could not be resolved, so the relationship '
+      + 'between this page\'s code and the data it is showing is unknown.';
+  }
+}
+showProvenance();
 refreshLive();
 </script>
 </body>
