@@ -15,20 +15,20 @@
 
 | ID | Scenario | Setup summary | Expected pair state | Expected basis highlight | Exec |
 |---|---|---|---|---|---|
-| **V-01** | Independent baseline | v3 A,B both GREEN; `derived_from: []`; distinct impl_hash/repo; same claim_id | **INDEPENDENT** | `derived_from []/[]`; no lineage path | ❌ |
-| **V-02** | Direct derivation | B `derived_from: [ref→A.impl_hash]`; distinct hashes | **DERIVED** | `direct`; B→A | ❌ |
-| **V-03** | Multi-parent | X `derived_from: [ref→A, ref→B]` | X×A **DERIVED**, X×B **DERIVED** | `direct` per parent | ❌ |
-| **V-04** | Two-hop transitivity | X→A, A→C (all v3, declared) | X×C **DERIVED** | `transitive`; path X→A→C | ❌ |
-| **V-05** | Cycle | A→B, B→A (declared, multi-node) | A×B **INDEPENDENCE_NOT_PROVEN** | `lineage cycle: …` | ❌ |
-| **V-06** | Missing target | X `derived_from: [crc.lineage.v0:impl/sha256:dead…]` (no match) | any pair with X **INDEPENDENCE_NOT_PROVEN** | `unresolved LineageRef` | ❌ |
+| **V-01** | Independent baseline | v3 A,B both GREEN; `derived_from: []`; distinct impl_hash/repo; same claim_id | **INDEPENDENT** | `derived_from []/[]`; no lineage path |✅ `test_lineage_graph.py` |
+| **V-02** | Direct derivation | B `derived_from: [ref→A.impl_hash]`; distinct hashes | **DERIVED** | `direct`; B→A |✅ `test_lineage_graph.py` |
+| **V-03** | Multi-parent | X `derived_from: [ref→A, ref→B]` | X×A **DERIVED**, X×B **DERIVED** | `direct` per parent |✅ `test_lineage_graph.py` |
+| **V-04** | Two-hop transitivity | X→A, A→C (all v3, declared) | X×C **DERIVED** | `transitive`; path X→A→C |✅ `test_lineage_graph.py` |
+| **V-05** | Cycle | A→B, B→A (declared, multi-node) | A×B **INDEPENDENCE_NOT_PROVEN** | `lineage cycle: …` |✅ `test_lineage_graph.py` |
+| **V-06** | Missing target | X `derived_from: [crc.lineage.v0:impl/sha256:dead…]` (no match) | any pair with X **INDEPENDENCE_NOT_PROVEN** | `unresolved LineageRef` |✅ `test_lineage_graph.py` |
 | **V-07** | Identical impl_hash | copycat independence block (PR #8 vector) | **NOT_DISTINCT** | `impl_hash IDENTICAL` | ✅ PR #8 |
 | **V-08** | Identical repo | same repo URL, different impl_hash | **NOT_DISTINCT** if repo rule fires | `repo IDENTICAL` | ✅ PR #8 |
 | **V-09** | Shared runtime | same `runtime_image`, distinct code | **NOT_DISTINCT** | `runtime_image identical` | ✅ PR #8 |
 | **V-10** | Shared dependency_lock | same lock hash disclosed both sides | **NOT_DISTINCT** | `dependency_lock identical` | ✅ PR #8 |
 | **V-11** | Pre-v3 pair | v1 × v1 (live #236 cells) | **INDEPENDENCE_NOT_PROVEN** | `derived_from ABSENT (pre-v3)` | ✅ PR #8 (AMBER basis) |
-| **V-12** | Mixed v3×v2 | v3 `[]` vs v2 | **INDEPENDENCE_NOT_PROVEN** | `pre-v3 / mixed-version cell in pair` | ❌ |
-| **V-13** | Fork laundering | distinct impl_hash/repo; B `derived_from: [ref→A]` | **DERIVED** | hash inequality **insufficient** | ❌ |
-| **V-14** | Honest `[]` | distinct impl_hash; both `[]`; no shared ancestry | **INDEPENDENT** (candidate) | signed `[]`, not proven | ❌ |
+| **V-12** | Mixed v3×v2 | v3 `[]` vs v2 | **INDEPENDENCE_NOT_PROVEN** | `pre-v3 / mixed-version cell in pair` |✅ `test_lineage_graph.py` |
+| **V-13** | Fork laundering | distinct impl_hash/repo; B `derived_from: [ref→A]` | **DERIVED** | hash inequality **insufficient** |✅ `test_lineage_graph.py` |
+| **V-14** | Honest `[]` | distinct impl_hash; both `[]`; no shared ancestry | **INDEPENDENT** (candidate) | signed `[]`, not proven |✅ `test_lineage_graph.py` |
 | **V-15** | Rename-lane attack | identical independence block, different lane labels | **NOT_DISTINCT** | PR #8 rename attack | ✅ PR #8 |
 | **V-16** | Stem suffix regression | cell file `mycelium.cellstore.cell.json` → node id `mycelium.cellstore` | checker id extraction correct | `removesuffix(".cell")` (Pavlo, PR #8) | ✅ PR #8 |
 
