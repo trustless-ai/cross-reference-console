@@ -78,6 +78,13 @@ def check(rec: pathlib.Path) -> None:
     structural = [ln for ln in reds if not CONFIRMATION_RED.search(ln)]
     pending = [ln for ln in reds if CONFIRMATION_RED.search(ln)]
 
+    # An amber on a structural predicate means verify_pin COULD NOT CHECK it —
+    # no `ipfs` binary, no network. That is not a pass, and treating it as one is
+    # how this file came to print "all pin records reproduce their own CID" on a
+    # machine where no CID had been recomputed at all. The sentence was false and
+    # the exit code was 0.
+    structural += [f"could-not-check: {ln}" for ln in lines("amber")]
+
     # A record that reports no structural check at all is not passing, it is silent.
     oks = lines("ok")
     if len(oks) < 4:

@@ -91,6 +91,24 @@ jobs:
           # Asked for in review: these vectors lived in a terminal, which is the
           # same defect as a conformance claim nobody can re-run.
           python3 reference/test_verify_pin.py
+      - name: install ipfs (the pin check recomputes a real directory CID)
+        run: |
+          # Without this, check_pin_records reports amber on every record and the
+          # step named 'every pin record reproduces its own CID' verifies no CID at
+          # all. It passed green that way from the day it was added.
+          V=0.30.0
+          curl -sSL "https://dist.ipfs.tech/kubo/v${V}/kubo_v${V}_linux-amd64.tar.gz" -o /tmp/kubo.tgz
+          tar -xzf /tmp/kubo.tgz -C /tmp
+          sudo install /tmp/kubo/ipfs /usr/local/bin/ipfs
+          # `ipfs add` needs an initialised repo even with -n (hash only, no
+          # storage): without it, exit 1 -> the verifier reports amber. Installing
+          # the binary alone is not the same as having a usable ipfs.
+          ipfs init --profile=test
+          ipfs --version
+          # Prove the capability exists BEFORE the check depends on it, so a
+          # broken install fails here rather than becoming an amber downstream.
+          echo probe > /tmp/probe.txt
+          ipfs add -Q -n --cid-version=1 /tmp/probe.txt
       - name: every pin record reproduces its own CID (structural, not signatures)
         run: |
           # test_verify_pin.py proves the VERIFIER is right. Nothing proved the
