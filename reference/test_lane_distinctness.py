@@ -156,8 +156,21 @@ def main():
     i1["derived_from"] = i2["derived_from"] = []
     ok, basis = pair_basis(("a", i1), ("b", i2))
     chk("both derived_from=[] clears the sufficient condition", ok)
-    chk("  and is reported GREEN, not merely not-contradicted",
-        any("GREEN derived_from" in b for b in basis))
+    # Not GREEN by default. These two lanes have no recorded affiliation, and an
+    # unstated affiliation is exactly what a reader cannot weigh — so `[]` on both
+    # reads as declared-not-adverse, never as demonstrated independence.
+    chk("  and reads not-adverse, NOT independence, when affiliation is unrecorded",
+        any("derived_from" in b and b.startswith("AMBER") for b in basis))
+
+    import lineage_graph as _lg
+    _saved = dict(_lg._AFFIL)
+    try:
+        _lg._AFFIL.update({"a": "org-one", "b": "org-two"})
+        ok, basis = pair_basis(("a", i1), ("b", i2))
+        chk("  and IS GREEN once the lanes are unaffiliated", ok and
+            any("GREEN derived_from" in b for b in basis))
+    finally:
+        _lg._AFFIL.clear(); _lg._AFFIL.update(_saved)
 
     # 6b. null is NOT the honest value and must not read as independence.
     n1, n2 = copy.deepcopy(base[1]), copy.deepcopy(other[1])
