@@ -1,0 +1,28 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeigryfhrdiuicuwnrsjdhrkid4l2it5otneqimch463mdlup6wvdg4",
+  "commit": "60b38666a233850d587c55c720acb2a6e21ff0c6",
+  "artifact": "site tree (29 published files)",
+  "tree_sha256": "sha256:0dbfdeaa4c8f15fb80188d23d46eaf40ab7edd873845f247172e406d10d0b814",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "supersedes": "bafybeiadnqxc5wmgtct3mjbnfoa5wpqa3fcjrwt4xoli6pivs34p2mnzxy",
+  "purpose": "Corrective repin. The previous pin's page computed INDEPENDENT for the 236 pair \u2014 two lanes of one working group \u2014 and could not be fixed by merging, because the console live-refreshes data from main but runs whatever code was pinned. Damon caught the overstatement; Fede argued it should fold into NOT PROVEN rather than a third label. Both landed before this pin.",
+  "confirmations": [
+    {
+      "node_id": "vertice-recompute-lens",
+      "rebuilt_at": "2026-08-10T11:02:55Z",
+      "tree_sha256": "sha256:0dbfdeaa4c8f15fb80188d23d46eaf40ab7edd873845f247172e406d10d0b814",
+      "file_sha256": "sha256:0dbfdeaa4c8f15fb80188d23d46eaf40ab7edd873845f247172e406d10d0b814",
+      "cid": "bafybeigryfhrdiuicuwnrsjdhrkid4l2it5otneqimch463mdlup6wvdg4",
+      "signature": "0xb773391e193bbd81d95459f1973489578cb7923b07430e229200c04ad4a969b6025f3f751a5cd0b3a17626b619c8407b78b5b783af22f9a123313aac899c6ac81c"
+    }
+  ]
+}
