@@ -1,0 +1,3 @@
+# Canonical line endings: LF in the repository and in generated artifacts.
+# Prevents Windows universal-newline translation from false-GREEN byte checks.
+* text=auto eol=lf

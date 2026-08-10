@@ -20,7 +20,10 @@ transcribed from prose, so nothing here can disagree with the code.
 
     python3 reference/gen_in_force.py            # write CELL-IN-FORCE.md
     python3 reference/gen_in_force.py --check    # CI: fail if it would change
-    python3 reference/gen_in_force.py --selftest # activation derivation vectors
+    python3 reference/gen_in_force.py --selftest # activation + LF byte-identity vectors
+
+Generated artifacts are checked by raw UTF-8 bytes (LF only). read_text() is not
+used for --check — universal newline translation on Windows would false-GREEN CRLF.
 
 Stdlib + the repo's own modules only.
 """
@@ -43,6 +46,21 @@ import registry_id as ri  # noqa: E402
 import create_cell as cc  # noqa: E402
 
 OUT = ROOT / "CELL-IN-FORCE.md"
+
+
+def canonical_bytes(text: str) -> bytes:
+    """LF UTF-8 bytes for a generated artifact. Byte checks use this, never read_text()."""
+    return text.encode("utf-8")
+
+
+def _artifact_stale_reason(on_disk: bytes, want: bytes) -> str:
+    if on_disk == want:
+        return ""
+    if b"\r" in on_disk and on_disk.replace(b"\r\n", b"\n") == want:
+        return ("CELL-IN-FORCE.md has CRLF line endings — canonical output is LF only. "
+                "Run: python3 reference/gen_in_force.py")
+    return ("CELL-IN-FORCE.md is STALE — the enforced format changed and the "
+            "generated view did not.\nRun: python3 reference/gen_in_force.py")
 
 
 def in_force_schema() -> str:
@@ -241,9 +259,46 @@ def render(schema: str, checks, struct) -> str:
     return "\n".join(L) + "\n"
 
 
-def _selftest() -> int:
-    """Regression vectors for activation derivation in the generated view."""
+def _selftest_artifact_bytes() -> int:
+    """Byte-identity regression: CRLF must not pass when canonical output is LF."""
     fails = 0
+    sample = "# generated\nsecond line\n"
+    want = canonical_bytes(sample)
+    crlf = sample.replace("\n", "\r\n").encode("utf-8")
+
+    ok = want != crlf
+    print(f"  {'ok  ' if ok else 'FAIL'}  CRLF bytes differ from canonical LF")
+    fails += not ok
+
+    with tempfile.TemporaryDirectory() as td:
+        path = pathlib.Path(td) / "artifact.md"
+        path.write_bytes(want)
+        ok = path.read_bytes() == want
+        print(f"  {'ok  ' if ok else 'FAIL'}  canonical LF artifact -> GREEN")
+        fails += not ok
+
+        path.write_bytes(crlf)
+        ok = path.read_bytes() != want
+        print(f"  {'ok  ' if ok else 'FAIL'}  same logical content with CRLF -> RED")
+        fails += not ok
+
+        path.write_bytes(b"# wrong\n")
+        ok = path.read_bytes() != want
+        print(f"  {'ok  ' if ok else 'FAIL'}  content mismatch -> RED")
+        fails += not ok
+
+        path.write_bytes(want)
+        ok = path.read_bytes() == want
+        print(f"  {'ok  ' if ok else 'FAIL'}  LF regenerated artifact -> GREEN")
+        fails += not ok
+
+    return fails
+
+
+def _selftest() -> int:
+    """Regression vectors for activation derivation and byte-identity checks."""
+    fails = _selftest_artifact_bytes()
+    print()
     schema = in_force_schema()
 
     if schema == "crc.cell.v3":
@@ -278,7 +333,7 @@ def _selftest() -> int:
     if fails:
         print(f"\n{fails} gen_in_force selftest check(s) failed.")
         return 1
-    print("\nall green — gen_in_force activation derivation")
+    print("\nall green — gen_in_force activation + artifact bytes")
     return 0
 
 
@@ -303,15 +358,16 @@ def main() -> int:
             print("CELL-IN-FORCE.md is missing — run: python3 reference/gen_in_force.py",
                   file=sys.stderr)
             return 1
-        if OUT.read_text() != text:
-            print("CELL-IN-FORCE.md is STALE — the enforced format changed and the "
-                  "generated view did not.\nRun: python3 reference/gen_in_force.py",
-                  file=sys.stderr)
+        on_disk = OUT.read_bytes()
+        want = canonical_bytes(text)
+        reason = _artifact_stale_reason(on_disk, want)
+        if reason:
+            print(reason, file=sys.stderr)
             return 1
         print(f"CELL-IN-FORCE.md is current ({schema}, {len(checks)} enforced rules)")
         return 0
 
-    OUT.write_text(text)
+    OUT.write_bytes(canonical_bytes(text))
     print(f"wrote {OUT.name} — {schema}, {len(checks)} enforced rules")
     return 0
 
