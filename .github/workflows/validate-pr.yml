@@ -91,6 +91,16 @@ jobs:
           # Asked for in review: these vectors lived in a terminal, which is the
           # same defect as a conformance claim nobody can re-run.
           python3 reference/test_verify_pin.py
+      - name: install ipfs (the pin check recomputes a real directory CID)
+        run: |
+          # Without this, check_pin_records reports amber on every record and the
+          # step named 'every pin record reproduces its own CID' verifies no CID at
+          # all. It passed green that way from the day it was added.
+          V=0.30.0
+          curl -sSL "https://dist.ipfs.tech/kubo/v${V}/kubo_v${V}_linux-amd64.tar.gz" -o /tmp/kubo.tgz
+          tar -xzf /tmp/kubo.tgz -C /tmp
+          sudo install /tmp/kubo/ipfs /usr/local/bin/ipfs
+          ipfs --version
       - name: every pin record reproduces its own CID (structural, not signatures)
         run: |
           # test_verify_pin.py proves the VERIFIER is right. Nothing proved the
