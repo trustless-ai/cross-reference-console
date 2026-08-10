@@ -1,13 +1,13 @@
 {
   "proof_payload": {
-    "schema": "crc.cell.v2",
+    "schema": "crc.cell.v3",
     "claim_id": "sha256:df1a6bfe3063186f8a8327b75a5bfddae12d3518f2cc16f8fddbc6c311de9512",
     "registry_id": "sha256:9b871ba9cf05e9da7df78e0b15d44fc04059e6af4bda8037d6f456984598d157",
     "result": "GREEN",
     "verifier": "0x85Fa13511D170FBe173761b63D7f8DD4A6f6Bf1A",
-    "boundary": "ERC-8274 recompute/cross-reference-console — claim_id independently re-derived from the live /ledger #236 source with reference/claim_id.py and checked against the registered ClaimPreimage; decision_ref taken as-is from the source, not re-derived from its own sub-preimage. Unlike node 2's v1 Cell this run was NOT inside the gateway container: dependency_lock, runtime_image and execution_witness are honestly null rather than carried over from a run that did have them. Envelope validity is outside this boundary and is established separately by EIP-712 signer recovery against the registered address.",
+    "boundary": "ERC-8274 recompute/cross-reference-console — claim_id independently re-derived from the live /ledger entry at recompute time, not from another node's Cell. This lane IS this repo's reference implementation (declared reference lane), which the edge reader should weigh.",
     "as_of": "2026-08-04T00:11:24Z",
-    "recomputed_at": "2026-08-09T14:09:45Z",
+    "recomputed_at": "2026-08-10T10:16:40Z",
     "evidence": {
       "claim_preimage": {
         "schema": "crc.claim.v0",
@@ -41,15 +41,16 @@
         "inputs": [
           {
             "url": "https://api.babyblueviper.com/ledger/236",
-            "content_hash": "sha256:f4f607b9d2a0012712ee61592920b5bc2ce166f7edaf2d28676fe0bee263bbcb",
-            "retrieved_at": "2026-08-09T14:08:55Z"
+            "content_hash": "sha256:9e9bc5d24797573920d2148885de1f2e448d03a5ddbf32c2f23813d4109df428",
+            "retrieved_at": "2026-08-10T10:16:29Z"
           },
           {
             "url": "https://raw.githubusercontent.com/trustless-ai/cross-reference-console/14afb92066af81437833a371dc7a83089d3fbec5/reference/claim_id.py",
             "content_hash": "sha256:da82958a382356b4c4a326ecc1a83dacaa93767539f71436600b1e5053614ffc",
-            "retrieved_at": "2026-08-09T14:08:55Z"
+            "retrieved_at": "2026-08-10T10:16:29Z"
           }
-        ]
+        ],
+        "derived_from": []
       },
       "source_ledger_entry": "https://api.babyblueviper.com/ledger/236",
       "cross_check": "Node 1 (invinoveritas, verifier 54848) published a crc.cell.v2 Cell on this claim; this Cell is node 2's v2 upgrade, so the v2 edge rests on two GREEN Cells with byte-equal claim_id on distinct implementations (nostr/BIP-340 vs EIP-712, invinoveritas' own script vs reference/claim_id.py). Note the input content_hash recorded here will NOT equal node 1's for the same URL: /ledger/236 carries relay_anchor.checked_at, refreshed server-side on a slow cadence, so its bytes differ between fetches on different days while every claim-bearing field is immutable. The claim_id is the stable cross-node value; the input hash is provenance of this fetch only."
@@ -59,7 +60,7 @@
     "scheme": "eip712",
     "domain": {
       "name": "cross-reference-console",
-      "version": "2",
+      "version": "3",
       "chainId": 1
     },
     "primaryType": "Cell",
@@ -103,9 +104,9 @@
         }
       ]
     },
-    "evidence_hash": "0x7638807484bb797bb8193b18e42e00b9cbc76aa192eb5aac7f6b34ea6d09267c",
+    "evidence_hash": "0xba9896fe423b26e87a1aaaf623d1b1fcd2d64c435fc29b30341873d35d5833eb",
     "signer": "0x85Fa13511D170FBe173761b63D7f8DD4A6f6Bf1A",
-    "signature": "0x52844a6931549802a5a9caa8f25ce759fe340ccc9bcc6ead810474feeb5a5e6440ccf2e67f1982965985ad3d1f64438d3227144fc4e2bf7de112ba98315fc2441c"
+    "signature": "0x712811aeee483dceccf23849077a8d81eb5fd13e38a257dc00a6d9597d7d0adc1eeb7b631152f1e253d022d171134921fc4891e3e26c3ecaf35bbab79288a1f21b"
   },
   "verify": "gate the claim_preimage; recompute claim_id; recompute evidence_hash=keccak256(JCS(evidence)); recover the signer and check it equals signature.signer AND proof_payload.verifier AND the address registered in nodes.json (quadruple equality, CELL-v1.md §2); check registry_id equals this registry (CELL-v2.md §2); re-run the evidence yourself."
 }
