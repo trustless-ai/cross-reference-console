@@ -1,0 +1,36 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeiblwwa2wnbftf4nu3byvzprxlz5odmojawms7iv2fxdcnoscpdvya",
+  "commit": "4e9d6af494abc661203abd4960ee70fc9aa41e40",
+  "artifact": "site tree (29 published files)",
+  "tree_sha256": "sha256:26148ec8a758962cf37305bce71c80f1a2ff2ea22be2f32fd42ce26da91b046b",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "supersedes": "bafybeigryfhrdiuicuwnrsjdhrkid4l2it5otneqimch463mdlup6wvdg4",
+  "purpose": "Cut after the whole review round settled rather than after each fix. Carries the lineage correction (an intramural pair reads NOT PROVEN), the page stating its own provenance, the affiliation binding gate, the rules manifest, and the crc.nodes.v0 revert. Three earlier CIDs were superseded BEFORE pinning rather than pinned and corrected.",
+  "confirmations": [
+    {
+      "node_id": "vertice-recompute-lens",
+      "rebuilt_at": "2026-08-10T12:32:36Z",
+      "tree_sha256": "sha256:26148ec8a758962cf37305bce71c80f1a2ff2ea22be2f32fd42ce26da91b046b",
+      "file_sha256": "sha256:26148ec8a758962cf37305bce71c80f1a2ff2ea22be2f32fd42ce26da91b046b",
+      "cid": "bafybeiblwwa2wnbftf4nu3byvzprxlz5odmojawms7iv2fxdcnoscpdvya",
+      "signature": "0x4fc91f85f03952635414ecf9c072eb93a2f0ffef30eca6e41c8a45f3196e1f1325c67209f390e7b1888cd83d9d52c548fd5ed44432c16b175843e651286c25c81c"
+    },
+    {
+      "node_id": "invinoveritas",
+      "rebuilt_at": "2026-08-10T12:53:21Z",
+      "tree_sha256": "sha256:26148ec8a758962cf37305bce71c80f1a2ff2ea22be2f32fd42ce26da91b046b",
+      "file_sha256": "sha256:26148ec8a758962cf37305bce71c80f1a2ff2ea22be2f32fd42ce26da91b046b",
+      "cid": "bafybeiblwwa2wnbftf4nu3byvzprxlz5odmojawms7iv2fxdcnoscpdvya",
+      "signature": "01df4584c33a9b9bde87fe29206017115b78fc3d3890b1c85202ecfe24271b74b8d7eee0c1d01bb59d885f6986d187a02a232463c71fbc15a9891b4af045f274"
+    }
+  ]
+}
