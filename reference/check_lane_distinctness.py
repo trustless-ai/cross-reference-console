@@ -36,6 +36,9 @@ import pathlib
 import sys
 from itertools import combinations
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import lineage_graph as _lineage  # noqa: E402
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
@@ -94,17 +97,51 @@ def pair_basis(a, b):
             basis.append(f"GREEN {field}: distinct — strengthens")
 
     # The sufficient condition, which no hash can supply.
+    #
+    # This used to be hand-rolled here, written while derived_from was still a
+    # PROPOSAL, and it guessed the wrong shape: it treated `None` as "declares no
+    # derivation" and everything else as derived. The spec shipped `[]` for that
+    # meaning and LINEAGE-REF.md §2 REJECTS null outright — so the branch testing
+    # for independence tested a value the spec forbids, and the branch reporting
+    # "one derives from the other" caught the value the spec REQUIRES.
+    #
+    # It read `[] / [] — one derives from the other`: two empty lists, meaning no
+    # known derivation on either side, reported as derivation. It went unnoticed
+    # because no two v3 Cells had ever existed on one claim until now, so the path
+    # had never run on real data.
+    #
+    # The real fault was having a second implementation of a rule that already has
+    # a tested one. lineage_graph.pair_state (16 vectors, CELL-v3 §4) is the
+    # implementation; this delegates to it rather than paraphrasing it.
     av, bv = a[1]["derived_from"], b[1]["derived_from"]
     if av == "ABSENT" or bv == "ABSENT":
         basis.append(
-            "AMBER derived_from: field does not exist yet (crc.cell.v3 proposal) — "
+            "AMBER derived_from: absent on one or both (pre-v3) — "
             "independence is NOT established, only not-contradicted"
         )
-    elif av is None and bv is None:
-        basis.append("GREEN derived_from: both declare independent derivation")
     else:
-        basis.append(f"RED   derived_from: {av!r} / {bv!r} — one derives from the other")
-        ok = False
+        def _as_payload(side):
+            nid, x = side[0], side[1]
+            return (nid, {"schema": "crc.cell.v3", "result": "GREEN",
+                          "evidence": {"independence": {
+                              "implementation": {k: x.get(k) for k in
+                                                 ("repo", "commit", "path", "impl_hash")},
+                              "derived_from": x["derived_from"]}}})
+
+        graph = _lineage.build_graph([_as_payload(a), _as_payload(b)])
+        keys = sorted(graph)
+        if len(keys) < 2:
+            basis.append("RED   derived_from: both cells resolve to ONE implementation node")
+            ok = False
+        else:
+            state, why = _lineage.pair_state(graph, keys[0], keys[1])
+            if state == _lineage.INDEPENDENT:
+                basis.append(f"GREEN derived_from: {why[0]}")
+            elif state == _lineage.DERIVED:
+                basis.append(f"RED   derived_from: {why[0]}")
+                ok = False
+            else:
+                basis.append(f"AMBER derived_from: {why[0]} — not established, only not-contradicted")
 
     return ok, basis
 

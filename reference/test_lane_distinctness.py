@@ -133,20 +133,38 @@ def main():
     chk("identical runtime_image is NOT distinct even with distinct code", not ok)
 
     # 5. Declared derivation defeats distinctness however different the files are.
+    #
+    # These two vectors used to encode the DRAFT shape — derived_from=None meaning
+    # "independent" and a bare repo URL meaning "derived" — because they were
+    # written before crc.cell.v3 shipped. The spec landed on `[]` for no-known-
+    # derivation and LINEAGE-REF.md §2 REJECTS null. So the tests asserted the
+    # inverse of the rule and passed against a checker that shared their mistake:
+    # two wrongs agreeing, which is what a test and its subject are supposed to
+    # make impossible. The first pair of real v3 Cells read
+    # `[] / [] — one derives from the other`, and only then did it show.
     derived = copy.deepcopy(other[1])
-    derived["derived_from"] = base[1]["repo"]
+    derived["derived_from"] = ["crc.lineage.v0:impl/" + base[1]["impl_hash"]]
     b3 = copy.deepcopy(base[1])
-    b3["derived_from"] = None
+    b3["derived_from"] = []
     ok, basis = pair_basis(("origin", b3), ("fork", derived))
-    chk("declared derived_from is NOT an independent lane", not ok)
+    chk("declared derivation (real LineageRef) is NOT an independent lane", not ok)
+    chk("  and the basis names the derivation",
+        any("derives from" in b or "DERIVED" in b for b in basis))
 
-    # 6. Both independent is the only shape that clears it outright.
+    # 6. Both declaring [] — no known derivation — is what clears it outright.
     i1, i2 = copy.deepcopy(base[1]), copy.deepcopy(other[1])
-    i1["derived_from"] = i2["derived_from"] = None
+    i1["derived_from"] = i2["derived_from"] = []
     ok, basis = pair_basis(("a", i1), ("b", i2))
-    chk("both derived_from=null clears the sufficient condition", ok)
+    chk("both derived_from=[] clears the sufficient condition", ok)
     chk("  and is reported GREEN, not merely not-contradicted",
         any("GREEN derived_from" in b for b in basis))
+
+    # 6b. null is NOT the honest value and must not read as independence.
+    n1, n2 = copy.deepcopy(base[1]), copy.deepcopy(other[1])
+    n1["derived_from"] = n2["derived_from"] = None
+    ok, basis = pair_basis(("a", n1), ("b", n2))
+    chk("derived_from=null does NOT clear it (LINEAGE-REF.md rejects null)",
+        not any("GREEN derived_from" in b for b in basis))
 
     # 7. The absent field must read AMBER — never as satisfied.
     ok, basis = pair_basis(base, other)
