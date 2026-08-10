@@ -237,6 +237,11 @@ def pair_state(graph: dict, a: str, b: str):
     # function, but the system around it can upgrade by editing the input. A claim
     # about an algorithm is not a claim about a system.
     #
+    # The agreed permanent fix is written down in AFFILIATION-BINDING.md rather
+    # than left in a chat log: the next Cell version signs a nodes_snapshot_hash
+    # over the node entries AS THEY READ AT SIGNING TIME, and evaluation reads
+    # affiliation from the Cell's own committed snapshot instead of the live file.
+    #
     # So INDEPENDENT is unreachable until affiliation is bound at signing time —
     # crc.nodes.v1 plus a Cell version carrying affiliation or a registry-snapshot
     # commitment. Pavlo's call on the shape; this is only the gate that stops an
