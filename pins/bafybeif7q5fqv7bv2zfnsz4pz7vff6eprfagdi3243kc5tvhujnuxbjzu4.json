@@ -13,7 +13,7 @@
     "chunker": "size-262144",
     "hash": "sha2-256"
   },
-  "supersedes": "bafybeiadnqxc5wmgtct3mjbnfoa5wpqa3fcjrwt4xoli6pivs34p2mnzxy",
+  "supersedes": "bafybeigryfhrdiuicuwnrsjdhrkid4l2it5otneqimch463mdlup6wvdg4",
   "purpose": "One CID for both corrections rather than two transactions: the lineage overstatement (an intramural pair reads NOT PROVEN) and the page now stating its own provenance \u2014 the commit it was built from and the data ref it resolved at load. The unpinned bafybeigryf record was superseded before signing so nobody spent a rebuild on it.",
   "confirmations": [
     {
