@@ -1,0 +1,28 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeif7q5fqv7bv2zfnsz4pz7vff6eprfagdi3243kc5tvhujnuxbjzu4",
+  "commit": "d144f6661bf3dc2a057c2a9ad01f65bbe5dcfb3b",
+  "artifact": "site tree (29 published files)",
+  "tree_sha256": "sha256:8d67ef3c3bdb36c725bde3877b960ee571a2ae6909be21c9b6620b9afb91c401",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "supersedes": "bafybeiadnqxc5wmgtct3mjbnfoa5wpqa3fcjrwt4xoli6pivs34p2mnzxy",
+  "purpose": "One CID for both corrections rather than two transactions: the lineage overstatement (an intramural pair reads NOT PROVEN) and the page now stating its own provenance \u2014 the commit it was built from and the data ref it resolved at load. The unpinned bafybeigryf record was superseded before signing so nobody spent a rebuild on it.",
+  "confirmations": [
+    {
+      "node_id": "vertice-recompute-lens",
+      "rebuilt_at": "2026-08-10T11:35:23Z",
+      "tree_sha256": "sha256:8d67ef3c3bdb36c725bde3877b960ee571a2ae6909be21c9b6620b9afb91c401",
+      "file_sha256": "sha256:8d67ef3c3bdb36c725bde3877b960ee571a2ae6909be21c9b6620b9afb91c401",
+      "cid": "bafybeif7q5fqv7bv2zfnsz4pz7vff6eprfagdi3243kc5tvhujnuxbjzu4",
+      "signature": "0x4feca35f6cc57c39a7ee8d23ace52c543af255a186c53e5279f74813df2e63c96c20cc49b083689f82679625203e749eb5ca72bb215a4d8d2445c19edd0de4811c"
+    }
+  ]
+}
