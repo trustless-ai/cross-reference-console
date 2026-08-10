@@ -23,6 +23,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from lineage_graph import build_graph, pair_state  # noqa: E402
@@ -96,7 +97,15 @@ def main() -> int:
                "out[hex]=r?r[0]:null;}"
                "\nprocess.stdout.write(JSON.stringify(out));")
     js = f"const REG={json.dumps(reg)};\n{harness}"
-    r = subprocess.run([node, "-e", js], capture_output=True, text=True, timeout=60)
+    # Via a temp file, NOT `node -e`. The embedded snapshot pushes this payload
+    # past 75 KB, and Windows caps a command line at 32,767 bytes — so `-e` fails
+    # deterministically there. A verifier the second party cannot run is a
+    # verifier that quietly becomes single-party.
+    with tempfile.TemporaryDirectory() as td:
+        script = pathlib.Path(td, "lineage_port.js")
+        script.write_text(js, encoding="utf-8")
+        r = subprocess.run([node, str(script)], capture_output=True, text=True,
+                           timeout=60)
     chk("port evaluates without error", r.returncode == 0, r.stderr.strip()[:200])
     if r.returncode != 0:
         return 1
