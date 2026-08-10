@@ -15,5 +15,7 @@
   },
   "supersedes": "bafybeibr5uvrp5qvagipyatzv2xdrwtlwzrv4nno45abgqkirt6imhe5lm",
   "purpose": "Repin: edges render their lineage state as a third answer rather than an implied one. Every claim now reads 'independence NOT PROVEN' \u2014 all live Cells are pre-v3, so derived_from does not exist to be checked. Publishing that is the point: the previous page said 'edge holds ... on distinct lanes' and left a reader to infer independence it had never established.",
+  "pinned_at": "2026-08-10T01:05:00Z",
+  "note": "The contenthash was set BEFORE this record collected its two confirmations. Recorded rather than backfilled: the two-party rule in verify_pin.py is a precondition for pinning, and on this pin it was not met at pin time. Any confirmations added below are therefore post-hoc verification of a live pointer, not authorisation of it. The distinction is the whole point of the rule and collapsing it here would make the record lie about its own history.",
   "confirmations": []
 }
