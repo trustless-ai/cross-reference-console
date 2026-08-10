@@ -165,10 +165,13 @@ def main():
     import lineage_graph as _lg
     _saved = dict(_lg._AFFIL)
     try:
+        # Was: "IS GREEN once the lanes are unaffiliated". Pavlo's audit gated
+        # that — affiliation is read from an unsigned file, so no arrangement of
+        # it may reach the strongest verdict until it is bound at signing time.
         _lg._AFFIL.update({"a": "org-one", "b": "org-two"})
         ok, basis = pair_basis(("a", i1), ("b", i2))
-        chk("  and IS GREEN once the lanes are unaffiliated", ok and
-            any("GREEN derived_from" in b for b in basis))
+        chk("  and does NOT reach GREEN while affiliation is unbound",
+            not any("GREEN derived_from" in b for b in basis))
     finally:
         _lg._AFFIL.clear(); _lg._AFFIL.update(_saved)
 

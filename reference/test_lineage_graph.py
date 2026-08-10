@@ -49,16 +49,21 @@ def state(graph, a, b):
     return pair_state(graph, H[a], H[b])
 
 
-# The lineage rows below test LINEAGE, so the synthetic lanes are given distinct
-# affiliations: otherwise every one of them would read DECLARED for a reason that
-# has nothing to do with the row being tested. Affiliation gets its own block.
+# The lineage rows below test LINEAGE. INDEPENDENT is currently UNREACHABLE — it
+# is gated behind binding affiliation at signing time (Pavlo's audit) — so these
+# rows assert that the LINEAGE conclusion was reached, via the basis, rather than
+# asserting a terminal state the gate now withholds. Changing them to expect
+# NOT_PROVEN outright would have deleted their meaning: every row would pass for
+# the gate's reason and none would still be testing ancestry.
+LINEAGE_CLEAR = "no shared ancestry"
 _lg._AFFIL.update({n: f"org-{n.lower()}" for n in ("A", "B", "C", "X", "D")})
 
 print("VECTOR-MATRIX-v3-independence — lineage rows\n")
 
 # V-01 · both declared, no ancestry -> INDEPENDENT
 st, basis = state(g(cell("A", []), cell("B", [])), "A", "B")
-chk("V-01 independent baseline -> INDEPENDENT", st == INDEPENDENT, st)
+chk("V-01 independent baseline -> lineage clear (terminal state gated)",
+    any(LINEAGE_CLEAR in b for b in basis) and st != DERIVED, st)
 
 # V-02 · B derives directly from A
 st, basis = state(g(cell("A", []), cell("B", [REF + H["A"]])), "A", "B")
@@ -69,8 +74,9 @@ chk("  and the basis names the direction", any("derives from" in b for b in basi
 gr = g(cell("A", []), cell("B", []), cell("X", [REF + H["A"], REF + H["B"]]))
 chk("V-03 multi-parent X×A -> DERIVED", state(gr, "X", "A")[0] == DERIVED)
 chk("V-03 multi-parent X×B -> DERIVED", state(gr, "X", "B")[0] == DERIVED)
-chk("V-03 the two parents remain INDEPENDENT of each other",
-    state(gr, "A", "B")[0] == INDEPENDENT)
+chk("V-03 the two parents remain lineage-clear of each other",
+    any(LINEAGE_CLEAR in b for b in state(gr, "A", "B")[1])
+    and state(gr, "A", "B")[0] != DERIVED)
 
 # V-04 · two hops: X -> A -> C. The pair X×C is the whole point of transitivity.
 gr = g(cell("C", []), cell("A", [REF + H["C"]]), cell("X", [REF + H["A"]]))
@@ -101,7 +107,8 @@ chk("V-13 fork laundering (distinct hashes, declared parent) -> DERIVED", st == 
 
 # V-14 · honest [] on both, genuinely unrelated
 st, basis = state(g(cell("A", []), cell("D", [])), "A", "D")
-chk("V-14 honest [] both sides -> INDEPENDENT", st == INDEPENDENT, st)
+chk("V-14 honest [] both sides -> lineage clear (terminal state gated)",
+    any(LINEAGE_CLEAR in b for b in basis) and st != DERIVED, st)
 
 print("\n── affiliation: [] is a declaration, and declarations from one group are not adverse")
 
@@ -118,18 +125,35 @@ try:
     chk("  and the basis names the shared affiliation",
         any("not adverse" in b for b in basis))
 
+    # Was: "different affiliation -> INDEPENDENT". Pavlo's audit closed that
+    # branch — affiliation is read from live nodes.json and bound by no signed
+    # Cell, so an unsigned edit could manufacture the strongest verdict in the
+    # system. Demonstrated on real data before gating it.
     st, basis = state(g(cell("A", []), cell("D", [])), "A", "D")
-    chk("different affiliation -> INDEPENDENT", st == INDEPENDENT, st)
+    chk("different affiliation is NOT ENOUGH while affiliation is unbound",
+        st == NOT_PROVEN, st)
+    chk("  and the basis says why, rather than reading as ordinary not-proven",
+        any("bound by no signed Cell" in b for b in basis))
 
     _lg._AFFIL.update({"C": None})
     st, basis = state(g(cell("A", []), cell("C", [])), "A", "C")
     chk("unrecorded affiliation -> NOT_PROVEN (absence is not the strong case)",
         st == NOT_PROVEN, st)
 
-    # Affiliation must never RESCUE a pair. It can only ever demote.
+    # Affiliation must never RESCUE a pair. It can only demote — and note that is
+    # a claim about THIS FUNCTION, not about the system: the input it reads is
+    # unsigned, which is exactly what the gate above exists for.
     st, _ = state(g(cell("A", []), cell("D", ["crc.lineage.v0:impl/" + H["A"]])), "A", "D")
     chk("unaffiliated + declared derivation is still DERIVED (affiliation cannot rescue)",
         st == DERIVED, st)
+
+    # The gate must not be reachable around: no affiliation arrangement produces
+    # INDEPENDENT while the field is unbound.
+    for aff in (("wg", "wg"), ("one", "two"), (None, "two")):
+        _lg._AFFIL.update({"A": aff[0], "D": aff[1]})
+        st, _ = state(g(cell("A", []), cell("D", [])), "A", "D")
+        chk(f"no affiliation pair reaches INDEPENDENT while unbound {aff}",
+            st != INDEPENDENT, st)
 finally:
     _lg._AFFIL.clear(); _lg._AFFIL.update(_saved)
 

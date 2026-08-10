@@ -69,7 +69,8 @@ NOT_PROVEN = "INDEPENDENCE_NOT_PROVEN"
 # strongest word in the system, and the founding claim must not carry the
 # strongest word on the weakest evidence for it.
 #
-# INDEPENDENT is reserved for a pair with no shared affiliation. Until a lane
+# INDEPENDENT is currently UNREACHABLE — see the binding gate below. It is
+# reserved for a pair with no shared affiliation, and until a lane
 # from outside this group lands a Cell, the honest state for every pair on this
 # board is INDEPENDENCE_NOT_PROVEN — see the note below on why that is the
 # label rather than a softer intermediate one.
@@ -217,9 +218,31 @@ def pair_state(graph: dict, a: str, b: str):
         basis.append(f"derived_from declared on both, no shared ancestry — but both lanes are "
                      f"operated within {aa}, so the declarations are not adverse to each other")
         return NOT_PROVEN, basis
+    # Pavlo (@pipavlo82), 2026-08-10, auditing #55/#56:
+    #
+    #   "affiliation is read from live nodes.json, while existing v3 Cells and
+    #    registry_id do not bind that field. So a nodes.json-only affiliation edit
+    #    can change a historical pair from INDEPENDENCE_NOT_PROVEN to INDEPENDENT
+    #    without changing either signed Cell."
+    #
+    # Demonstrated, not argued: editing one line of an UNSIGNED file flips the pair
+    # to the strongest verdict in the system, both Cells still validate, and nothing
+    # detects it. That is worse than the overstatement #55/#56 fixed, because the
+    # input driving the verdict is mutable and bound to nothing.
+    #
+    # It also falsifies the note above: affiliation can only demote WITHIN this
+    # function, but the system around it can upgrade by editing the input. A claim
+    # about an algorithm is not a claim about a system.
+    #
+    # So INDEPENDENT is unreachable until affiliation is bound at signing time —
+    # crc.nodes.v1 plus a Cell version carrying affiliation or a registry-snapshot
+    # commitment. Pavlo's call on the shape; this is only the gate that stops an
+    # unbound field from establishing the strongest verdict in the meantime.
     basis.append(f"derived_from declared on both, no shared ancestry, and the lanes are "
-                 f"operated by unaffiliated parties ({aa} / {ab}) — independent")
-    return INDEPENDENT, basis
+                 f"operated by unaffiliated parties ({aa} / {ab}) — but affiliation is "
+                 f"read from live nodes.json and is bound by no signed Cell, so it cannot "
+                 f"establish independence: an unsigned edit could manufacture this verdict")
+    return NOT_PROVEN, basis
 
 
 def load_claim(claim_dir: pathlib.Path) -> list:

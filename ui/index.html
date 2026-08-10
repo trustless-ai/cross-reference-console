@@ -819,7 +819,11 @@ function linPairState(g,a,b){
       const aa=fa[na.node_id], ab=fa[nb.node_id];
       if(!aa||!ab) return [LIN_UNPROVEN,'declared on both, no shared ancestry — but affiliation is not recorded for one or both lanes'];
       if(aa===ab)  return [LIN_UNPROVEN,`declared on both, no shared ancestry — but both lanes are operated within ${aa}, so the declarations are not adverse`];
-      return [LIN_INDEPENDENT,`declared on both, no shared ancestry, and the lanes are unaffiliated (${aa} / ${ab})`];
+      /* Pavlo's audit: affiliation comes from live nodes.json and is bound by no
+         signed Cell, so an unsigned edit could manufacture this verdict. Gated
+         here too — a gate that exists only in Python leaves the PUBLISHED page
+         saying the thing the gate was added to stop. */
+      return [LIN_UNPROVEN,`declared on both, no shared ancestry, and the lanes are unaffiliated (${aa} / ${ab}) — but affiliation is bound by no signed Cell, so it cannot establish independence`];
     }
 }
 /* Worst state across all GREEN pairs on the claim — a single DERIVED pair is
