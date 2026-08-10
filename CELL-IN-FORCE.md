@@ -14,10 +14,10 @@ here is transcribed, so nothing here can disagree with what CI does.
 
 ## In force right now
 
-| schema | `crc.cell.v2` |
+| schema | `crc.cell.v3` |
 |---|---|
-| activation commit | `900d089d7bbe` |
-| derived from | `git log --diff-filter=A -- CELL-v2.md` |
+| activation commit | `90233ad3a000` |
+| derived from | `git log --diff-filter=A -- reference/lineage_ref.py` |
 
 Cells added after that commit must carry this schema. Everything older stands as
 frozen history and is never re-signed or re-judged.
@@ -43,7 +43,7 @@ On the Nostr lane the same payload is the signed `content` of a NIP-01 event.
 ## What a new Cell must satisfy
 
 Every line below is a check that ran, in order, against a freshly created
-`crc.cell.v2` Cell:
+`crc.cell.v3` Cell:
 
  1. strict parse, no duplicate members
  2. directory is a 64-hex claim digest
@@ -57,13 +57,14 @@ Every line below is a check that ran, in order, against a freshly created
 10. schema is a known crc.cell version
 11. registry_id == this registry (payload-primary)
 12. EIP-712 struct carries registry_id
-13. domain version is 2
-14. as_of binding (payload == preimage)
-15. recomputed_at present and a distinct field
-16. boundary inside payload
-17. evidence_hash recomputes
-18. signature grammar ^0x[0-9a-f]{130}$ (65-byte hex, 0x-prefixed)
-19. quadruple equality: recovered == signer == verifier == registered address
+13. domain version is 3
+14. v3 derived_from conforms (LINEAGE-REF.md §2)
+15. as_of binding (payload == preimage)
+16. recomputed_at present and a distinct field
+17. boundary inside payload
+18. evidence_hash recomputes
+19. signature grammar ^0x[0-9a-f]{130}$ (65-byte hex, 0x-prefixed)
+20. quadruple equality: recovered == signer == verifier == registered address
 
 ## Where the normative text lives
 
@@ -71,7 +72,8 @@ Every line below is a check that ran, in order, against a freshly created
 |---|---|---|
 | `v0` | [CELL.md](CELL.md) | frozen — history, still verifiable |
 | `v1` | [CELL-v1.md](CELL-v1.md) | frozen — history, still verifiable |
-| `v2` | [CELL-v2.md](CELL-v2.md) | **in force** |
+| `v2` | [CELL-v2.md](CELL-v2.md) | frozen — history, still verifiable |
+| `v3` | [CELL-v3.md](CELL-v3.md) | **in force** |
 
 Read the in-force file for what changed most recently; read the earlier ones only
 to verify a Cell that was signed under them.
