@@ -25,6 +25,41 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # The mapping from lineage state to what a human sees. It had no test while it lived
+      # inline in a DOM branch, and the branch was guarded by `if (lin)`, so a null state —
+      # which linClaimState returns with fewer than two lanes — rendered no marker at all.
+      - name: lineage marker — no state renders as an unqualified green
+        run: bun ui/lineage-marker.test.ts
+
+      # A suite nobody has watched fail is worth nothing. Reintroduce the exact defect that
+      # shipped and require the tests to catch it.
+      - name: negative control — the fail-open must be caught
+        run: |
+          cp ui/lineage-marker.js /tmp/lm.bk
+          python3 - <<'PY'
+          import pathlib
+          p = pathlib.Path("ui/lineage-marker.js"); t = p.read_text()
+          t = t.replace(
+              "    if (lin === null || lin === undefined) {\n      return unproven('lineage state unavailable",
+              "    if (lin === null || lin === undefined) {\n      return { state:'', addClass:[], removeClass:[], tail:'', qualified:true };\n    }\n    if (false) {\n      return unproven('lineage state unavailable",
+              1)
+          p.write_text(t)
+          PY
+          set +e
+          bun ui/lineage-marker.test.ts > /tmp/neg.out 2>&1
+          rc=$?
+          set -e
+          cp /tmp/lm.bk ui/lineage-marker.js
+          if [ "$rc" -eq 0 ]; then
+            echo "::error::the tests passed against the defect they exist to catch"; cat /tmp/neg.out; exit 1
+          fi
+          grep -q "null -> NOT PROVEN, never a bare green" /tmp/neg.out || { echo "::error::red, but not on the regression case"; cat /tmp/neg.out; exit 1; }
+          echo "negative control caught the fail-open (exit $rc)"
+
       - name: deps (eip712 recover + keccak only — everything else is stdlib)
         run: pip install --quiet eth-account pycryptodome
       - name: gate conformance suite (negative vector per predicate)

@@ -68,10 +68,26 @@ def main() -> int:
     if edge_fn:
         body = edge_fn.group(0)
         chk("edge renderer calls linClaimState", "linClaimState(" in body)
+        chk("edge renderer delegates to lineageMarker", "lineageMarker(" in body)
+        # The regression this file did not previously catch. The old renderer wrapped the
+        # whole marker in `if (lin) { ... }`, and linClaimState returns None with fewer
+        # than two lanes — so an edge that held rendered with no qualifier at all. Asking
+        # "can it render NOT PROVEN" was satisfied by the string being present in a branch
+        # that never ran for the absent case.
+        chk("renderer does not guard the marker on a possibly-absent state",
+            "if(lin)" not in body.replace(" ", ""))
+
+        # The states themselves now live in the extracted mapping, which is the thing a
+        # conformance gate can call. Behaviour is asserted in ui/lineage-marker.test.ts;
+        # what is checked here is that the mapping still covers every state and still
+        # refuses to render DERIVED as a plain green.
+        marker_src = (ROOT / "ui" / "lineage-marker.js").read_text(encoding="utf-8")
         for state in ("INDEPENDENT", "DERIVED", "NOT PROVEN"):
-            chk(f"edge renderer can render {state}", state in body)
+            chk(f"lineage marker can render {state}", state in marker_src)
         chk("DERIVED does not render as a plain green match",
-            "classList.remove('match')" in body)
+            "'match'" in marker_src and "removeClass" in marker_src)
+        chk("absent state is handled explicitly, not by omission",
+            "lin === null" in marker_src and "unproven(" in marker_src)
 
     print("\ncross-implementation agreement on the embedded snapshot\n")
     node = shutil.which("node")

@@ -68,8 +68,22 @@ _versions = [int(m.group(1)) for f in os.listdir(root)
              if (m := re.fullmatch(r"CELL-v(\d+)\.md", f))]
 in_force = f"crc.cell.v{max(_versions)}" if _versions else "crc.cell.v2"
 
+# The state -> marker mapping lives in ui/lineage-marker.js so a conformance gate can
+# import it and assert what a human actually sees. The page must run that exact code, not
+# a copy of it: a copy drifts, and then the tested function and the shipped function are
+# different functions with the same name. console.lock installs a single artifact, so it
+# is inlined here rather than shipped beside the page, and check_console_reproducible.py
+# fails the moment the two diverge.
+marker_src = open(os.path.join(root, "ui", "lineage-marker.js"), encoding="utf-8").read().strip()
+
 for t in targets:
     s = open(t, encoding="utf-8").read()
+    s, n = re.subn(
+        r"(/\* BEGIN lineage-marker\.js[\s\S]*?\*/\n)[\s\S]*?(/\* END lineage-marker\.js \*/)",
+        lambda m: m.group(1) + marker_src + "\n" + m.group(2), s, count=1)
+    # Refuse to write a page whose marker region we could not find: silently shipping the
+    # previous copy is exactly the drift this block exists to prevent.
+    assert n == 1, f"lineage-marker region not found in {t} (found {n}) — refusing to write"
     s2 = re.sub(r'(<script type="application/json" id="seed-registry">)[\s\S]*?(</script>)',
                 lambda m: m.group(1) + blob + m.group(2), s, count=1)
     assert 'id="seed-registry"' in s2
