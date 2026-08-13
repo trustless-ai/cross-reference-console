@@ -728,8 +728,8 @@ function updateDynEdge(hex){
     /* The edge holding is a NECESSARY-conditions result. Whether the lanes are
        actually independent is a separate question with its own answer, and
        stating only the first lets a reader infer the second. */
-    /* No `if (lin)` guard, deliberately. linClaimState returns null with fewer than two
-       lanes in the graph, and guarding on it turned that into a bare green edge — no
+    /* No null-guard around the marker, deliberately. linClaimState returns null with two
+       or fewer lanes in the graph, and guarding on that turned it into a bare green — no
        marker at all, which reads stronger than "not proven". lineageMarker() has no input
        that yields an unqualified green. It is generated into this page from
        ui/lineage-marker.js so a conformance gate can import the same function and test
