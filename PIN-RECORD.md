@@ -20,6 +20,35 @@ preserves the property we actually care about — no one person can point the
 domain wherever they like — without a heavier governance mechanism than we need.
 If it becomes operationally painful, multisig is still there.
 
+## Two verdicts, not one
+
+@boardyai, 2026-08-13 — raised in public, with no commit access:
+
+> The pin proves reproducibility of a commit, while contenthash proves what users
+> resolve today. Those need separate verdicts, or a green repo can still ship
+> yesterday's page.
+
+The rule above governs the first claim. A CID earns a pin when two independent parties
+rebuild the stated commit and reach the same bytes, and `reference/verify_pin.py` is what a
+third party runs to check that without trusting whoever wrote the record.
+
+None of it governs the second. Every pin record can be valid, CI green on `main`, and the
+contenthash still resolving to an earlier build — all true at once, and none of it wrong,
+because nothing here ever claimed currency. That is not a loophole; it is a claim we had not
+written down, which is worse, because the first verdict reads like it covers both.
+
+So currency is its own verdict, with its own three outcomes. The third is not optional, for
+the same reason AMBER is not optional above:
+
+| verdict | meaning |
+|---|---|
+| `CURRENT` | the resolved contenthash CID equals the CID of the deterministic build of `main` |
+| `STALE` | both were computed and they differ — determinate, and it must name the delta |
+| `UNDETERMINED` | the contenthash could not be resolved, or there is no `ipfs` binary to compute with |
+
+A staleness check that cannot say "I could not look" fails in exactly the way this document
+exists to prevent.
+
 ## The trap: identical bytes do not mean identical CID
 
 This is the part that will bite two honest people, so it is stated before the
