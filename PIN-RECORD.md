@@ -20,6 +20,54 @@ preserves the property we actually care about — no one person can point the
 domain wherever they like — without a heavier governance mechanism than we need.
 If it becomes operationally painful, multisig is still there.
 
+## Two verdicts, not one
+
+@boardyai, 2026-08-13 — raised in public, with no commit access:
+
+> The pin proves reproducibility of a commit, while contenthash proves what users
+> resolve today. Those need separate verdicts, or a green repo can still ship
+> yesterday's page.
+
+The rule above governs the first claim. A CID earns a pin when two independent parties
+rebuild the stated commit and reach the same bytes, and `reference/verify_pin.py` is what a
+third party runs to check that without trusting whoever wrote the record.
+
+None of it governs the second. Every pin record can be valid, CI green on `main`, and the
+contenthash still resolving to an earlier build — all true at once, and none of it wrong,
+because nothing here ever claimed currency. That is not a loophole; it is a claim we had not
+written down, which is worse, because the first verdict reads like it covers both.
+
+So currency is its own verdict, with its own three outcomes. The third is not optional, for
+the same reason AMBER is not optional above:
+
+| verdict | meaning |
+|---|---|
+| `CURRENT` | the resolved contenthash CID equals the CID of the deterministic build of `main` |
+| `STALE` | both were computed and they differ — determinate. Reports **both CIDs and the commit range between them** |
+| `UNDETERMINED` | it could not be computed, with a **required reason**: `resolver_unreachable` or `no_local_ipfs` |
+
+Two refinements from @babyblueviper1, 2026-08-14, both of which change what the check has to
+emit rather than how it is displayed.
+
+**STALE reports the range, not only the difference.** Two CIDs prove they differ; the commit
+range is what a human needs to judge whether this is one missed pin or a month of accumulated
+drift, and those want different reactions.
+
+**UNDETERMINED carries a reason, and stays one verdict.** "The resolver did not answer" and "I
+have no `ipfs` binary" are the same display and different next actions, so the cause has to
+survive into the output — but as a required field, not a fourth verdict. Splitting the
+vocabulary gets you a fifth entry next month; a reason field does not. This is the same shape
+as the third state itself, one level down: we separated true from false, and the separator
+immediately needed separating.
+
+The consumer rule, in his words, so nobody re-collapses it later:
+
+> **CURRENT is the only pass. STALE is a determinate fail naming both CIDs. UNDETERMINED is
+> don't-act rather than a silent not-current.**
+
+A staleness check that cannot say "I could not look" fails in exactly the way this document
+exists to prevent.
+
 ## The trap: identical bytes do not mean identical CID
 
 This is the part that will bite two honest people, so it is stated before the
