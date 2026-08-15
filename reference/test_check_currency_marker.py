@@ -79,7 +79,7 @@ check("mutation anchor still present", r["anchored"])
 if r["anchored"]:
     check("exit is exactly 1", r["code"] == EXIT_BAD, f"got {r['code']}")
     check("caught as a collapse, naming the distinctness assertion",
-          "three distinct texts" in r["out"], r["out"][-260:])
+          "four distinct texts" in r["out"], r["out"][-260:])
 
 print("\nGREEN IS NOT REACHABLE FROM A FAILURE (must be CAUGHT):")
 r = run_mutated(

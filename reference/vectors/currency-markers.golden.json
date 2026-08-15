@@ -166,6 +166,14 @@
       "tone": "amber",
       "verdict": null
     },
+    "cnc_unstamped": {
+      "qualified": true,
+      "reason": "artifact_unstamped",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit this page is \u2014 the build was never stamped, so there is nothing to compare",
+      "tone": "amber",
+      "verdict": null
+    },
     "not_run": {
       "qualified": true,
       "reason": null,

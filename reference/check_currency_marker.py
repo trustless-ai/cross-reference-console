@@ -75,6 +75,7 @@ CASES: list[tuple[str, str, object]] = [
     ("cnc_resolver",         "COULD_NOT_CHECK", "resolver_unreachable"),
     ("cnc_no_ipfs",          "COULD_NOT_CHECK", "no_local_ipfs"),
     ("cnc_lock",             "COULD_NOT_CHECK", "lock_unreadable"),
+    ("cnc_unstamped",        "COULD_NOT_CHECK", "artifact_unstamped"),
     ("cnc_no_reason",        "COULD_NOT_CHECK", None),
     ("unrecognised_verdict", "CHECKED",         "PROBABLY_FINE"),
     ("unrecognised_state",   "SOMETHING_NEW",   None),
@@ -199,10 +200,10 @@ def main() -> int:
 
     print("\nassertion 2 — no failure disappears into a generic green or amber\n")
     reason_texts = {}
-    for name in ("cnc_resolver", "cnc_no_ipfs", "cnc_lock"):
+    for name in ("cnc_resolver", "cnc_no_ipfs", "cnc_lock", "cnc_unstamped"):
         s = got["states"][name]
         reason_texts[s.get("reason")] = s.get("text")
-    chk("the three reasons produce three distinct texts", len(set(reason_texts.values())) == 3,
+    chk("all four reasons produce four distinct texts", len(set(reason_texts.values())) == 4,
         json.dumps(reason_texts)[:200])
     chk("each names which side of the comparison went dark",
         all(isinstance(t, str) and len(t) > 40 for t in reason_texts.values()))
@@ -249,6 +250,15 @@ def main() -> int:
         json.dumps(ad["adapter_legacy_no_selects"])[:140])
     chk("an unstamped build says so rather than borrowing lock_unreadable",
         ad["adapter_unstamped_build"]["reason"] == "artifact_unstamped")
+    # His guardrail, both halves: neither failure may become a verdict, in either direction.
+    chk("an unstamped build never becomes STALE",
+        ad["adapter_unstamped_build"]["verdict"] is None
+        and ad["adapter_unstamped_build"]["state"] == "COULD_NOT_CHECK")
+    chk("a STAMPED artifact with missing selects stays lock_unreadable",
+        ad["adapter_legacy_no_selects"]["reason"] == "lock_unreadable",
+        "the stamped case must not borrow artifact_unstamped")
+    chk("the two causes never share a reason",
+        ad["adapter_unstamped_build"]["reason"] != ad["adapter_legacy_no_selects"]["reason"])
     chk("a malformed selects.commit does not become a comparison",
         ad["adapter_malformed_selects"]["state"] == "COULD_NOT_CHECK")
     chk("matching commits establish CURRENT", ad["adapter_current"]["verdict"] == "CURRENT")
