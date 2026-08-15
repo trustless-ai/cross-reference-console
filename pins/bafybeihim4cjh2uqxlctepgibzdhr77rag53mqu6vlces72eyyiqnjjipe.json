@@ -22,16 +22,26 @@
   "supersedes": "bafybeigrjta3htvdpiohl55ajiqwvkp4rfdyex2njmihfr2sudtvv7jboy",
   "purpose": "The console now reads its own currency instead of asserting it. At load it resolves trustless-ai.eth's contenthash FROM THE RESOLVER CONTRACT, fetches that CID's pin record — this file — and compares `selects.commit` against the CONSOLE_SOURCE_COMMIT that sync_console.py stamped into the published copy. @boardyai's wiring constraint, ratified 2026-08-15: initial state NOT_RUN, PENDING before the read, the result passed unchanged through the existing projection, no decision logic and no second mapping in the wiring. All four are asserted mechanically in cross-reference-console@ddf1dad against the code INLINED IN THE PUBLISHED PAGE — not the source files beside it — driven as an ES module so the wrappers take the branch a browser takes. Seven network-backed paths: resolver silent or throwing is resolver_unreachable, a missing or selects-less record is lock_unreadable, an unstamped build is artifact_unstamped, and only an established comparison yields CURRENT or STALE. Exactly one path renders green.",
   "ordering_note": "This record was merged to cross-reference-console main BEFORE the contenthash transaction, which is a change from every previous repin. The published page fetches this file from raw.githubusercontent.com at main; had the transaction landed first, the newly-published console's first act would have been to resolve its own CID, find no record, and render COULD_NOT_CHECK/lock_unreadable. Honest, and a poor first showing for a check that works. The `tx` field below is therefore empty at merge time and filled in after the transaction confirms.",
-  "tx": "",
-  "pinned_at": "",
+  "tx": "0x70b575da99c93396c213e288df1f37331b8121b2ecfaa200597ece422f690387",
+  "pinned_at": "2026-08-15T14:33:11Z",
   "verification": {
     "contenthash_read_from": "resolver 0xf29100983e058b709f3d539b0c765937b804ac15, contenthash(namehash('trustless-ai.eth'))",
-    "decoded_cid": "",
-    "note": "To be filled from a direct eth_call after the transaction confirms, decoded from the raw e30101701220 bytes rather than read from a resolver API. On 15 August two independent ENS APIs served the superseded CID for some minutes after a transaction confirmed; the contract did not. A cached read is not a second opinion — and this is now also the path the published page takes."
+    "decoded_cid": "bafybeihim4cjh2uqxlctepgibzdhr77rag53mqu6vlces72eyyiqnjjipe",
+    "note": "Read from the resolver contract directly after confirmation and decoded from the raw e30101701220 bytes, not from a resolver API. Receipt status 0x1, block 25761067, to the resolver, from 0xff9a176577fb42b6bc9c19fd05a241e8fcd0ca14. On 15 August two independent ENS APIs served a superseded CID for some minutes after a transaction confirmed; the contract did not. A cached read is not a second opinion — and this is now also the path the published page takes for its own currency check.",
+    "block": 25761067
   },
   "availability": {
     "stored_at": "2026-08-15T14:31:00Z",
-    "note": "build/site_cid.py derives the CID with `ipfs add -n`, which stores nothing — the trap that published a pointer to non-existent bytes on the previous repin. The tool now carries `--store`, which re-runs the same command without `-n` and refuses to report success unless the stored CID equals the derived one (trustless-ai-landing PR #15). Both runs produced this CID; the bytes are held locally and pinned on Pinata by hash rather than re-uploaded, since re-uploading risks a different CID under the service's own defaults. Retrieval was verified from the stored tree: /console/index.html carries the wiring and is stamped ddf1dad61403."
+    "note": "build/site_cid.py derives the CID with `ipfs add -n`, which stores nothing — the trap that published a pointer to non-existent bytes on the previous repin. The tool now carries `--store`, which re-runs the same command without `-n` and refuses to report success unless the stored CID equals the derived one (trustless-ai-landing PR #15). Both runs produced this CID; the bytes are held locally and pinned on Pinata by hash rather than re-uploaded, since re-uploading risks a different CID under the service's own defaults. Retrieval was verified from the stored tree: /console/index.html carries the wiring and is stamped ddf1dad61403.",
+    "serving": {
+      "eth_limo": "byte-identical to the pinned bytes (177277 bytes, sha256 of the served response equals the stored object; diffed, not assumed)",
+      "ipfs_io": "differs by exactly one injected hidden <a href=…/cdn-cgi/content?id=…> immediately after <body>. Serving-layer injection, not content drift — established by diffing the two responses against the stored object rather than by recalling that ipfs.io does this.",
+      "note": "Recorded because a bare hash mismatch between gateways reads as tampering, and the distinction between 'these bytes were altered' and 'this CDN adds a beacon at serve time' is exactly the kind that must be established rather than remembered."
+    }
   },
-  "confirmations": []
+  "confirmations": [],
+  "confirmed_live": {
+    "at": "2026-08-15T14:36:00Z",
+    "what": "The published page's own inlined currency code was driven against the live pin record over the network before the transaction, with only the resolver stubbed, and rendered NOT_RUN -> PENDING -> CHECKED/CURRENT. The resolver half was verified separately by eth_call against the contract. Both halves are proven; they could not be proven simultaneously until this transaction landed."
+  }
 }
