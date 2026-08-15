@@ -1,0 +1,152 @@
+{
+  "legacy": {
+    "legacy_current": {
+      "qualified": true,
+      "reason": null,
+      "state": "CHECKED",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+      "tone": "green",
+      "verdict": "CURRENT"
+    },
+    "legacy_stale": {
+      "qualified": true,
+      "reason": null,
+      "state": "CHECKED",
+      "text": "STALE \u2014 the published contenthash is not the build of this commit",
+      "tone": "red",
+      "verdict": "STALE"
+    },
+    "legacy_undetermined_ipfs": {
+      "qualified": true,
+      "reason": "no_local_ipfs",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not compute the candidate \u2014 no local ipfs to derive the CID from, so there is nothing to compare against",
+      "tone": "amber",
+      "verdict": null
+    },
+    "legacy_undetermined_lock": {
+      "qualified": true,
+      "reason": "lock_unreadable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+      "tone": "amber",
+      "verdict": null
+    },
+    "legacy_undetermined_resolver": {
+      "qualified": true,
+      "reason": "resolver_unreachable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber",
+      "verdict": null
+    },
+    "legacy_undetermined_upstream": {
+      "qualified": true,
+      "reason": "resolver_unreachable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber",
+      "verdict": null
+    },
+    "legacy_unknown": {
+      "qualified": true,
+      "reason": "unrecognised_state",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 unrecognised execution state \"__unrecognised__\", this build cannot interpret it",
+      "tone": "amber",
+      "verdict": null
+    },
+    "legacy_unverifiable": {
+      "qualified": true,
+      "reason": "resolver_unreachable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber",
+      "verdict": null
+    }
+  },
+  "note": "Rendered currency markers, pinned. Changing what a reader is told is a deliberate act that updates this file \u2014 read the diff. Regenerate with reference/check_currency_marker.py --write-golden.",
+  "source": "ui/currency-marker.js",
+  "states": {
+    "checked_current": {
+      "qualified": true,
+      "reason": null,
+      "state": "CHECKED",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+      "tone": "green",
+      "verdict": "CURRENT"
+    },
+    "checked_stale": {
+      "qualified": true,
+      "reason": null,
+      "state": "CHECKED",
+      "text": "STALE \u2014 the published contenthash is not the build of this commit",
+      "tone": "red",
+      "verdict": "STALE"
+    },
+    "cnc_lock": {
+      "qualified": true,
+      "reason": "lock_unreadable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+      "tone": "amber",
+      "verdict": null
+    },
+    "cnc_no_ipfs": {
+      "qualified": true,
+      "reason": "no_local_ipfs",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not compute the candidate \u2014 no local ipfs to derive the CID from, so there is nothing to compare against",
+      "tone": "amber",
+      "verdict": null
+    },
+    "cnc_no_reason": {
+      "qualified": true,
+      "reason": "unspecified",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 no reason was recorded, which is itself a defect in the caller",
+      "tone": "amber",
+      "verdict": null
+    },
+    "cnc_resolver": {
+      "qualified": true,
+      "reason": "resolver_unreachable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber",
+      "verdict": null
+    },
+    "not_run": {
+      "qualified": true,
+      "reason": null,
+      "state": "NOT_RUN",
+      "text": "not checked \u2014 currency has not been established, which is not the same as being current",
+      "tone": "neutral",
+      "verdict": null
+    },
+    "pending": {
+      "qualified": true,
+      "reason": null,
+      "state": "PENDING",
+      "text": "checking \u2014 the resolver read is in flight. This is not a pass",
+      "tone": "amber",
+      "verdict": null
+    },
+    "unrecognised_state": {
+      "qualified": true,
+      "reason": "unrecognised_state",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 unrecognised execution state \"SOMETHING_NEW\", this build cannot interpret it",
+      "tone": "amber",
+      "verdict": null
+    },
+    "unrecognised_verdict": {
+      "qualified": true,
+      "reason": "unrecognised_verdict",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 unrecognised currency verdict \"PROBABLY_FINE\", this build cannot interpret it",
+      "tone": "amber",
+      "verdict": null
+    }
+  }
+}

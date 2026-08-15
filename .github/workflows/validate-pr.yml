@@ -193,6 +193,19 @@ jobs:
           # without updating the golden — and requires an exact exit 1 each time, plus
           # exit 2 (never 0) when it cannot check at all.
           python3 reference/test_check_boardy_rule.py
+
+      # The currency mapping, gated BEFORE the console is allowed to read the resolver.
+      # @boardyai: "vectors before the network read. A verification page should earn the
+      # right to make a new claim before it gets another source of uncertainty."
+      # The console still makes no network call; this is the contract it will have to meet.
+      - name: the currency mapping holds
+        run: python3 reference/check_currency_marker.py
+      - name: and that check can fail for each assertion it makes
+        run: |
+          # Mutates the shipped mapping four ways and requires an exact exit 1 each time:
+          # a reason manufacturing a verdict, three reasons collapsing into one amber,
+          # green reachable from a failure, and UNDETERMINED surviving the boundary.
+          python3 reference/test_check_currency_marker.py
       - name: every registered duplicate has a comparator that demonstrably bites
         run: |
           # Damon Zwicker's amendment: "name the module that decides rule X" is a
