@@ -236,6 +236,73 @@ def main() -> int:
         print(f"  {'ok  ' if ok else 'FAIL'}  {name} → {got}" + ("" if ok else f" (want {expect})"))
         bad += not ok
 
+    print("\nCAUSALITY — repair one invariant, its attribution must disappear\n")
+    # Pavlo Tvardovskyi, 2026-08-15, on breaking the closed loop in which the same person
+    # writes the mutant and declares its expected attribution set:
+    #
+    #   "after m_i produces attribution A_i, apply a targeted repair r_k intended to
+    #    restore ONE invariant while leaving the rest of the mutant intact. The
+    #    corresponding attribution should disappear while unrelated attributions remain.
+    #    That tests causality, not just label agreement."
+    #
+    # This is the half of his spec reachable without a second author. Set equality proves
+    # internal consistency; a repair proves the mapping is CAUSAL. A wrongly-declared A_i
+    # tends to survive equality and die here — repairing the invariant I claimed was
+    # violated would not remove the attribution I claimed it caused.
+    #
+    # It does NOT close the loop. A_i is still authored by whoever writes the mutant, and
+    # only an oracle derived independently of this gate's output can fix that.
+    def counterfactual(mutant, repair, script, name, must_remain) -> None:
+        global bad
+        with tempfile.TemporaryDirectory() as td:
+            pins = pathlib.Path(td) / "pins"
+            pins.mkdir()
+            for f in PINS.glob("*.json"):
+                (pins / f.name).write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
+            target = pins / (LIVE + ".json")
+            rec = json.loads(target.read_text(encoding="utf-8"))
+            mutant(rec)
+            repair(rec)
+            target.write_text(json.dumps(rec, indent=2, ensure_ascii=False) + "\n",
+                              encoding="utf-8")
+            _, out = run(script, pins)
+        blamed = observed_attribution(out)
+        vanished = {w for w in must_remain if not any(w in b for b in blamed)}
+        survived = [b for b in blamed if not any(w in b for w in must_remain)]
+        ok = not vanished and not survived
+        print(f"  {'ok  ' if ok else 'FAIL'}  {name}")
+        if not ok:
+            bad += 1
+            if vanished:
+                print(f"           should have REMAINED but vanished: {sorted(vanished)}")
+            if survived:
+                print(f"           should have been REPAIRED but remains: {survived[:3]}")
+
+    def inject_all(rec):
+        for gw in rec["availability"]["serving"]["gateways"].values():
+            for o in gw:
+                o["verdict"] = "SERVE_TIME_INJECTION"
+                o.pop("detail", None)
+
+    def restore_one_identical(rec):
+        first = next(iter(rec["availability"]["serving"]["gateways"].values()))[0]
+        first["verdict"] = "IDENTICAL"
+        first.pop("detail", None)
+
+    def detail_every_injection(rec):
+        for gw in rec["availability"]["serving"]["gateways"].values():
+            for o in gw:
+                if o.get("verdict") != "IDENTICAL":
+                    o["detail"] = "a stated cause"
+
+    # inject_all violates BOTH invariants. Each repair should clear exactly one.
+    counterfactual(inject_all, restore_one_identical, SERVED,
+                   "restore one IDENTICAL -> only the pinned-bytes attribution clears",
+                   {"non-identical says why"})
+    counterfactual(inject_all, detail_every_injection, SERVED,
+                   "supply the missing details -> only the says-why attribution clears",
+                   {"at least one client somewhere gets the pinned bytes exactly"})
+
     print("\nthe attribution layer is not decorative\n")
     # Pavlo Tvardovskyi's negative control, 2026-08-15: "deliberately swap or corrupt
     # attribution IDs while leaving the underlying predicates unchanged. If the harness
