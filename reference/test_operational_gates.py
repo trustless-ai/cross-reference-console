@@ -19,6 +19,9 @@ from __future__ import annotations
 
 import json
 import pathlib
+import contextlib
+import io
+import re
 import subprocess
 import sys
 import tempfile
@@ -47,9 +50,40 @@ def run(script: pathlib.Path, pins: pathlib.Path) -> tuple[int, str]:
     return r.returncode, r.stdout + r.stderr
 
 
-def mutate(fn, script: pathlib.Path, name: str, why: str, expect: str) -> None:
-    """Copy pins/, apply fn to the live record, require exit 1 on the NAMED assertion."""
+def observed_attribution(out: str) -> list[str]:
+    """The assertion labels the gate actually blamed.
+
+    Parsed from the gate's own failure list rather than from anywhere in stdout, so
+    'the word appears somewhere in the output' cannot be mistaken for 'this assertion
+    was the one that failed'.
+    """
+    # The two gates end with differently-worded summaries ("N record(s) name something
+    # that does not exist:", "N serving claim(s) missing, malformed or false:"), so the
+    # anchor is the shape of the list, not its heading. An earlier version anchored on a
+    # string neither gate emits and would have reported "never blamed" for every mutant —
+    # which is the same defect one level up, in the harness that checks for it.
+    return [m.group(1).strip() for m in re.finditer(r"^ {4}- (.+)$", out, re.M)]
+
+
+def mutate(fn, script: pathlib.Path, name: str, why: str, expect) -> None:
+    """Apply fn to the live record and require exit 1 with the DECLARED attribution set.
+
+    Pavlo Tvardovskyi's conformance target, 2026-08-15:
+
+        for each targeted mutant m_i, declare the expected attribution set A_i and
+        require the OBSERVED attribution to match A_i — not merely that the gate goes
+        red somewhere. In the simple case A_i = {I_i}, but singleton attribution is
+        not universally required: one mutation can legitimately violate several
+        invariants.
+
+    So `expect` is a set of distinctive substrings, one per invariant the mutant is
+    declared to violate. Matching is set equality up to the f-string interpolation in
+    the labels: every declared invariant must be blamed, and NOTHING ELSE may be. A
+    mutant that trips five assertions when it should trip one is too blunt to be
+    evidence about any of them.
+    """
     global bad
+    wanted = {expect} if isinstance(expect, str) else set(expect)
     with tempfile.TemporaryDirectory() as td:
         pins = pathlib.Path(td) / "pins"
         pins.mkdir()
@@ -64,13 +98,27 @@ def mutate(fn, script: pathlib.Path, name: str, why: str, expect: str) -> None:
         print(f"  FAIL  {name}: expected exit 1, got {rc} — {why}")
         bad += 1
         return
-    failures = out.split("assertion" if "assertion" in out else "\n\n")[-1]
-    tail = out[out.rfind("\n\n"):]
-    if expect not in out.split(":\n")[-1] and expect not in tail and expect not in failures:
-        print(f"  FAIL  {name}: red, but not on \"{expect}\"")
+
+    blamed = observed_attribution(out)
+    matched, unexplained = set(), []
+    for label in blamed:
+        hit = next((w for w in wanted if w in label), None)
+        if hit:
+            matched.add(hit)
+        else:
+            unexplained.append(label)
+
+    missing = wanted - matched
+    if missing:
+        print(f"  FAIL  {name}: declared {sorted(wanted)} but never blamed {sorted(missing)}")
         bad += 1
         return
-    print(f"  ok    {name} → caught ({why})")
+    if unexplained:
+        print(f"  FAIL  {name}: blamed invariants it was not declared to violate — "
+              f"{unexplained[:3]}")
+        bad += 1
+        return
+    print(f"  ok    {name} → attribution matches ({why})")
 
 
 def main() -> int:
@@ -123,9 +171,15 @@ def main() -> int:
     mutate(serving(lambda s: s.pop("object")), SERVED, "no stated authority",
            "a comparison with nothing to compare against",
            "names what the bytes were compared against")
+    # A_i is NOT a singleton here, and declaring that is the point: with no structured
+    # observations anywhere, it is also true that no client was found to receive the pinned
+    # bytes. Both invariants really are violated, so both are declared — loosening the check
+    # to "contains" instead would hide the day a mutant starts tripping something it should
+    # not.
     mutate(serving(lambda s: s.update(gateways={"https://x/y": {"verdict": "IDENTICAL"}})),
            SERVED, "gateway is a bare verdict, not observations",
-           "one verdict per gateway hides which client asked", "carries observations")
+           "one verdict per gateway hides which client asked",
+           {"carries observations", "at least one client somewhere gets the pinned bytes exactly"})
     mutate(serving(lambda s: s.update(gateways={})), SERVED, "no gateways listed at all",
            "an availability block that compared nothing still looks present",
            "lists at least one gateway")
@@ -141,11 +195,13 @@ def main() -> int:
     mutate(serving(lambda s: first_obs(s).update(verdict="FINE")), SERVED,
            "verdict outside the closed set", "a vocabulary that grows is a vocabulary that lies",
            "verdict in ")
+    # Every observation becomes a detail-less injection, so no observation is IDENTICAL
+    # either — the second invariant follows from the mutation and is declared, not tolerated.
     mutate(serving(lambda s: [o.update(verdict="SERVE_TIME_INJECTION") or o.pop("detail", None)
                               for gw in s["gateways"].values() for o in gw]),
            SERVED, "injection with no detail",
            "'not identical' with no cause reads as unexplained tampering",
-           "non-identical says why")
+           {"non-identical says why", "at least one client somewhere gets the pinned bytes exactly"})
     mutate(serving(lambda s: first_obs(s).update(verdict="DIFFERS", detail="shrug")), SERVED,
            "DIFFERS normalised into the record",
            "a substitution must never be filed as an operational note",
@@ -179,6 +235,52 @@ def main() -> int:
         ok = got == expect
         print(f"  {'ok  ' if ok else 'FAIL'}  {name} → {got}" + ("" if ok else f" (want {expect})"))
         bad += not ok
+
+    print("\nthe attribution layer is not decorative\n")
+    # Pavlo Tvardovskyi's negative control, 2026-08-15: "deliberately swap or corrupt
+    # attribution IDs while leaving the underlying predicates unchanged. If the harness
+    # still passes, the attribution layer is decorative."
+    #
+    # The predicates below are untouched — every assertion still evaluates exactly the same
+    # condition on exactly the same data, and the gate still goes red in exactly the same
+    # places. ONLY THE LABELS MOVE. A harness that reads "did it go red" survives this. A
+    # harness that reads "did it blame the right invariant" cannot.
+    for label, (frm, to) in {
+        # Corrupt the label on the branch the probe's mutant ACTUALLY reaches (line 191,
+        # the failing chk — not its passing twin on 194). An earlier version of this control
+        # patched the passing branch and the harness sailed through, which made the control
+        # itself decorative: it was checking a label no mutant in it ever caused to be
+        # printed.
+        "the blamed label is corrupted": (
+            'chk(f"{short}: carries availability.serving", False,',
+            'chk(f"{short}: carries something else entirely", False,'),
+        "the blamed label is swapped with another real one": (
+            'chk(f"{short}: carries availability.serving", False,',
+            'chk(f"{short}: lists at least one gateway", False,'),
+    }.items():
+        src = SERVED.read_text(encoding="utf-8")
+        if frm not in src:
+            print(f"  FAIL  {label}: anchor not found — the control patched nothing")
+            bad += 1
+            continue
+        backup = src
+        try:
+            SERVED.write_text(src.replace(frm, to, 1), encoding="utf-8")
+            before = bad
+            # The probe is SUPPOSED to fail. Printing its failure would put a red FAIL line
+            # in a passing run, which is how output stops being read.
+            with contextlib.redirect_stdout(io.StringIO()):
+                mutate(lambda r: r["availability"].pop("serving"), SERVED,
+                       "probe", "predicates unchanged, attribution moved",
+                       "carries availability.serving")
+            caught = bad > before
+            bad = before          # the probe's own failure is the expected outcome
+        finally:
+            SERVED.write_text(backup, encoding="utf-8")
+        print(f"  {'ok  ' if caught else 'FAIL'}  {label}: "
+              f"{'harness refuses it' if caught else 'HARNESS PASSED — attribution is decorative'}")
+        if not caught:
+            bad += 1
 
     print("\ncould-not-check is never a pass\n")
     with tempfile.TemporaryDirectory() as td:
