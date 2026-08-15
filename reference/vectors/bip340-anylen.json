@@ -1,0 +1,8 @@
+{
+  "note": "A real third-party artifact that signs its canonical bytes directly rather than a digest of them — 220 bytes, not 32. Against this repo's former 32-byte guard, bip340.verify returned False for it, which on any surface reads as 'bad signature' rather than 'this verifier cannot check that shape'. Kept as a fixture so the constraint cannot come back.",
+  "source": "giskard09/argentum-core examples/conformance/composed-attestation-bip340-cell/cell.json",
+  "retrieved": "2026-08-15",
+  "message": "{\"authority_ref\":\"v2:a978a3fe6858ac212091304c618f8ce40d024f2b9bb8e26cfaddf73a8812bf76\",\"co_suite_ref\":\"trustless-ai/composed-attestation-note#R3\",\"issued_at\":\"2026-08-15T00:00:00.000Z\",\"schema\":\"mycelium.bip340-cell.v1\"}",
+  "pubkey_x_only": "ec16eef2f71d0093c0465f8e29c57d70b247e522b006cddbfa20cf51809bdada",
+  "sig": "2710d60a6d2f0887ad1f375bd10ff6b4ae6c5b600007bffe29a13fb8796a22a57c61eaeed11e165490906710654d8023858b33b533b6ae71797d059875a3d425"
+}

@@ -69,6 +69,14 @@ jobs:
           # copied from the source. "Reconciling" the two would move claim_id and
           # break every edge on that claim — this pins the consequence.
           python3 reference/test_gate.py --axes
+      # The verifier this repo checks OTHER PEOPLE'S cells with, and it had no test.
+      # It rejected a correctly signed third-party cell because the message was
+      # required to be 32 bytes — true of every caller here, not true of BIP-340.
+      # The positive control runs first: a verifier never seen to return true makes
+      # every negative result in the file meaningless, which is exactly how the bug
+      # was nearly misdiagnosed as someone else's bad signature.
+      - name: bip340 — official vectors, any-length messages, sign/verify round-trip
+        run: python3 reference/test_bip340.py
       - name: nodes.json — crc.nodes.v0
         run: python3 reference/validate_nodes.py
       - name: every cell verifies under its envelope + the registry
