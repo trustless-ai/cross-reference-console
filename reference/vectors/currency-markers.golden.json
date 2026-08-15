@@ -1,4 +1,54 @@
 {
+  "adapter": {
+    "adapter_current": {
+      "qualified": true,
+      "reason": null,
+      "state": "CHECKED",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+      "tone": "green",
+      "verdict": "CURRENT"
+    },
+    "adapter_legacy_no_selects": {
+      "qualified": true,
+      "reason": "lock_unreadable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+      "tone": "amber",
+      "verdict": null
+    },
+    "adapter_malformed_selects": {
+      "qualified": true,
+      "reason": "lock_unreadable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+      "tone": "amber",
+      "verdict": null
+    },
+    "adapter_resolver_silent": {
+      "qualified": true,
+      "reason": "resolver_unreachable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber",
+      "verdict": null
+    },
+    "adapter_stale": {
+      "qualified": true,
+      "reason": null,
+      "state": "CHECKED",
+      "text": "STALE \u2014 the published contenthash is not the build of this commit",
+      "tone": "red",
+      "verdict": "STALE"
+    },
+    "adapter_unstamped_build": {
+      "qualified": true,
+      "reason": "artifact_unstamped",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit this page is \u2014 the build was never stamped, so there is nothing to compare",
+      "tone": "amber",
+      "verdict": null
+    }
+  },
   "legacy": {
     "legacy_current": {
       "qualified": true,
@@ -113,6 +163,14 @@
       "reason": "resolver_unreachable",
       "state": "COULD_NOT_CHECK",
       "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber",
+      "verdict": null
+    },
+    "cnc_unstamped": {
+      "qualified": true,
+      "reason": "artifact_unstamped",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit this page is \u2014 the build was never stamped, so there is nothing to compare",
       "tone": "amber",
       "verdict": null
     },

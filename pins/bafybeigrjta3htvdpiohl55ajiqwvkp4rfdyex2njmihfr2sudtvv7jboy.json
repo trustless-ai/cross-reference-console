@@ -4,6 +4,12 @@
   "repo": "https://github.com/trustless-ai/trustless-ai-landing",
   "cid": "bafybeigrjta3htvdpiohl55ajiqwvkp4rfdyex2njmihfr2sudtvv7jboy",
   "commit": "c0cb1faca015d6cc20f7d7c8abe4fb4c20e72f55",
+  "selects": {
+    "repo": "https://github.com/trustless-ai/cross-reference-console",
+    "commit": "f3e9a670de440442132a1440a568c955f595c550",
+    "artifact": "ui/index.html",
+    "note": "The console commit this publication SELECTS, as distinct from `commit` above, which is the landing repo commit that was published. Promoted from prose to a field so currency is a one-hop derivation: resolved CID -> this record -> selects.commit, compared against the artifact's own CONSOLE_SOURCE_COMMIT. Without it the honest verdict is COULD_NOT_CHECK/lock_unreadable \u2014 a structural inability to establish currency, never STALE, and never licence to infer it through another repo's history."
+  },
   "artifact": "site tree (29 published files)",
   "tree_sha256": "sha256:d65c9d3f84c7240258d0a97336da83186e19e998ba5cad307130ef7edfee1a7d",
   "cid_params": {
@@ -14,7 +20,7 @@
     "hash": "sha2-256"
   },
   "supersedes": "bafybeiblwwa2wnbftf4nu3byvzprxlz5odmojawms7iv2fxdcnoscpdvya",
-  "purpose": "Republishes the console from cross-reference-console@f3e9a67 — console.lock had been at 2436082 since 2026-08-10, fifteen commits behind. Among them was the lineage-marker extraction (crc 0cafaaa): before it, an edge whose lineage state could not be determined rendered as a plain green with no qualifier at all, because the marker was guarded by `if (lin)` and linClaimState returns null below two lanes. Absence of a state was rendered as absence of a caveat, which reads as the strongest claim on the page. The published console carried that for five days after the fix merged. Also carries the currency section of PIN-RECORD.md and check_boardy_rule.py, which asserts the state-to-text mapping the console ships rather than a copy of it.",
+  "purpose": "Republishes the console from cross-reference-console@f3e9a67 \u2014 console.lock had been at 2436082 since 2026-08-10, fifteen commits behind. Among them was the lineage-marker extraction (crc 0cafaaa): before it, an edge whose lineage state could not be determined rendered as a plain green with no qualifier at all, because the marker was guarded by `if (lin)` and linClaimState returns null below two lanes. Absence of a state was rendered as absence of a caveat, which reads as the strongest claim on the page. The published console carried that for five days after the fix merged. Also carries the currency section of PIN-RECORD.md and check_boardy_rule.py, which asserts the state-to-text mapping the console ships rather than a copy of it.",
   "how_it_went_unnoticed": "Three checks were green throughout and each was honest about its own link: build/sync_console.py --check (console/index.html IS the build of the commit in console.lock), cross-reference-console's check_console_reproducible.py (ui/index.html IS the deterministic build of its commit), and check_console_currency.py (the contenthash IS the site-tree of landing HEAD). None was wrong. The LOCK was, and nothing was looking at the lock. A pin is a claim about which commit is published; it is never a claim that it is the one you would want. build/check_console_currency.py in the landing repo now reports CURRENT / STALE / UNDETERMINED on the lock itself.",
   "tx": "0x1c29adf24a620db670776ab14f72f065c23e572630673686d0bf8e09c49baa35",
   "pinned_at": "2026-08-15T12:19:47Z",
@@ -25,7 +31,7 @@
   },
   "availability": {
     "stored_at": "2026-08-15T12:37:51Z",
-    "note": "build/site_cid.py DERIVES the CID with `ipfs add -n`, which stores nothing. The bytes were added separately with identical cid_params and reproduced this exact CID, then pinned locally and on Pinata by hash rather than re-uploaded — re-uploading risks a different CID under the pinning service's own defaults, which would silently break this record."
+    "note": "build/site_cid.py DERIVES the CID with `ipfs add -n`, which stores nothing. The bytes were added separately with identical cid_params and reproduced this exact CID, then pinned locally and on Pinata by hash rather than re-uploaded \u2014 re-uploading risks a different CID under the pinning service's own defaults, which would silently break this record."
   },
   "confirmations": []
 }

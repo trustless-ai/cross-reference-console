@@ -1,0 +1,122 @@
+{
+  "decode": {
+    "empty": null,
+    "garbage": null,
+    "nonstring": null,
+    "real": "bafybeigrjta3htvdpiohl55ajiqwvkp4rfdyex2njmihfr2sudtvv7jboy"
+  },
+  "note": "The live read, driven with transport stubbed. Every failure path is here because a network read whose failures need a cable unplugged is a read nobody tests.",
+  "results": {
+    "established_current": {
+      "qualified": true,
+      "reason": null,
+      "state": "CHECKED",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+      "tone": "green",
+      "verdict": "CURRENT"
+    },
+    "established_stale": {
+      "qualified": true,
+      "reason": null,
+      "state": "CHECKED",
+      "text": "STALE \u2014 the published contenthash is not the build of this commit",
+      "tone": "red",
+      "verdict": "STALE"
+    },
+    "record_missing": {
+      "qualified": true,
+      "reason": "lock_unreadable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+      "tone": "amber",
+      "verdict": null
+    },
+    "record_no_selects": {
+      "qualified": true,
+      "reason": "lock_unreadable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+      "tone": "amber",
+      "verdict": null
+    },
+    "record_throws": {
+      "qualified": true,
+      "reason": "lock_unreadable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+      "tone": "amber",
+      "verdict": null
+    },
+    "resolver_empty": {
+      "qualified": true,
+      "reason": "resolver_unreachable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber",
+      "verdict": null
+    },
+    "resolver_null": {
+      "qualified": true,
+      "reason": "resolver_unreachable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber",
+      "verdict": null
+    },
+    "resolver_throws": {
+      "qualified": true,
+      "reason": "resolver_unreachable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber",
+      "verdict": null
+    },
+    "unstamped_build": {
+      "qualified": true,
+      "reason": "artifact_unstamped",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit this page is \u2014 the build was never stamped, so there is nothing to compare",
+      "tone": "amber",
+      "verdict": null
+    }
+  },
+  "sequences": {
+    "established_current": [
+      "PENDING",
+      "CHECKED"
+    ],
+    "established_stale": [
+      "PENDING",
+      "CHECKED"
+    ],
+    "record_missing": [
+      "PENDING",
+      "COULD_NOT_CHECK"
+    ],
+    "record_no_selects": [
+      "PENDING",
+      "COULD_NOT_CHECK"
+    ],
+    "record_throws": [
+      "PENDING",
+      "COULD_NOT_CHECK"
+    ],
+    "resolver_empty": [
+      "PENDING",
+      "COULD_NOT_CHECK"
+    ],
+    "resolver_null": [
+      "PENDING",
+      "COULD_NOT_CHECK"
+    ],
+    "resolver_throws": [
+      "PENDING",
+      "COULD_NOT_CHECK"
+    ],
+    "unstamped_build": [
+      "PENDING",
+      "COULD_NOT_CHECK"
+    ]
+  },
+  "source": "ui/currency-read.js"
+}

@@ -1,0 +1,234 @@
+{
+  "initial": {
+    "reason": "",
+    "state": "NOT_RUN",
+    "text": "not checked \u2014 currency has not been established, which is not the same as being current",
+    "tone": "neutral"
+  },
+  "malformed": {
+    "nothing": {
+      "reason": "",
+      "state": "",
+      "text": "could not render \u2014 this build was handed a marker it cannot interpret. That is a defect in this page, not a finding about what is published",
+      "tone": "amber",
+      "wellFormed": false
+    },
+    "textless": {
+      "reason": "",
+      "state": "",
+      "text": "could not render \u2014 this build was handed a marker it cannot interpret. That is a defect in this page, not a finding about what is published",
+      "tone": "amber",
+      "wellFormed": false
+    },
+    "unqualified": {
+      "reason": "",
+      "state": "",
+      "text": "could not render \u2014 this build was handed a marker it cannot interpret. That is a defect in this page, not a finding about what is published",
+      "tone": "amber",
+      "wellFormed": false
+    }
+  },
+  "note": "What a reader SEES for each network-backed path, produced by the code inlined in ui/index.html. A lost qualifier reads as a diff here, not as silence.",
+  "pending": {
+    "reason": "",
+    "state": "PENDING",
+    "text": "checking \u2014 the resolver read is in flight. This is not a pass",
+    "tone": "amber"
+  },
+  "sequences": {
+    "published_current": [
+      {
+        "reason": "",
+        "state": "NOT_RUN",
+        "text": "not checked \u2014 currency has not been established, which is not the same as being current",
+        "tone": "neutral"
+      },
+      {
+        "reason": "",
+        "state": "PENDING",
+        "text": "checking \u2014 the resolver read is in flight. This is not a pass",
+        "tone": "amber"
+      },
+      {
+        "reason": "",
+        "state": "CHECKED",
+        "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+        "tone": "green"
+      }
+    ],
+    "published_stale": [
+      {
+        "reason": "",
+        "state": "NOT_RUN",
+        "text": "not checked \u2014 currency has not been established, which is not the same as being current",
+        "tone": "neutral"
+      },
+      {
+        "reason": "",
+        "state": "PENDING",
+        "text": "checking \u2014 the resolver read is in flight. This is not a pass",
+        "tone": "amber"
+      },
+      {
+        "reason": "",
+        "state": "CHECKED",
+        "text": "STALE \u2014 the published contenthash is not the build of this commit",
+        "tone": "red"
+      }
+    ],
+    "record_missing": [
+      {
+        "reason": "",
+        "state": "NOT_RUN",
+        "text": "not checked \u2014 currency has not been established, which is not the same as being current",
+        "tone": "neutral"
+      },
+      {
+        "reason": "",
+        "state": "PENDING",
+        "text": "checking \u2014 the resolver read is in flight. This is not a pass",
+        "tone": "amber"
+      },
+      {
+        "reason": "lock_unreadable",
+        "state": "COULD_NOT_CHECK",
+        "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+        "tone": "amber"
+      }
+    ],
+    "record_no_selects": [
+      {
+        "reason": "",
+        "state": "NOT_RUN",
+        "text": "not checked \u2014 currency has not been established, which is not the same as being current",
+        "tone": "neutral"
+      },
+      {
+        "reason": "",
+        "state": "PENDING",
+        "text": "checking \u2014 the resolver read is in flight. This is not a pass",
+        "tone": "amber"
+      },
+      {
+        "reason": "lock_unreadable",
+        "state": "COULD_NOT_CHECK",
+        "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+        "tone": "amber"
+      }
+    ],
+    "resolver_offline": [
+      {
+        "reason": "",
+        "state": "NOT_RUN",
+        "text": "not checked \u2014 currency has not been established, which is not the same as being current",
+        "tone": "neutral"
+      },
+      {
+        "reason": "",
+        "state": "PENDING",
+        "text": "checking \u2014 the resolver read is in flight. This is not a pass",
+        "tone": "amber"
+      },
+      {
+        "reason": "resolver_unreachable",
+        "state": "COULD_NOT_CHECK",
+        "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+        "tone": "amber"
+      }
+    ],
+    "resolver_silent": [
+      {
+        "reason": "",
+        "state": "NOT_RUN",
+        "text": "not checked \u2014 currency has not been established, which is not the same as being current",
+        "tone": "neutral"
+      },
+      {
+        "reason": "",
+        "state": "PENDING",
+        "text": "checking \u2014 the resolver read is in flight. This is not a pass",
+        "tone": "amber"
+      },
+      {
+        "reason": "resolver_unreachable",
+        "state": "COULD_NOT_CHECK",
+        "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+        "tone": "amber"
+      }
+    ],
+    "unstamped_build": [
+      {
+        "reason": "",
+        "state": "NOT_RUN",
+        "text": "not checked \u2014 currency has not been established, which is not the same as being current",
+        "tone": "neutral"
+      },
+      {
+        "reason": "",
+        "state": "PENDING",
+        "text": "checking \u2014 the resolver read is in flight. This is not a pass",
+        "tone": "amber"
+      },
+      {
+        "reason": "artifact_unstamped",
+        "state": "COULD_NOT_CHECK",
+        "text": "could not check \u2014 could not tell which commit this page is \u2014 the build was never stamped, so there is nothing to compare",
+        "tone": "amber"
+      }
+    ]
+  },
+  "source": "ui/index.html (inlined currency-marker.js + currency-read.js + currency-surface.js)",
+  "surface": {
+    "published_current": {
+      "reason": "",
+      "state": "CHECKED",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+      "tone": "green"
+    },
+    "published_stale": {
+      "reason": "",
+      "state": "CHECKED",
+      "text": "STALE \u2014 the published contenthash is not the build of this commit",
+      "tone": "red"
+    },
+    "record_missing": {
+      "reason": "lock_unreadable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+      "tone": "amber"
+    },
+    "record_no_selects": {
+      "reason": "lock_unreadable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit is selected \u2014 the pin record or lock could not be read",
+      "tone": "amber"
+    },
+    "resolver_offline": {
+      "reason": "resolver_unreachable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber"
+    },
+    "resolver_silent": {
+      "reason": "resolver_unreachable",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read what is published \u2014 the resolver did not answer, so the live contenthash is unknown",
+      "tone": "amber"
+    },
+    "unstamped_build": {
+      "reason": "artifact_unstamped",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not tell which commit this page is \u2014 the build was never stamped, so there is nothing to compare",
+      "tone": "amber"
+    }
+  },
+  "unchanged": {
+    "published_current": true,
+    "published_stale": true,
+    "record_missing": true,
+    "record_no_selects": true,
+    "resolver_offline": true,
+    "resolver_silent": true,
+    "unstamped_build": true
+  }
+}

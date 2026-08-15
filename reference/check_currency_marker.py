@@ -75,9 +75,21 @@ CASES: list[tuple[str, str, object]] = [
     ("cnc_resolver",         "COULD_NOT_CHECK", "resolver_unreachable"),
     ("cnc_no_ipfs",          "COULD_NOT_CHECK", "no_local_ipfs"),
     ("cnc_lock",             "COULD_NOT_CHECK", "lock_unreadable"),
+    ("cnc_unstamped",        "COULD_NOT_CHECK", "artifact_unstamped"),
     ("cnc_no_reason",        "COULD_NOT_CHECK", None),
     ("unrecognised_verdict", "CHECKED",         "PROBABLY_FINE"),
     ("unrecognised_state",   "SOMETHING_NEW",   None),
+]
+
+# The adapter: a live read becoming a state. Every non-CHECKED path must carry a reason and
+# no path may invent a verdict — "no fallback when the network disappears".
+ADAPTER: list[tuple[str, object, object]] = [
+    ("adapter_resolver_silent",   None,                                                       "f3e9a670de440442132a1440a568c955f595c550"),
+    ("adapter_legacy_no_selects", {"commit": "c0cb1faca015d6cc20f7d7c8abe4fb4c20e72f55"},     "f3e9a670de440442132a1440a568c955f595c550"),
+    ("adapter_unstamped_build",   {"selects": {"commit": "f3e9a670de440442132a1440a568c955f595c550"}}, "__CONSOLE_SOURCE_COMMIT__"),
+    ("adapter_current",           {"selects": {"commit": "f3e9a670de440442132a1440a568c955f595c550"}}, "f3e9a670de440442132a1440a568c955f595c550"),
+    ("adapter_stale",             {"selects": {"commit": "0" * 40}},                          "f3e9a670de440442132a1440a568c955f595c550"),
+    ("adapter_malformed_selects", {"selects": {"commit": "not-a-sha"}},                       "f3e9a670de440442132a1440a568c955f595c550"),
 ]
 
 # The boundary the two existing checks need (rule 3).
@@ -106,13 +118,16 @@ def render() -> dict | None:
         "  catch (e) { out.states[name] = {__threw: String(e && e.message || e)}; } }\n"
         "for (const [name, a, b] of legacy) { try { out.legacy[name] = m.fromLegacy(a, b); }\n"
         "  catch (e) { out.legacy[name] = {__threw: String(e && e.message || e)}; } }\n"
+        "const adapter = JSON.parse(process.argv[5]); out.adapter = {};\n"
+        "for (const [name, rec, sc] of adapter) { try { out.adapter[name] = m.fromPinRecord(rec, sc); }\n"
+        "  catch (e) { out.adapter[name] = {__threw: String(e && e.message || e)}; } }\n"
         "process.stdout.write(JSON.stringify(out));\n"
     )
     with tempfile.TemporaryDirectory() as td:
         h = pathlib.Path(td) / "h.cjs"
         h.write_text(harness, encoding="utf-8")
         try:
-            r = subprocess.run([node, str(h), str(MARKER.resolve()), json.dumps(CASES), json.dumps(LEGACY)],
+            r = subprocess.run([node, str(h), str(MARKER.resolve()), json.dumps(CASES), json.dumps(LEGACY), json.dumps(ADAPTER)],
                                capture_output=True, text=True, timeout=120)
         except subprocess.SubprocessError:
             return None
@@ -167,7 +182,11 @@ def main() -> int:
         chk(f"legacy {name}", canon(got["legacy"].get(name)) == canon(golden.get("legacy", {}).get(name)),
             json.dumps(got["legacy"].get(name))[:130])
 
-    surfaces = list(got["states"].values()) + list(got["legacy"].values())
+    for name, _, _ in ADAPTER:
+        chk(f"adapter {name}", canon(got["adapter"].get(name)) == canon(golden.get("adapter", {}).get(name)),
+            json.dumps(got["adapter"].get(name))[:130])
+
+    surfaces = list(got["states"].values()) + list(got["legacy"].values()) + list(got["adapter"].values())
 
     print("\nassertion 1 — no reason can manufacture a verdict\n")
     chk("a verdict appears only under CHECKED",
@@ -181,10 +200,10 @@ def main() -> int:
 
     print("\nassertion 2 — no failure disappears into a generic green or amber\n")
     reason_texts = {}
-    for name in ("cnc_resolver", "cnc_no_ipfs", "cnc_lock"):
+    for name in ("cnc_resolver", "cnc_no_ipfs", "cnc_lock", "cnc_unstamped"):
         s = got["states"][name]
         reason_texts[s.get("reason")] = s.get("text")
-    chk("the three reasons produce three distinct texts", len(set(reason_texts.values())) == 3,
+    chk("all four reasons produce four distinct texts", len(set(reason_texts.values())) == 4,
         json.dumps(reason_texts)[:200])
     chk("each names which side of the comparison went dark",
         all(isinstance(t, str) and len(t) > 40 for t in reason_texts.values()))
@@ -218,6 +237,34 @@ def main() -> int:
         got["legacy"]["legacy_undetermined_upstream"]["reason"] == "resolver_unreachable")
     chk("no surface anywhere reports UNDETERMINED",
         all(s.get("state") != "UNDETERMINED" for s in surfaces))
+
+    print("\nthe adapter has no fallback — every unestablished path names a reason\n")
+    ad = got["adapter"]
+    chk("a silent resolver does not produce a verdict",
+        ad["adapter_resolver_silent"]["verdict"] is None
+        and ad["adapter_resolver_silent"]["reason"] == "resolver_unreachable")
+    chk("a legacy record without selects is COULD_NOT_CHECK/lock_unreadable, never STALE",
+        ad["adapter_legacy_no_selects"]["state"] == "COULD_NOT_CHECK"
+        and ad["adapter_legacy_no_selects"]["reason"] == "lock_unreadable"
+        and ad["adapter_legacy_no_selects"]["verdict"] is None,
+        json.dumps(ad["adapter_legacy_no_selects"])[:140])
+    chk("an unstamped build says so rather than borrowing lock_unreadable",
+        ad["adapter_unstamped_build"]["reason"] == "artifact_unstamped")
+    # His guardrail, both halves: neither failure may become a verdict, in either direction.
+    chk("an unstamped build never becomes STALE",
+        ad["adapter_unstamped_build"]["verdict"] is None
+        and ad["adapter_unstamped_build"]["state"] == "COULD_NOT_CHECK")
+    chk("a STAMPED artifact with missing selects stays lock_unreadable",
+        ad["adapter_legacy_no_selects"]["reason"] == "lock_unreadable",
+        "the stamped case must not borrow artifact_unstamped")
+    chk("the two causes never share a reason",
+        ad["adapter_unstamped_build"]["reason"] != ad["adapter_legacy_no_selects"]["reason"])
+    chk("a malformed selects.commit does not become a comparison",
+        ad["adapter_malformed_selects"]["state"] == "COULD_NOT_CHECK")
+    chk("matching commits establish CURRENT", ad["adapter_current"]["verdict"] == "CURRENT")
+    chk("differing commits establish STALE", ad["adapter_stale"]["verdict"] == "STALE")
+    chk("exactly two adapter paths reach CHECKED",
+        sum(1 for v in ad.values() if v["state"] == "CHECKED") == 2)
 
     print("\nrule 5 — every declared state is reachable from some vector\n")
     reached = {s.get("state") for s in got["states"].values()}
