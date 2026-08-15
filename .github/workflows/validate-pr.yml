@@ -198,6 +198,11 @@ jobs:
       # @boardyai: "vectors before the network read. A verification page should earn the
       # right to make a new claim before it gets another source of uncertainty."
       # The console still makes no network call; this is the contract it will have to meet.
+      # `selects` is required on new pin records — the bridge that makes currency a ONE-hop
+      # derivation. The grandfather list is enumerated by CID, not by date: a date rule would
+      # silently absolve any future record whose clock looked old enough.
+      - name: new pin records name the commit they select
+        run: python3 reference/check_pin_selects.py
       - name: the currency mapping holds
         run: python3 reference/check_currency_marker.py
       - name: and that check can fail for each assertion it makes

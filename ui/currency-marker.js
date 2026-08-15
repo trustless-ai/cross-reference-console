@@ -9,7 +9,8 @@
  *   NOT_RUN          the page has loaded and has not asked yet
  *   PENDING          the resolver read is in flight
  *   COULD_NOT_CHECK  a check was attempted and no result could be established.
- *                    REQUIRED reason: resolver_unreachable | no_local_ipfs | lock_unreadable
+ *                    REQUIRED reason: resolver_unreachable | no_local_ipfs |
+ *                    lock_unreadable | artifact_unstamped
  *   CHECKED          + domain verdict CURRENT | STALE
  *
  * Network-unreachable is a REASON, not a state. Naming it would have been the move that earns a
@@ -26,8 +27,8 @@
  * THE TWO ASSERTIONS THAT MATTER, both his:
  *   1. No reason can manufacture a verdict. A reason accompanies a failure to establish one; it
  *      never becomes one.
- *   2. No failure disappears into a generic green or amber. The three reasons are three
- *      different next actions, so they must not render as one indistinguishable amber — that
+ *   2. No failure disappears into a generic green or amber. The reasons are distinct
+ *      next actions, so they must not render as one indistinguishable amber — that
  *      would keep the reason in the data and collapse it on the surface, which is the same
  *      defect one layer out.
  */
@@ -43,7 +44,7 @@
 
   var EXECUTION_STATES = [NOT_RUN, PENDING, COULD_NOT_CHECK, CHECKED];
   var VERDICTS = [CURRENT, STALE];
-  var REASONS = ['resolver_unreachable', 'no_local_ipfs', 'lock_unreadable'];
+  var REASONS = ['resolver_unreachable', 'no_local_ipfs', 'lock_unreadable', 'artifact_unstamped'];
 
   /* Each reason says which side of the comparison went dark, and they are not
    * interchangeable: one means the candidate could not be computed, another that the
@@ -55,7 +56,9 @@
     no_local_ipfs:
       'could not compute the candidate — no local ipfs to derive the CID from, so there is nothing to compare against',
     lock_unreadable:
-      'could not tell which commit is selected — the pin record or lock could not be read'
+      'could not tell which commit is selected — the pin record or lock could not be read',
+    artifact_unstamped:
+      'could not tell which commit this page is — the build was never stamped, so there is nothing to compare'
   };
 
   function unqualifiedGuard(o) {
@@ -148,13 +151,47 @@
     return currencyMarker('__unrecognised__', verdict);
   }
 
+  /* THE ADAPTER — @boardyai's shape, 15 August 2026: "resolve CID, read its pin record,
+   * compare selects.commit with CONSOLE_SOURCE_COMMIT, and project through the vectors."
+   *
+   * It is deliberately the only place a live read becomes a state, and it has NO FALLBACK.
+   * Every path that is not an established comparison is COULD_NOT_CHECK with a reason —
+   * there is no default, no last-known-good, no assumption of currency when the network
+   * disappears. That is the whole constraint: a page that guesses when it cannot see is
+   * worse than a page that says it cannot see.
+   *
+   *   record            the pin record for the RESOLVED contenthash, or null if the resolver
+   *                     did not answer / the record could not be fetched
+   *   sourceCommit      the artifact's own CONSOLE_SOURCE_COMMIT
+   *
+   * Missing `selects` is a STRUCTURAL inability to establish currency — never an old-style
+   * STALE, and never licence to chase the answer through another repo's history.
+   */
+  function fromPinRecord(record, sourceCommit) {
+    if (!record || typeof record !== 'object') {
+      return currencyMarker(COULD_NOT_CHECK, 'resolver_unreachable');
+    }
+    /* An unstamped build does not know which commit it is. That is a different cause from
+     * "the record does not say what it selects", and folding the two together would be the
+     * same collapse this file exists to refuse — so it carries its own reason. */
+    if (typeof sourceCommit !== 'string' || !/^[0-9a-f]{40}$/.test(sourceCommit)) {
+      return currencyMarker(COULD_NOT_CHECK, 'artifact_unstamped');
+    }
+    var sel = record.selects;
+    if (!sel || typeof sel !== 'object' || typeof sel.commit !== 'string' || !/^[0-9a-f]{40}$/.test(sel.commit)) {
+      return currencyMarker(COULD_NOT_CHECK, 'lock_unreadable');
+    }
+    return currencyMarker(CHECKED, sel.commit === sourceCommit ? CURRENT : STALE);
+  }
+
   currencyMarker.EXECUTION_STATES = EXECUTION_STATES;
   currencyMarker.VERDICTS = VERDICTS;
   currencyMarker.REASONS = REASONS;
   currencyMarker.fromLegacy = fromLegacy;
+  currencyMarker.fromPinRecord = fromPinRecord;
 
   root.currencyMarker = currencyMarker;
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { currencyMarker: currencyMarker, fromLegacy: fromLegacy };
+    module.exports = { currencyMarker: currencyMarker, fromLegacy: fromLegacy, fromPinRecord: fromPinRecord };
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

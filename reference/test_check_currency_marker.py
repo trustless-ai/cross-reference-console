@@ -105,6 +105,26 @@ if r["anchored"]:
     check("caught as a second canonical state",
           "no surface anywhere reports UNDETERMINED" in r["out"], r["out"][-240:])
 
+print("\nNO FALLBACK — the adapter defaults to CURRENT when the resolver is silent (must be CAUGHT):")
+r = run_mutated(
+    "    if (!record || typeof record !== 'object') {\n      return currencyMarker(COULD_NOT_CHECK, 'resolver_unreachable');",
+    "    if (!record || typeof record !== 'object') {\n      return currencyMarker(CHECKED, CURRENT);")
+check("mutation anchor still present", r["anchored"])
+if r["anchored"]:
+    check("exit is exactly 1", r["code"] == EXIT_BAD, f"got {r['code']}")
+    check("caught as a fallback, not just a golden diff",
+          "silent resolver does not produce a verdict" in r["out"], r["out"][-260:])
+
+print("\nMISSING selects TREATED AS STALE instead of could-not-check (must be CAUGHT):")
+r = run_mutated(
+    "      return currencyMarker(COULD_NOT_CHECK, 'lock_unreadable');",
+    "      return currencyMarker(CHECKED, STALE);")
+check("mutation anchor still present", r["anchored"])
+if r["anchored"]:
+    check("exit is exactly 1", r["code"] == EXIT_BAD, f"got {r['code']}")
+    check("caught as an inferred verdict",
+          "never STALE" in r["out"] or "lock_unreadable" in r["out"], r["out"][-240:])
+
 print("\nUNVERIFIABLE — mapping missing (must be exactly 2, never 0):")
 r = subprocess.run([sys.executable, str(CHECK), "--marker", "/nonexistent/currency-marker.js"],
                    capture_output=True, text=True, timeout=120)
