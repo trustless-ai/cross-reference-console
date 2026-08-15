@@ -174,6 +174,25 @@ jobs:
           # flattering answer — INDEPENDENT is what makes the matrix look strong.
           # Both run over the same embedded snapshot and must agree per claim.
           python3 reference/check_console_lineage.py
+      - name: the rendered state is part of the asserted state (the Boardy rule)
+        run: |
+          # @boardyai, 15 Aug 2026: "a correct internal verdict with a collapsed or
+          # missing UI marker is still a public falsehood, and vector tests cannot
+          # catch it unless the rendered state is part of the asserted state."
+          #
+          # The state was already checked, and the mapping was checked in isolation.
+          # Nothing tied a state to the exact text a reader sees, so the wording could
+          # change — or quietly lose its qualifier — with every other check green.
+          # Drives the SHIPPED ui/lineage-marker.js, never a copy, against a pinned
+          # golden. A lost caveat therefore reads as a diff, not as silence.
+          python3 reference/check_boardy_rule.py
+      - name: and that check can actually go red
+        run: |
+          # Mutates the shipped mapping three ways — drop the qualifier flag, strip
+          # "NOT PROVEN" from the text while leaving the flag true, change the wording
+          # without updating the golden — and requires an exact exit 1 each time, plus
+          # exit 2 (never 0) when it cannot check at all.
+          python3 reference/test_check_boardy_rule.py
       - name: every registered duplicate has a comparator that demonstrably bites
         run: |
           # Damon Zwicker's amendment: "name the module that decides rule X" is a

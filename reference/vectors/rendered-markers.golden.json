@@ -1,0 +1,89 @@
+{
+  "markers": {
+    "absent_null": {
+      "addClass": [
+        "lin-unproven"
+      ],
+      "qualified": true,
+      "removeClass": [],
+      "state": "INDEPENDENCE_NOT_PROVEN",
+      "tail": " \u00b7 independence NOT PROVEN \u2014 lineage state unavailable \u2014 fewer than two lanes in the graph, so independence was never evaluated. Distinctness is necessary, not sufficient."
+    },
+    "derived": {
+      "addClass": [
+        "lin-derived"
+      ],
+      "qualified": true,
+      "removeClass": [
+        "match"
+      ],
+      "state": "DERIVED",
+      "tail": " \u00b7 DERIVED \u2014 node2 declares derivation from node1. The claim_ids agree, but these lanes share lineage, so this edge is weaker than two independent recomputations."
+    },
+    "independent": {
+      "addClass": [
+        "lin-independent"
+      ],
+      "qualified": true,
+      "removeClass": [],
+      "state": "INDEPENDENT",
+      "tail": " \u00b7 INDEPENDENT \u2014 written from specification material"
+    },
+    "malformed_empty": {
+      "addClass": [
+        "lin-unproven"
+      ],
+      "qualified": true,
+      "removeClass": [],
+      "state": "INDEPENDENCE_NOT_PROVEN",
+      "tail": " \u00b7 independence NOT PROVEN \u2014 lineage state malformed \u2014 expected a [state, reason] pair, cannot interpret it. Distinctness is necessary, not sufficient."
+    },
+    "malformed_nonstring": {
+      "addClass": [
+        "lin-unproven"
+      ],
+      "qualified": true,
+      "removeClass": [],
+      "state": "INDEPENDENCE_NOT_PROVEN",
+      "tail": " \u00b7 independence NOT PROVEN \u2014 lineage state malformed \u2014 expected a [state, reason] pair, cannot interpret it. Distinctness is necessary, not sufficient."
+    },
+    "malformed_string": {
+      "addClass": [
+        "lin-unproven"
+      ],
+      "qualified": true,
+      "removeClass": [],
+      "state": "INDEPENDENCE_NOT_PROVEN",
+      "tail": " \u00b7 independence NOT PROVEN \u2014 lineage state malformed \u2014 expected a [state, reason] pair, cannot interpret it. Distinctness is necessary, not sufficient."
+    },
+    "missing_reason": {
+      "addClass": [
+        "lin-independent"
+      ],
+      "qualified": true,
+      "removeClass": [],
+      "state": "INDEPENDENT",
+      "tail": " \u00b7 INDEPENDENT \u2014 no reason recorded"
+    },
+    "unproven": {
+      "addClass": [
+        "lin-unproven"
+      ],
+      "qualified": true,
+      "removeClass": [],
+      "state": "INDEPENDENCE_NOT_PROVEN",
+      "tail": " \u00b7 independence NOT PROVEN \u2014 lineage refs unresolved. Distinctness is necessary, not sufficient."
+    },
+    "unrecognised_state": {
+      "addClass": [
+        "lin-unproven"
+      ],
+      "qualified": true,
+      "removeClass": [],
+      "state": "INDEPENDENCE_NOT_PROVEN",
+      "tail": " \u00b7 independence NOT PROVEN \u2014 unrecognised lineage state \"SOMETHING_NEW_IN_2027\" \u2014 this build cannot interpret it (a state this build predates). Distinctness is necessary, not sufficient."
+    }
+  },
+  "note": "Rendered markers, pinned. The Boardy rule: the rendered state is part of the asserted state, so changing what a reader sees is a deliberate act that updates this file. Regenerate with reference/check_boardy_rule.py --write-golden and review the diff \u2014 a lost qualifier looks like a wording change here.",
+  "source": "ui/lineage-marker.js"
+}
