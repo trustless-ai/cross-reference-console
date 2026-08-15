@@ -1,0 +1,37 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeihim4cjh2uqxlctepgibzdhr77rag53mqu6vlces72eyyiqnjjipe",
+  "commit": "c98fa939e67921c825658d51308b472dcd5c5867",
+  "selects": {
+    "repo": "https://github.com/trustless-ai/cross-reference-console",
+    "commit": "ddf1dad61403e781f65134529d2391e744c02293",
+    "artifact": "ui/index.html",
+    "note": "The console commit this publication SELECTS, as distinct from `commit` above, which is the landing repo commit that was published. This is the record the PUBLISHED PAGE ITSELF now reads: it resolves the contenthash from the resolver contract, fetches this file by that CID, and compares this field against its own CONSOLE_SOURCE_COMMIT. Without `selects` the honest verdict is COULD_NOT_CHECK/lock_unreadable — a structural inability to establish currency, never STALE."
+  },
+  "artifact": "site tree (29 published files)",
+  "tree_sha256": "sha256:163d4362138a7f5d85d732f651ed90924e518d6f3fd761b4d7522730f8f5aa99",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "supersedes": "bafybeigrjta3htvdpiohl55ajiqwvkp4rfdyex2njmihfr2sudtvv7jboy",
+  "purpose": "The console now reads its own currency instead of asserting it. At load it resolves trustless-ai.eth's contenthash FROM THE RESOLVER CONTRACT, fetches that CID's pin record — this file — and compares `selects.commit` against the CONSOLE_SOURCE_COMMIT that sync_console.py stamped into the published copy. @boardyai's wiring constraint, ratified 2026-08-15: initial state NOT_RUN, PENDING before the read, the result passed unchanged through the existing projection, no decision logic and no second mapping in the wiring. All four are asserted mechanically in cross-reference-console@ddf1dad against the code INLINED IN THE PUBLISHED PAGE — not the source files beside it — driven as an ES module so the wrappers take the branch a browser takes. Seven network-backed paths: resolver silent or throwing is resolver_unreachable, a missing or selects-less record is lock_unreadable, an unstamped build is artifact_unstamped, and only an established comparison yields CURRENT or STALE. Exactly one path renders green.",
+  "ordering_note": "This record was merged to cross-reference-console main BEFORE the contenthash transaction, which is a change from every previous repin. The published page fetches this file from raw.githubusercontent.com at main; had the transaction landed first, the newly-published console's first act would have been to resolve its own CID, find no record, and render COULD_NOT_CHECK/lock_unreadable. Honest, and a poor first showing for a check that works. The `tx` field below is therefore empty at merge time and filled in after the transaction confirms.",
+  "tx": "",
+  "pinned_at": "",
+  "verification": {
+    "contenthash_read_from": "resolver 0xf29100983e058b709f3d539b0c765937b804ac15, contenthash(namehash('trustless-ai.eth'))",
+    "decoded_cid": "",
+    "note": "To be filled from a direct eth_call after the transaction confirms, decoded from the raw e30101701220 bytes rather than read from a resolver API. On 15 August two independent ENS APIs served the superseded CID for some minutes after a transaction confirmed; the contract did not. A cached read is not a second opinion — and this is now also the path the published page takes."
+  },
+  "availability": {
+    "stored_at": "2026-08-15T14:31:00Z",
+    "note": "build/site_cid.py derives the CID with `ipfs add -n`, which stores nothing — the trap that published a pointer to non-existent bytes on the previous repin. The tool now carries `--store`, which re-runs the same command without `-n` and refuses to report success unless the stored CID equals the derived one (trustless-ai-landing PR #15). Both runs produced this CID; the bytes are held locally and pinned on Pinata by hash rather than re-uploaded, since re-uploading risks a different CID under the service's own defaults. Retrieval was verified from the stored tree: /console/index.html carries the wiring and is stamped ddf1dad61403."
+  },
+  "confirmations": []
+}
