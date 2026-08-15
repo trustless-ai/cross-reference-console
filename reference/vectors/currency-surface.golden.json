@@ -52,7 +52,7 @@
       {
         "reason": "",
         "state": "CHECKED",
-        "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+        "text": "CURRENT \u2014 the published contenthash is the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
         "tone": "green"
       }
     ],
@@ -72,7 +72,7 @@
       {
         "reason": "",
         "state": "CHECKED",
-        "text": "STALE \u2014 the published contenthash is not the build of this commit",
+        "text": "STALE \u2014 the published contenthash is not the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
         "tone": "red"
       }
     ],
@@ -182,13 +182,13 @@
     "published_current": {
       "reason": "",
       "state": "CHECKED",
-      "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
       "tone": "green"
     },
     "published_stale": {
       "reason": "",
       "state": "CHECKED",
-      "text": "STALE \u2014 the published contenthash is not the build of this commit",
+      "text": "STALE \u2014 the published contenthash is not the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
       "tone": "red"
     },
     "record_missing": {

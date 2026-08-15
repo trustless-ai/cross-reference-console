@@ -44,7 +44,8 @@
 
   var EXECUTION_STATES = [NOT_RUN, PENDING, COULD_NOT_CHECK, CHECKED];
   var VERDICTS = [CURRENT, STALE];
-  var REASONS = ['resolver_unreachable', 'no_local_ipfs', 'lock_unreadable', 'artifact_unstamped'];
+  var REASONS = ['resolver_unreachable', 'no_local_ipfs', 'lock_unreadable', 'artifact_unstamped',
+                 'stale_head'];
 
   /* Each reason says which side of the comparison went dark, and they are not
    * interchangeable: one means the candidate could not be computed, another that the
@@ -58,8 +59,26 @@
     lock_unreadable:
       'could not tell which commit is selected — the pin record or lock could not be read',
     artifact_unstamped:
-      'could not tell which commit this page is — the build was never stamped, so there is nothing to compare'
+      'could not tell which commit this page is — the build was never stamped, so there is nothing to compare',
+    stale_head:
+      'could not read current chain state — the node answered from a block too old to be the head, so its answer may be behind'
   };
+
+  /* A verdict must be DATABLE. babyblueviper1, 15 August 2026, generalising a week of
+   * incidents: "a read agreeing with itself across multiple sources is not the same claim
+   * as a read agreeing with ground truth ... the fix has to be a freshness bound (block
+   * number / observed-at timestamp) on the read itself, not more redundant reads of it."
+   *
+   * This console moved from an ENS API to the resolver contract, which removed one shared
+   * cache and not the class: an RPC node serves its own `latest`, and a lagging node
+   * answers confidently from a stale block. A CURRENT with no block attached is a claim a
+   * reader cannot date, and a stale read is unfalsifiable from inside itself — nothing in
+   * the response says it is behind, which is exactly why querying more sources feels like
+   * it should help and does not.
+   *
+   * So an established verdict carries the block it was observed at. currencyMarker's third
+   * argument is that observation; check_currency_marker.py asserts that CHECKED without it
+   * cannot happen. */
 
   function unqualifiedGuard(o) {
     /* `qualified` is true on every branch and exists so a gate can assert that no path
@@ -70,26 +89,34 @@
 
   /* The ONLY input is the pair. A caller that wants to decide something else has to reach
    * outside this function, which CI can see. */
-  function currencyMarker(execution, detail) {
+  function currencyMarker(execution, detail, observed) {
+    var obs = (observed && typeof observed === 'object') ? observed : null;
+    /* A dated verdict and an undated one must not read alike. If the read carried no block,
+     * the verdict says so rather than borrowing the confidence of one that did — the marker
+     * travels with the value, including when what it carries is an absence. */
+    var atBlock = (obs && typeof obs.block === 'number')
+      ? ' (as of block ' + obs.block + ')'
+      : ' (undated read — no block recorded, so this cannot be placed in time)';
+
     if (execution === CHECKED) {
       var verdict = detail;
       if (verdict === CURRENT) {
         return unqualifiedGuard({
-          state: CHECKED, verdict: CURRENT, reason: null, tone: 'green',
-          text: 'CURRENT — the published contenthash is the build of this commit'
+          state: CHECKED, verdict: CURRENT, reason: null, tone: 'green', observed: obs,
+          text: 'CURRENT — the published contenthash is the build of this commit' + atBlock
         });
       }
       if (verdict === STALE) {
         return unqualifiedGuard({
-          state: CHECKED, verdict: STALE, reason: null, tone: 'red',
-          text: 'STALE — the published contenthash is not the build of this commit'
+          state: CHECKED, verdict: STALE, reason: null, tone: 'red', observed: obs,
+          text: 'STALE — the published contenthash is not the build of this commit' + atBlock
         });
       }
       /* A verdict this build has never heard of. Failing closed is the only safe direction:
        * an unrecognised verdict must not inherit the strongest rendering, and it must not be
        * rendered as a determinate STALE either — we did not establish that. */
       return unqualifiedGuard({
-        state: COULD_NOT_CHECK, verdict: null, reason: 'unrecognised_verdict', tone: 'amber',
+        state: COULD_NOT_CHECK, verdict: null, reason: 'unrecognised_verdict', tone: 'amber', observed: obs,
         text: 'could not check — unrecognised currency verdict "' + String(verdict) + '", this build cannot interpret it'
       });
     }
@@ -100,6 +127,7 @@
       return unqualifiedGuard({
         state: COULD_NOT_CHECK,
         verdict: null,                     /* rule 1: a reason never becomes a verdict */
+        observed: obs,
         reason: known ? reason : 'unspecified',
         tone: 'amber',
         text: 'could not check — ' + (known
@@ -110,21 +138,21 @@
 
     if (execution === PENDING) {
       return unqualifiedGuard({
-        state: PENDING, verdict: null, reason: null, tone: 'amber',
+        state: PENDING, verdict: null, reason: null, tone: 'amber', observed: obs,
         text: 'checking — the resolver read is in flight. This is not a pass'
       });
     }
 
     if (execution === NOT_RUN) {
       return unqualifiedGuard({
-        state: NOT_RUN, verdict: null, reason: null, tone: 'neutral',
+        state: NOT_RUN, verdict: null, reason: null, tone: 'neutral', observed: obs,
         text: 'not checked — currency has not been established, which is not the same as being current'
       });
     }
 
     /* An execution state this build has never heard of — same fail-closed direction. */
     return unqualifiedGuard({
-      state: COULD_NOT_CHECK, verdict: null, reason: 'unrecognised_state', tone: 'amber',
+      state: COULD_NOT_CHECK, verdict: null, reason: 'unrecognised_state', tone: 'amber', observed: obs,
       text: 'could not check — unrecognised execution state "' + String(execution) + '", this build cannot interpret it'
     });
   }
@@ -167,21 +195,21 @@
    * Missing `selects` is a STRUCTURAL inability to establish currency — never an old-style
    * STALE, and never licence to chase the answer through another repo's history.
    */
-  function fromPinRecord(record, sourceCommit) {
+  function fromPinRecord(record, sourceCommit, observed) {
     if (!record || typeof record !== 'object') {
-      return currencyMarker(COULD_NOT_CHECK, 'resolver_unreachable');
+      return currencyMarker(COULD_NOT_CHECK, 'resolver_unreachable', observed);
     }
     /* An unstamped build does not know which commit it is. That is a different cause from
      * "the record does not say what it selects", and folding the two together would be the
      * same collapse this file exists to refuse — so it carries its own reason. */
     if (typeof sourceCommit !== 'string' || !/^[0-9a-f]{40}$/.test(sourceCommit)) {
-      return currencyMarker(COULD_NOT_CHECK, 'artifact_unstamped');
+      return currencyMarker(COULD_NOT_CHECK, 'artifact_unstamped', observed);
     }
     var sel = record.selects;
     if (!sel || typeof sel !== 'object' || typeof sel.commit !== 'string' || !/^[0-9a-f]{40}$/.test(sel.commit)) {
-      return currencyMarker(COULD_NOT_CHECK, 'lock_unreadable');
+      return currencyMarker(COULD_NOT_CHECK, 'lock_unreadable', observed);
     }
-    return currencyMarker(CHECKED, sel.commit === sourceCommit ? CURRENT : STALE);
+    return currencyMarker(CHECKED, sel.commit === sourceCommit ? CURRENT : STALE, observed);
   }
 
   currencyMarker.EXECUTION_STATES = EXECUTION_STATES;

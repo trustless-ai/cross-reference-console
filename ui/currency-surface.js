@@ -50,14 +50,21 @@
     var tone = wellFormed ? marker.tone : 'amber';
     var state = wellFormed ? String(marker.state) : '';
     var reason = (wellFormed && marker.reason) ? String(marker.reason) : '';
+    /* Copied out for a reader inspecting the DOM, never consulted to decide anything.
+     * A verdict that cannot be placed in time renders data-block="" — the absence is
+     * as visible as the value. */
+    var block = (wellFormed && marker.observed && typeof marker.observed.block === 'number')
+      ? String(marker.observed.block) : '';
 
     if (el) {
       el.textContent = text;
       el.setAttribute('data-tone', tone);
       el.setAttribute('data-state', state);
       el.setAttribute('data-reason', reason);
+      el.setAttribute('data-block', block);
     }
-    return { text: text, tone: tone, state: state, reason: reason, wellFormed: wellFormed };
+    return { text: text, tone: tone, state: state, reason: reason, block: block,
+             wellFormed: wellFormed };
   }
 
   /* THE WIRING, as a function, so it is drivable by a vector.

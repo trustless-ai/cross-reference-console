@@ -19,6 +19,16 @@
  *    parameters, so every path — silent resolver, missing record, malformed record, unstamped
  *    build — is drivable offline and pinned by a vector.
  *
+ * 3. THE READ IS DATED. babyblueviper1, 15 August 2026: "a read agreeing with itself across
+ *    multiple sources is not the same claim as a read agreeing with ground truth ... the fix
+ *    has to be a freshness bound on the read itself, not more redundant reads of it." Moving
+ *    from an ENS API to the contract removed one shared cache, not the class — an RPC node
+ *    serves its own `latest`, and a lagging node answers confidently from a stale block. So
+ *    resolveCid returns the block it read AT, the call is pinned to that block rather than to
+ *    the moving tag `latest`, and the block's age is bounded against the local clock. The
+ *    clock is the point: another RPC would be a second read on the same possibly-lagging path,
+ *    which is precisely what does not help.
+ *
  * NO FALLBACK. Every path that is not an established comparison returns COULD_NOT_CHECK with a
  * reason. There is no default, no last-known-good, and no assumption of currency when the
  * network disappears. The page would rather say it cannot see than guess.
@@ -69,10 +79,23 @@
 
     return Promise.resolve()
       .then(function () { return opts.resolveCid(); })
-      .then(function (cid) {
+      .then(function (answer) {
+        /* resolveCid may return a bare CID (legacy) or {cid, block, head_age_seconds}. */
+        var cid = (answer && typeof answer === 'object') ? answer.cid : answer;
+        var observed = (answer && typeof answer === 'object' && typeof answer.block === 'number')
+          ? { block: answer.block, head_age_seconds: answer.head_age_seconds } : null;
+
         /* A resolver that answers with nothing is not a resolver that answered. */
         if (!cid || typeof cid !== 'string') {
-          return emit(currencyMarker('COULD_NOT_CHECK', 'resolver_unreachable'));
+          return emit(currencyMarker('COULD_NOT_CHECK', 'resolver_unreachable', observed));
+        }
+        /* A node whose head is hours old will answer every question confidently and be
+         * behind on all of them. Bounded against the LOCAL CLOCK, deliberately: asking a
+         * second node would be another read on the same possibly-lagging path. */
+        var maxAge = typeof opts.maxHeadAgeSeconds === 'number' ? opts.maxHeadAgeSeconds : 900;
+        if (observed && typeof observed.head_age_seconds === 'number'
+            && observed.head_age_seconds > maxAge) {
+          return emit(currencyMarker('COULD_NOT_CHECK', 'stale_head', observed));
         }
         return Promise.resolve()
           .then(function () { return opts.fetchPinRecord(cid); })
@@ -80,12 +103,12 @@
             /* No record for a CID that resolved: we can see what is published and cannot tell
              * which commit it selects. That is lock_unreadable, and it is NOT stale. */
             if (!record || typeof record !== 'object') {
-              return emit(currencyMarker('COULD_NOT_CHECK', 'lock_unreadable'));
+              return emit(currencyMarker('COULD_NOT_CHECK', 'lock_unreadable', observed));
             }
-            return emit(fromPinRecord(record, opts.sourceCommit));
+            return emit(fromPinRecord(record, opts.sourceCommit, observed));
           })
           .catch(function () {
-            return emit(currencyMarker('COULD_NOT_CHECK', 'lock_unreadable'));
+            return emit(currencyMarker('COULD_NOT_CHECK', 'lock_unreadable', observed));
           });
       })
       .catch(function () {
@@ -100,15 +123,33 @@
   function defaultResolveCid(cfg, fetchImpl) {
     var f = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
     if (!f) return Promise.resolve(null);
-    var body = {
-      jsonrpc: '2.0', id: 1, method: 'eth_call',
-      params: [{ to: cfg.resolver, data: '0xbc1c58d1' + cfg.node.replace(/^0x/, '') }, 'latest']
+
+    var rpc = function (method, params) {
+      return f(cfg.rpcUrl, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: method, params: params })
+      }).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { return j && j.result !== undefined ? j.result : null; });
     };
-    return f(cfg.rpcUrl, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
-    })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { return j && j.result ? decodeContenthash(j.result) : null; })
+
+    /* Name the block, then read AT it. Reading at the moving tag `latest` yields an answer
+     * that cannot be dated afterwards — the head may have moved, and there is nothing in
+     * the response to say which block it came from. */
+    return rpc('eth_blockNumber', [])
+      .then(function (hex) {
+        if (!hex) return null;
+        var block = parseInt(hex, 16);
+        return rpc('eth_getBlockByNumber', [hex, false]).then(function (blk) {
+          var age = (blk && blk.timestamp)
+            ? Math.max(0, Math.round(Date.now() / 1000) - parseInt(blk.timestamp, 16)) : null;
+          return rpc('eth_call', [
+            { to: cfg.resolver, data: '0xbc1c58d1' + cfg.node.replace(/^0x/, '') }, hex
+          ]).then(function (res) {
+            var cid = res ? decodeContenthash(res) : null;
+            return cid ? { cid: cid, block: block, head_age_seconds: age } : null;
+          });
+        });
+      })
       .catch(function () { return null; });
   }
 
