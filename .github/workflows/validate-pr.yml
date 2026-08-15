@@ -205,6 +205,10 @@ jobs:
         run: python3 reference/check_pin_selects.py
       - name: the currency mapping holds
         run: python3 reference/check_currency_marker.py
+      # The live read, transport stubbed. Its failure modes are the ones nobody exercises by
+      # accident, so injection is the point: silent resolver, missing record, unstamped build.
+      - name: the live read establishes a verdict twice and says why otherwise
+        run: python3 reference/check_currency_read.py
       - name: and that check can fail for each assertion it makes
         run: |
           # Mutates the shipped mapping four ways and requires an exact exit 1 each time:
