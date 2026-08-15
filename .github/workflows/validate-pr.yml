@@ -215,6 +215,24 @@ jobs:
           # a reason manufacturing a verdict, three reasons collapsing into one amber,
           # green reachable from a failure, and UNDETERMINED surviving the boundary.
           python3 reference/test_check_currency_marker.py
+      # The page now READS the resolver, so the rendered state is part of the asserted state
+      # for currency too. @boardyai's repin precondition, 15 Aug 2026: "repin only after the
+      # live-surface vectors cover the network-backed path, including resolver failure, stale
+      # data, and the page's rendered reason."
+      #
+      # This drives the code INLINED IN ui/index.html — not the source files beside it — as an
+      # ES module, so the UMD wrappers take the same branch the browser takes. If
+      # embed_snapshot.py ever inlines a stale copy, the tested function and the shipped
+      # function diverge and this goes red instead of staying green on a file nobody serves.
+      - name: the currency surface renders every network-backed path
+        run: python3 reference/check_currency_surface.py
+      - name: and that check goes red when the page starts lying
+        run: |
+          # Six mutations of the SHIPPED page — the surface writing its own sentence, picking
+          # its own colour from the state, dropping the qualified guard, skipping the initial
+          # NOT_RUN, swallowing PENDING, and a reason losing its wording upstream. Each must
+          # exit 1 on the assertion that NAMES it: a golden diff is not a finding.
+          python3 reference/test_check_currency_surface.py
       - name: every registered duplicate has a comparator that demonstrably bites
         run: |
           # Damon Zwicker's amendment: "name the module that decides rule X" is a
