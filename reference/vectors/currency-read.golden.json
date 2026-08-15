@@ -7,23 +7,38 @@
   },
   "note": "The live read, driven with transport stubbed. Every failure path is here because a network read whose failures need a cable unplugged is a read nobody tests.",
   "results": {
-    "established_current": {
+    "dated_current": {
+      "observed": {
+        "block": 25761067,
+        "head_age_seconds": 9
+      },
       "qualified": true,
       "reason": null,
       "state": "CHECKED",
-      "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit (as of block 25761067)",
+      "tone": "green",
+      "verdict": "CURRENT"
+    },
+    "established_current": {
+      "observed": null,
+      "qualified": true,
+      "reason": null,
+      "state": "CHECKED",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
       "tone": "green",
       "verdict": "CURRENT"
     },
     "established_stale": {
+      "observed": null,
       "qualified": true,
       "reason": null,
       "state": "CHECKED",
-      "text": "STALE \u2014 the published contenthash is not the build of this commit",
+      "text": "STALE \u2014 the published contenthash is not the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
       "tone": "red",
       "verdict": "STALE"
     },
     "record_missing": {
+      "observed": null,
       "qualified": true,
       "reason": "lock_unreadable",
       "state": "COULD_NOT_CHECK",
@@ -32,6 +47,7 @@
       "verdict": null
     },
     "record_no_selects": {
+      "observed": null,
       "qualified": true,
       "reason": "lock_unreadable",
       "state": "COULD_NOT_CHECK",
@@ -40,6 +56,7 @@
       "verdict": null
     },
     "record_throws": {
+      "observed": null,
       "qualified": true,
       "reason": "lock_unreadable",
       "state": "COULD_NOT_CHECK",
@@ -48,6 +65,7 @@
       "verdict": null
     },
     "resolver_empty": {
+      "observed": null,
       "qualified": true,
       "reason": "resolver_unreachable",
       "state": "COULD_NOT_CHECK",
@@ -56,6 +74,7 @@
       "verdict": null
     },
     "resolver_null": {
+      "observed": null,
       "qualified": true,
       "reason": "resolver_unreachable",
       "state": "COULD_NOT_CHECK",
@@ -64,6 +83,7 @@
       "verdict": null
     },
     "resolver_throws": {
+      "observed": null,
       "qualified": true,
       "reason": "resolver_unreachable",
       "state": "COULD_NOT_CHECK",
@@ -71,7 +91,20 @@
       "tone": "amber",
       "verdict": null
     },
+    "stale_head": {
+      "observed": {
+        "block": 25000000,
+        "head_age_seconds": 90000
+      },
+      "qualified": true,
+      "reason": "stale_head",
+      "state": "COULD_NOT_CHECK",
+      "text": "could not check \u2014 could not read current chain state \u2014 the node answered from a block too old to be the head, so its answer may be behind",
+      "tone": "amber",
+      "verdict": null
+    },
     "unstamped_build": {
+      "observed": null,
       "qualified": true,
       "reason": "artifact_unstamped",
       "state": "COULD_NOT_CHECK",
@@ -81,6 +114,10 @@
     }
   },
   "sequences": {
+    "dated_current": [
+      "PENDING",
+      "CHECKED"
+    ],
     "established_current": [
       "PENDING",
       "CHECKED"
@@ -110,6 +147,10 @@
       "COULD_NOT_CHECK"
     ],
     "resolver_throws": [
+      "PENDING",
+      "COULD_NOT_CHECK"
+    ],
+    "stale_head": [
       "PENDING",
       "COULD_NOT_CHECK"
     ],

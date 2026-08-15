@@ -70,6 +70,10 @@ const cases = {
   unstamped_build:      { resolveCid: () => 'bafyCID',  fetchPinRecord: () => rec(SC),                      sourceCommit: '__CONSOLE_SOURCE_COMMIT__' },
   established_current:  { resolveCid: () => 'bafyCID',  fetchPinRecord: () => rec(SC),                      sourceCommit: SC },
   established_stale:    { resolveCid: () => 'bafyCID',  fetchPinRecord: () => rec(OTHER),                   sourceCommit: SC },
+  dated_current:        { resolveCid: () => ({ cid: 'bafyCID', block: 25761067, head_age_seconds: 9 }),
+                          fetchPinRecord: () => rec(SC), sourceCommit: SC },
+  stale_head:           { resolveCid: () => ({ cid: 'bafyCID', block: 25000000, head_age_seconds: 90000 }),
+                          fetchPinRecord: () => rec(SC), sourceCommit: SC },
 };
 
 (async () => {
@@ -88,6 +92,10 @@ const cases = {
   process.stdout.write(JSON.stringify(out));
 })();
 """
+
+
+def canon(o) -> str:
+    return json.dumps(o, sort_keys=True)
 
 
 def render() -> dict | None:
@@ -163,8 +171,37 @@ def main() -> int:
     print("\nonly the two established comparisons produce a verdict\n")
     chk("established_current → CURRENT", res["established_current"]["verdict"] == "CURRENT")
     chk("established_stale → STALE", res["established_stale"]["verdict"] == "STALE")
-    chk("exactly two of nine paths reach CHECKED",
-        sum(1 for v in res.values() if v["state"] == "CHECKED") == 2)
+    reached = sorted(n for n, v in res.items() if v["state"] == "CHECKED")
+    chk("only the established comparisons reach CHECKED",
+        reached == ["dated_current", "established_current", "established_stale"],
+        f"reached: {reached}")
+    chk("every other path says why instead",
+        all(res[n]["reason"] for n in res if n not in reached),
+        "a path that neither concludes nor explains is the collapse this file refuses")
+
+    print("\nthe read is DATABLE — a verdict nobody can place in time is not established\n")
+    chk("a dated read carries the block it was observed at",
+        res["dated_current"].get("observed", {}).get("block") == 25761067,
+        json.dumps(res["dated_current"].get("observed")))
+    chk("and says so in the text a reader sees",
+        "as of block 25761067" in res["dated_current"]["text"], res["dated_current"]["text"][:110])
+    chk("an UNDATED verdict does not read like a dated one",
+        "undated read" in res["established_current"]["text"], res["established_current"]["text"][:110])
+    chk("a node whose head is hours old is COULD_NOT_CHECK, not a verdict",
+        res["stale_head"]["state"] == "COULD_NOT_CHECK" and res["stale_head"]["verdict"] is None,
+        canon(res["stale_head"])[:120])
+    chk("and it names stale_head", res["stale_head"]["reason"] == "stale_head", res["stale_head"]["reason"])
+    chk("the stale-head text says the answer may be behind",
+        "behind" in res["stale_head"]["text"], res["stale_head"]["text"][:110])
+
+    print("\nthe default transport names the block rather than riding `latest`\n")
+    src = READ.read_text(encoding="utf-8")
+    chk("it asks for eth_blockNumber", "eth_blockNumber" in src)
+    chk("it dates the head via eth_getBlockByNumber", "eth_getBlockByNumber" in src)
+    chk("the eth_call is pinned to that block, not to 'latest'",
+        "'latest'" not in src, "reading at a moving tag cannot be dated afterwards")
+    chk("freshness is bounded against the LOCAL clock, not another RPC",
+        "Date.now()" in src, "a second RPC is another read on the same lagging path")
 
     print("\nthe contenthash decoder\n")
     chk("decodes the real published contenthash",

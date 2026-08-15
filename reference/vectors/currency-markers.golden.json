@@ -1,14 +1,16 @@
 {
   "adapter": {
     "adapter_current": {
+      "observed": null,
       "qualified": true,
       "reason": null,
       "state": "CHECKED",
-      "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
       "tone": "green",
       "verdict": "CURRENT"
     },
     "adapter_legacy_no_selects": {
+      "observed": null,
       "qualified": true,
       "reason": "lock_unreadable",
       "state": "COULD_NOT_CHECK",
@@ -17,6 +19,7 @@
       "verdict": null
     },
     "adapter_malformed_selects": {
+      "observed": null,
       "qualified": true,
       "reason": "lock_unreadable",
       "state": "COULD_NOT_CHECK",
@@ -25,6 +28,7 @@
       "verdict": null
     },
     "adapter_resolver_silent": {
+      "observed": null,
       "qualified": true,
       "reason": "resolver_unreachable",
       "state": "COULD_NOT_CHECK",
@@ -33,14 +37,16 @@
       "verdict": null
     },
     "adapter_stale": {
+      "observed": null,
       "qualified": true,
       "reason": null,
       "state": "CHECKED",
-      "text": "STALE \u2014 the published contenthash is not the build of this commit",
+      "text": "STALE \u2014 the published contenthash is not the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
       "tone": "red",
       "verdict": "STALE"
     },
     "adapter_unstamped_build": {
+      "observed": null,
       "qualified": true,
       "reason": "artifact_unstamped",
       "state": "COULD_NOT_CHECK",
@@ -51,22 +57,25 @@
   },
   "legacy": {
     "legacy_current": {
+      "observed": null,
       "qualified": true,
       "reason": null,
       "state": "CHECKED",
-      "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
       "tone": "green",
       "verdict": "CURRENT"
     },
     "legacy_stale": {
+      "observed": null,
       "qualified": true,
       "reason": null,
       "state": "CHECKED",
-      "text": "STALE \u2014 the published contenthash is not the build of this commit",
+      "text": "STALE \u2014 the published contenthash is not the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
       "tone": "red",
       "verdict": "STALE"
     },
     "legacy_undetermined_ipfs": {
+      "observed": null,
       "qualified": true,
       "reason": "no_local_ipfs",
       "state": "COULD_NOT_CHECK",
@@ -75,6 +84,7 @@
       "verdict": null
     },
     "legacy_undetermined_lock": {
+      "observed": null,
       "qualified": true,
       "reason": "lock_unreadable",
       "state": "COULD_NOT_CHECK",
@@ -83,6 +93,7 @@
       "verdict": null
     },
     "legacy_undetermined_resolver": {
+      "observed": null,
       "qualified": true,
       "reason": "resolver_unreachable",
       "state": "COULD_NOT_CHECK",
@@ -91,6 +102,7 @@
       "verdict": null
     },
     "legacy_undetermined_upstream": {
+      "observed": null,
       "qualified": true,
       "reason": "resolver_unreachable",
       "state": "COULD_NOT_CHECK",
@@ -99,6 +111,7 @@
       "verdict": null
     },
     "legacy_unknown": {
+      "observed": null,
       "qualified": true,
       "reason": "unrecognised_state",
       "state": "COULD_NOT_CHECK",
@@ -107,6 +120,7 @@
       "verdict": null
     },
     "legacy_unverifiable": {
+      "observed": null,
       "qualified": true,
       "reason": "resolver_unreachable",
       "state": "COULD_NOT_CHECK",
@@ -119,22 +133,25 @@
   "source": "ui/currency-marker.js",
   "states": {
     "checked_current": {
+      "observed": null,
       "qualified": true,
       "reason": null,
       "state": "CHECKED",
-      "text": "CURRENT \u2014 the published contenthash is the build of this commit",
+      "text": "CURRENT \u2014 the published contenthash is the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
       "tone": "green",
       "verdict": "CURRENT"
     },
     "checked_stale": {
+      "observed": null,
       "qualified": true,
       "reason": null,
       "state": "CHECKED",
-      "text": "STALE \u2014 the published contenthash is not the build of this commit",
+      "text": "STALE \u2014 the published contenthash is not the build of this commit (undated read \u2014 no block recorded, so this cannot be placed in time)",
       "tone": "red",
       "verdict": "STALE"
     },
     "cnc_lock": {
+      "observed": null,
       "qualified": true,
       "reason": "lock_unreadable",
       "state": "COULD_NOT_CHECK",
@@ -143,6 +160,7 @@
       "verdict": null
     },
     "cnc_no_ipfs": {
+      "observed": null,
       "qualified": true,
       "reason": "no_local_ipfs",
       "state": "COULD_NOT_CHECK",
@@ -151,6 +169,7 @@
       "verdict": null
     },
     "cnc_no_reason": {
+      "observed": null,
       "qualified": true,
       "reason": "unspecified",
       "state": "COULD_NOT_CHECK",
@@ -159,6 +178,7 @@
       "verdict": null
     },
     "cnc_resolver": {
+      "observed": null,
       "qualified": true,
       "reason": "resolver_unreachable",
       "state": "COULD_NOT_CHECK",
@@ -167,6 +187,7 @@
       "verdict": null
     },
     "cnc_unstamped": {
+      "observed": null,
       "qualified": true,
       "reason": "artifact_unstamped",
       "state": "COULD_NOT_CHECK",
@@ -175,6 +196,7 @@
       "verdict": null
     },
     "not_run": {
+      "observed": null,
       "qualified": true,
       "reason": null,
       "state": "NOT_RUN",
@@ -183,6 +205,7 @@
       "verdict": null
     },
     "pending": {
+      "observed": null,
       "qualified": true,
       "reason": null,
       "state": "PENDING",
@@ -191,6 +214,7 @@
       "verdict": null
     },
     "unrecognised_state": {
+      "observed": null,
       "qualified": true,
       "reason": "unrecognised_state",
       "state": "COULD_NOT_CHECK",
@@ -199,6 +223,7 @@
       "verdict": null
     },
     "unrecognised_verdict": {
+      "observed": null,
       "qualified": true,
       "reason": "unrecognised_verdict",
       "state": "COULD_NOT_CHECK",

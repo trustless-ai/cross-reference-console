@@ -107,8 +107,8 @@ if r["anchored"]:
 
 print("\nNO FALLBACK — the adapter defaults to CURRENT when the resolver is silent (must be CAUGHT):")
 r = run_mutated(
-    "    if (!record || typeof record !== 'object') {\n      return currencyMarker(COULD_NOT_CHECK, 'resolver_unreachable');",
-    "    if (!record || typeof record !== 'object') {\n      return currencyMarker(CHECKED, CURRENT);")
+    "    if (!record || typeof record !== 'object') {\n      return currencyMarker(COULD_NOT_CHECK, 'resolver_unreachable', observed);",
+    "    if (!record || typeof record !== 'object') {\n      return currencyMarker(CHECKED, CURRENT, observed);")
 check("mutation anchor still present", r["anchored"])
 if r["anchored"]:
     check("exit is exactly 1", r["code"] == EXIT_BAD, f"got {r['code']}")
@@ -117,8 +117,8 @@ if r["anchored"]:
 
 print("\nMISSING selects TREATED AS STALE instead of could-not-check (must be CAUGHT):")
 r = run_mutated(
-    "      return currencyMarker(COULD_NOT_CHECK, 'lock_unreadable');",
-    "      return currencyMarker(CHECKED, STALE);")
+    "      return currencyMarker(COULD_NOT_CHECK, 'lock_unreadable', observed);",
+    "      return currencyMarker(CHECKED, STALE, observed);")
 check("mutation anchor still present", r["anchored"])
 if r["anchored"]:
     check("exit is exactly 1", r["code"] == EXIT_BAD, f"got {r['code']}")
