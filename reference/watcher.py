@@ -29,15 +29,19 @@ after it — proven safe because lift.v0 derives the EXACT hand-minted claim_id
 (sha256:df1a6bfe…) byte-for-byte: as_of = RFC3339(verified_at) is precisely how
 the original claim was constructed. One rule, no special cases.
 """
-import json, os, sys, urllib.request, datetime
+import json, os, sys, urllib.request, urllib.error, datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 from claim_id import loads_strict, validate as gate, claim_id as derive_claim_id
 
-LEDGER_INDEX = "https://api.babyblueviper.com/ledger"
-LEDGER_ENTRY = "https://api.babyblueviper.com/ledger/{n}"
+# Overridable so the intake can be pointed at a self-hosted mirror — and so the
+# unreachable/malformed paths below can be driven by a test instead of by waiting
+# for someone else's server to have a bad minute.
+LEDGER_BASE = os.environ.get("CRC_LEDGER_BASE", "https://api.babyblueviper.com/ledger").rstrip("/")
+LEDGER_INDEX = LEDGER_BASE
+LEDGER_ENTRY = LEDGER_BASE + "/{n}"
 SOURCE_ID = "invinoveritas-ledger"
 CLAIMANT = 54848
 INITIAL_WATERMARK = 235
@@ -46,9 +50,21 @@ REJECTED = os.path.join(CLAIMS, "rejected")
 WATERMARK_FILE = os.path.join(CLAIMS, ".watermark.json")
 
 
+EXIT_OK, EXIT_BAD, EXIT_UNVERIFIABLE = 0, 1, 2
+
+
+class Unreachable(Exception):
+    """The upstream could not be read. NOT a statement about what it contains."""
+
+
 def fetch(url):
-    with urllib.request.urlopen(url, timeout=30) as r:
-        return r.read().decode()
+    try:
+        with urllib.request.urlopen(url, timeout=30) as r:
+            return r.read().decode()
+    except urllib.error.HTTPError as e:
+        raise Unreachable(f"HTTP {e.code} from {url}") from e
+    except (urllib.error.URLError, OSError) as e:
+        raise Unreachable(f"{type(e).__name__} reaching {url}: {e}") from e
 
 
 def rfc3339(unix):
@@ -76,17 +92,53 @@ def main():
     if os.path.exists(WATERMARK_FILE):
         watermark = json.load(open(WATERMARK_FILE))["last_entry"]
 
-    index = loads_strict(fetch(LEDGER_INDEX))
+    # AN UNREACHABLE UPSTREAM IS NOT A FAILED RUN.
+    #
+    # 2026-08-15 18:13Z this raised HTTPError 502 and the job went red on main.
+    # The same commit had been green four times that afternoon and the endpoint
+    # answered 200 minutes later — someone else's server had a moment. A red
+    # nobody can act on is how people learn to ignore red, and this repo spends
+    # its whole existence insisting that could-not-check is its own verdict.
+    #
+    # The distinction the old code lost: unreachable (exit 2, we saw nothing) vs
+    # reachable-but-malformed (exit 1, we saw something wrong). The second is a
+    # real finding about the upstream. The first is weather.
+    #
+    # Note the correct handling already existed twenty lines down, for entries:
+    # "fetch failed — stopping before watermark advance". It was simply never
+    # applied to the index.
+    try:
+        raw = fetch(LEDGER_INDEX)
+    except Unreachable as e:
+        print(f"UNVERIFIABLE — {e}", file=sys.stderr)
+        print("The ledger could not be read, so nothing is known about new entries. "
+              "This is not a failed run and nothing has changed.", file=sys.stderr)
+        return EXIT_UNVERIFIABLE
+    try:
+        index = loads_strict(raw)
+    except ValueError as e:
+        # Reachable and wrong is a determinate finding, and stays red.
+        print(f"FAIL — the ledger answered but its index does not strict-parse: {e}", file=sys.stderr)
+        return EXIT_BAD
     numbers = sorted(e["entry"] for e in index["entries"] if isinstance(e, dict) and isinstance(e.get("entry"), int))
     todo = [n for n in numbers if n > watermark]
     print(f"watermark {watermark} · ledger head {numbers[-1] if numbers else '?'} · {len(todo)} new entr{'y' if len(todo)==1 else 'ies'}")
 
     changed = False
+    unreachable_at = malformed_at = None
     for n in todo:
         try:
             entry = loads_strict(fetch(LEDGER_ENTRY.format(n=n)))
-        except Exception as e:
-            print(f"  #{n}: fetch failed ({e}) — stopping before watermark advance")
+        except Unreachable as e:
+            # Partial visibility, not failure: the watermark records exactly how far
+            # this run got, and everything derived before here is valid.
+            print(f"  #{n}: UNREACHABLE ({e}) — stopping before watermark advance")
+            unreachable_at = n
+            break
+        except ValueError as e:
+            print(f"  #{n}: the entry answered but does not strict-parse ({e}) "
+                  f"— stopping before watermark advance")
+            malformed_at = n
             break
         pe = entry.get("proof_event")
         lc = None
@@ -136,7 +188,14 @@ def main():
     json.dump({"schema": "crc.watermark.v0", "source_id": SOURCE_ID, "last_entry": watermark},
               open(WATERMARK_FILE, "w"), indent=2)
     print(f"watermark -> {watermark} · {'changes to commit' if changed else 'no registry changes'}")
+    if unreachable_at is not None:
+        print(f"note: stopped at #{unreachable_at} because the upstream was unreachable. "
+              f"Entries after it were not seen — the watermark says so.")
+    if malformed_at is not None:
+        print(f"FAIL — entry #{malformed_at} was served but is not parseable.", file=sys.stderr)
+        return EXIT_BAD
+    return EXIT_OK
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
