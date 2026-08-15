@@ -34,9 +34,37 @@
     "stored_at": "2026-08-15T14:31:00Z",
     "note": "build/site_cid.py derives the CID with `ipfs add -n`, which stores nothing — the trap that published a pointer to non-existent bytes on the previous repin. The tool now carries `--store`, which re-runs the same command without `-n` and refuses to report success unless the stored CID equals the derived one (trustless-ai-landing PR #15). Both runs produced this CID; the bytes are held locally and pinned on Pinata by hash rather than re-uploaded, since re-uploading risks a different CID under the service's own defaults. Retrieval was verified from the stored tree: /console/index.html carries the wiring and is stamped ddf1dad61403.",
     "serving": {
-      "eth_limo": "byte-identical to the pinned bytes (177277 bytes, sha256 of the served response equals the stored object; diffed, not assumed)",
-      "ipfs_io": "differs by exactly one injected hidden <a href=…/cdn-cgi/content?id=…> immediately after <body>. Serving-layer injection, not content drift — established by diffing the two responses against the stored object rather than by recalling that ipfs.io does this.",
-      "note": "Recorded because a bare hash mismatch between gateways reads as tampering, and the distinction between 'these bytes were altered' and 'this CDN adds a beacon at serve time' is exactly the kind that must be established rather than remembered."
+      "compared_at": "2026-08-15T15:10:00Z",
+      "object": "bafybeihim4cjh2uqxlctepgibzdhr77rag53mqu6vlces72eyyiqnjjipe/console/index.html",
+      "method": "each response compared byte-for-byte against the CID-addressed object fetched from a local ipfs node — a gateway is the thing under test and cannot also be the reference. Differences are classified IDENTICAL / SERVE_TIME_INJECTION / DIFFERS by reference/check_served_bytes.py, which re-derives every observation below with --live, fetching as the client each one names.",
+      "gateways": {
+        "https://trustless-ai.eth.limo/console/index.html": [
+          {
+            "as": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0 Safari/537.36",
+            "verdict": "IDENTICAL",
+            "bytes": 177277
+          },
+          {
+            "as": "curl/8.7.1",
+            "verdict": "IDENTICAL",
+            "bytes": 177277
+          }
+        ],
+        "https://ipfs.io/ipfs/bafybeihim4cjh2uqxlctepgibzdhr77rag53mqu6vlces72eyyiqnjjipe/console/index.html": [
+          {
+            "as": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0 Safari/537.36",
+            "verdict": "IDENTICAL",
+            "bytes": 177277
+          },
+          {
+            "as": "curl/8.7.1",
+            "verdict": "SERVE_TIME_INJECTION",
+            "bytes": 177568,
+            "detail": "one hidden anchor, 291 bytes, inserted at offset 10087"
+          }
+        ]
+      },
+      "note": "OBSERVATIONS CARRY THE CLIENT BECAUSE THE ANSWER DEPENDS ON IT. ipfs.io serves this same CID three ways: the hidden cdn-cgi anchor to curl, the pinned bytes exactly to a browser user-agent, and 403 Forbidden to python-urllib's default. An earlier draft of this record said flatly that ipfs.io injects — true of one client, false of another, and a verdict with no client attached lets whichever client the checker happens to use define what the world is told it sees. eth.limo served the pinned bytes to every client tried. A bare hash mismatch between gateways reads as tampering; 'this CDN adds a beacon for some clients' is a different finding, and the classifier is strict so the two cannot be confused: one contiguous insertion that is a hidden anchor is SERVE_TIME_INJECTION, and a single replaced byte anywhere is DIFFERS."
     }
   },
   "confirmations": [],

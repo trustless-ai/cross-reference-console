@@ -203,6 +203,26 @@ jobs:
       # silently absolve any future record whose clock looked old enough.
       - name: new pin records name the commit they select
         run: python3 reference/check_pin_selects.py
+      # The two operational disciplines @boardyai named when closing the wiring thread — "keep
+      # the served-byte comparison in the availability record" and "keep the pin record's
+      # selects field authoritative" — as gates. A discipline is a rule with no failure mode.
+      #
+      # Both split coverage from content. The COVERAGE tier is offline and deterministic and
+      # runs here; the CONTENT tier needs the network (`--live`) and is run at publication time,
+      # its result written INTO the record, where the coverage tier then requires it. A check
+      # that reports could-not-check on every CI run is a check nobody reads.
+      - name: every `selects` resolves to a real commit and a real artifact
+        run: python3 reference/check_selects_authoritative.py
+      - name: every published record says what gateways serve, and to WHICH client
+        run: python3 reference/check_served_bytes.py
+      - name: and both gates go red on the assertion that names the defect
+        run: |
+          # 12 record mutations plus 9 classifier vectors. The classifier matters most: it
+          # exists to say "this CDN added a beacon" rather than "these bytes were altered", so
+          # a substitution, a visible anchor, a script tag, two insertions and a truncation
+          # must ALL come back DIFFERS. A loose version would launder a real substitution into
+          # an operational footnote on a page whose whole claim is integrity.
+          python3 reference/test_operational_gates.py
       - name: the currency mapping holds
         run: python3 reference/check_currency_marker.py
       # The live read, transport stubbed. Its failure modes are the ones nobody exercises by
