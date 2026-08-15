@@ -103,6 +103,9 @@ def main() -> int:
            "a tree is not an artifact", "`selects.artifact` is a file at that commit")
     mutate(set_sel("commit", "not-a-sha"), SELECTS, "commit is not a full sha",
            "a short or malformed ref cannot pin anything", "`selects.commit` is a full sha")
+    mutate(lambda rec: rec.pop("selects"), SELECTS, "selects removed from a non-legacy record",
+           "the field vanishes and the record is not on the enumerated legacy list",
+           "has `selects`")
 
     print("\nthe serving record must be structured, honest, and client-aware\n")
 
@@ -123,6 +126,14 @@ def main() -> int:
     mutate(serving(lambda s: s.update(gateways={"https://x/y": {"verdict": "IDENTICAL"}})),
            SERVED, "gateway is a bare verdict, not observations",
            "one verdict per gateway hides which client asked", "carries observations")
+    mutate(serving(lambda s: s.update(gateways={})), SERVED, "no gateways listed at all",
+           "an availability block that compared nothing still looks present",
+           "lists at least one gateway")
+    mutate(serving(lambda s: s["gateways"].update(
+               {next(iter(s["gateways"])): ["a bare string, not an observation"]})),
+           SERVED, "observation is a bare string",
+           "an unstructured entry carries no client and no verdict, and must not pass as one",
+           "observation is structured")
     mutate(serving(lambda s: first_obs(s).pop("as")), SERVED, "observation with no client",
            "ipfs.io answers curl and a browser differently — a verdict without a client is "
            "whichever client the checker happened to use",
