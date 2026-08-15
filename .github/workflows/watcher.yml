@@ -23,8 +23,39 @@ jobs:
           python-version: "3.12"
       - name: deps for the validation gate
         run: pip install --quiet eth-account pycryptodome
+      # Three answers, three exit codes. An upstream we poll being unreachable is
+      # could-not-check, and going red for it trains everyone to ignore red — this
+      # job failed on main at 18:13Z on 2026-08-15 because api.babyblueviper.com
+      # returned 502 for about a minute, having been green four times that hour.
+      #
+      # exit 0  ran, and the watermark says how far it got
+      # exit 2  the ledger could not be read. Nothing seen, nothing changed, NOT red.
+      # exit 1  the ledger answered and what it said was wrong. Stays red.
+      #
+      # The unverifiable case is written to the job summary rather than swallowed:
+      # a skip that touches nothing is the other half of this same defect.
       - name: poll intake, gate, register (stdlib only)
-        run: python3 reference/watcher.py
+        id: intake
+        run: |
+          set +e
+          python3 reference/watcher.py 2>&1 | tee /tmp/watcher.out
+          rc=${PIPESTATUS[0]}          # the pipe's exit is tee's, not python's
+          set -e
+          if [ "$rc" -eq 2 ]; then
+            {
+              echo "### Intake UNVERIFIABLE"
+              echo ""
+              echo "The ledger could not be read, so nothing is known about new entries."
+              echo "Nothing changed. This is not a failed run."
+              echo ""
+              echo '```'
+              tail -5 /tmp/watcher.out
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "unverifiable=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          exit "$rc"
 
       # This workflow pushes straight to main, so nothing downstream can catch a
       # bad write. "Just open a PR instead" does not work: a PR opened with
