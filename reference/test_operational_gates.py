@@ -21,6 +21,7 @@ import json
 import pathlib
 import contextlib
 import io
+import os
 import re
 import subprocess
 import sys
@@ -211,6 +212,132 @@ def main() -> int:
            SERVED, "no client anywhere gets the pinned bytes",
            "if every path is modified, the pin is not what anyone receives",
            "at least one client somewhere gets the pinned bytes exactly")
+
+    print("\nTHE LIVE TIER — no longer exempt from being made to fail\n")
+    # Four assertions used to live behind a network and a local ipfs node, so no control
+    # could mutate an input and watch them bite. "It needs the network" is the same shape of
+    # excuse as "the rule is written down", so the gates now accept a DATA-ONLY stub
+    # (CRC_LIVE_STUB) that replaces the responses and nothing else. The gate still runs as
+    # its own process and still prints its own failure list, so exit code and attribution
+    # remain observations of the gate.
+    #
+    # The stub is built from git and the pin record — no network here either, so this runs
+    # in CI exactly as it runs locally.
+    import base64
+    import subprocess as sp
+
+    def _b64(b: bytes) -> str:
+        return base64.b64encode(b).decode()
+
+    def baseline_stub() -> dict:
+        rec = json.loads((PINS / (LIVE + ".json")).read_text(encoding="utf-8"))
+        sel = rec["selects"]
+        built = sp.run(["git", "-C", str(ROOT), "show", f"{sel['commit']}:{sel['artifact']}"],
+                       capture_output=True).stdout
+        stamped = built.replace(b"__CONSOLE_SOURCE_COMMIT__", sel["commit"].encode())
+        installs = rec.get("installs_to") or "console/index.html"
+        serving = rec["availability"]["serving"]
+        anchor = (b'<a href="https://ipfs.io/cdn-cgi/content?id=x" aria-hidden="true" '
+                  b'rel="nofollow noopener" style="display: none !important"></a>')
+        gateways = {}
+        for url, obs in serving["gateways"].items():
+            for o in obs:
+                served = stamped
+                if o["verdict"] == "SERVE_TIME_INJECTION":
+                    served = stamped.replace(b"<body>", b"<body>" + anchor, 1)
+                gateways[f"{url}|{o['as']}"] = _b64(served)
+        # EVERY record with `selects` must be present, not just the live one: the gate
+        # checks them all, and a record missing from the stub is could-not-check — which
+        # is exit 2, correctly, and would make every mutant below prove nothing.
+        published = {}
+        for f in sorted(PINS.glob("*.json")):
+            r = json.loads(f.read_text(encoding="utf-8"))
+            s = r.get("selects")
+            if not s:
+                continue
+            b = sp.run(["git", "-C", str(ROOT), "show", f"{s['commit']}:{s['artifact']}"],
+                       capture_output=True).stdout
+            published[f"{f.stem}/{r.get('installs_to') or 'console/index.html'}"] = _b64(
+                b.replace(b"__CONSOLE_SOURCE_COMMIT__", s["commit"].encode()))
+        return {
+            "live_contenthash": LIVE,
+            "published": published,
+            "canonical": {f"{LIVE}/{serving['object'].split('/', 1)[1]}": _b64(stamped)},
+            "gateways": gateways,
+        }
+
+    def live_mutate(name, why, expect, edit_stub=None, edit_source=None, script=SERVED):
+        global bad
+        stub = baseline_stub()
+        if edit_stub:
+            edit_stub(stub)
+        with tempfile.TemporaryDirectory() as td:
+            sf = pathlib.Path(td) / "stub.json"
+            sf.write_text(json.dumps(stub), encoding="utf-8")
+            backup = script.read_text(encoding="utf-8") if edit_source else None
+            try:
+                if edit_source:
+                    patched = edit_source(backup)
+                    if patched == backup:
+                        print(f"  FAIL  {name}: source mutation patched NOTHING")
+                        bad += 1
+                        return
+                    script.write_text(patched, encoding="utf-8")
+                r = sp.run([sys.executable, str(script), "--live"], capture_output=True,
+                           text=True, env={**os.environ, "CRC_LIVE_STUB": str(sf)})
+            finally:
+                if backup is not None:
+                    script.write_text(backup, encoding="utf-8")
+        wanted = {expect} if isinstance(expect, str) else set(expect)
+        blamed = observed_attribution(r.stdout + r.stderr)
+        missing = {w for w in wanted if not any(w in b for b in blamed)}
+        if r.returncode != 1 or missing:
+            print(f"  FAIL  {name}: exit {r.returncode}, blamed {blamed[:2]} — {why}")
+            bad += 1
+            return
+        print(f"  ok    {name} → attribution matches ({why})")
+
+    # 0. the stub must be FAITHFUL, or every mutant below proves nothing
+    stub0 = baseline_stub()
+    with tempfile.TemporaryDirectory() as td:
+        sf = pathlib.Path(td) / "stub.json"
+        sf.write_text(json.dumps(stub0), encoding="utf-8")
+        r0 = sp.run([sys.executable, str(SERVED), "--live"], capture_output=True, text=True,
+                    env={**os.environ, "CRC_LIVE_STUB": str(sf)})
+        r1 = sp.run([sys.executable, str(SELECTS), "--live"], capture_output=True, text=True,
+                    env={**os.environ, "CRC_LIVE_STUB": str(sf)})
+    ok0 = r0.returncode == 0 and r1.returncode == 0
+    print(f"  {'ok  ' if ok0 else 'FAIL'}  the unmutated stub passes BOTH gates "
+          f"(served {r0.returncode}, selects {r1.returncode})")
+    if not ok0:
+        bad += 1
+
+    live_mutate("the live contenthash has no pin record",
+                "a CID is published that nothing in pins/ describes",
+                "the live contenthash has a pin record",
+                edit_stub=lambda s: s.update(live_contenthash="bafybeiaaaaaaaaaaaaaaaaaaaa"
+                                                              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+
+    live_mutate("a gateway contradicts the record",
+                "the record says SERVE_TIME_INJECTION and the web says IDENTICAL",
+                "the web says",
+                edit_stub=lambda s: s["gateways"].update(
+                    {k: s["canonical"][next(iter(s["canonical"]))]
+                     for k in s["gateways"] if "curl" in k}))
+
+    live_mutate("the namehash constant is wrong",
+                "a mistyped node reads a different name's contenthash and says nothing",
+                "IS namehash",
+                edit_source=lambda src: src.replace(
+                    'ENS_NODE = "0x10fa3d22', 'ENS_NODE = "0x20fa3d22', 1))
+
+    live_mutate("the published artifact is not the stamped build",
+                "the CID serves bytes that are not what that commit builds",
+                "is the stamped build of",
+                edit_stub=lambda s: s["published"].update(
+                    {k: _b64(base64.b64decode(v).replace(b"<body>", b"<body><!--x-->", 1))
+                     for k, v in s["published"].items()}),
+                script=SELECTS)
 
     print("\nthe classifier separates a beacon from a substitution\n")
     cases = [

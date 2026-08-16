@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import re
 import sys
@@ -100,6 +101,32 @@ INJECTED_ANCHOR = re.compile(
 
 fails: list[str] = []
 unverifiable: list[str] = []
+
+
+def _stub() -> dict | None:
+    """A DATA-ONLY substitute for the live tier's transports.
+
+    The live tier reaches a resolver, a local ipfs node and several gateways, so nothing
+    in it could be made to fail on demand and its assertions were permanently unbacked —
+    decorative by the same standard this repo applies to everyone else. Pointing
+    CRC_LIVE_STUB at a JSON file replaces the RESPONSES and nothing else: the gate still
+    runs as its own process, still decides on its own, and still prints its own failure
+    list, so exit codes and attribution stay observations of the gate rather than of the
+    harness.
+
+    Data, never code: the stub cannot change what the gate concludes, only what it sees.
+    """
+    path = os.environ.get("CRC_LIVE_STUB")
+    if not path:
+        return None
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _stubbed_bytes(stub: dict, section: str, key: str) -> bytes | None:
+    import base64
+    v = (stub.get(section) or {}).get(key)
+    return None if v is None else base64.b64decode(v)
 
 
 def chk(label: str, cond: bool, detail: str = "") -> None:
@@ -152,6 +179,9 @@ def fetch(url: str, as_client: str, timeout: int = 60) -> tuple[bytes | None, st
 
 
 def rpc_contenthash() -> str | None:
+    stub = _stub()
+    if stub is not None:
+        return stub.get("live_contenthash")
     body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "eth_call", "params": [
         {"to": RESOLVER, "data": "0xbc1c58d1" + ENS_NODE[2:]}, "latest"]}).encode()
     try:
@@ -273,7 +303,10 @@ def tier2(records: list[tuple[str, dict]]) -> None:
     import shutil
     import subprocess
     canonical = None
-    if shutil.which("ipfs"):
+    stub = _stub()
+    if stub is not None:
+        canonical = _stubbed_bytes(stub, "canonical", f"{cid}/{artifact}")
+    elif shutil.which("ipfs"):
         r = subprocess.run(["ipfs", "cat", f"/ipfs/{cid}/{artifact}"],
                            capture_output=True, timeout=180)
         canonical = r.stdout if r.returncode == 0 and r.stdout else None
@@ -288,7 +321,11 @@ def tier2(records: list[tuple[str, dict]]) -> None:
             client = o.get("as") if isinstance(o, dict) else None
             if not isinstance(client, str):
                 continue
-            served, why = fetch(url, client, timeout=120)
+            if stub is not None:
+                served = _stubbed_bytes(stub, "gateways", f"{url}|{client}")
+                why = "not present in the stub"
+            else:
+                served, why = fetch(url, client, timeout=120)
             if served is None:
                 note(f"{g} as {client[:18]!r}", f"{why} — reported, never assumed identical")
                 continue

@@ -61,6 +61,18 @@ fails: list[str] = []
 unverifiable: list[str] = []
 
 
+def _stub() -> dict | None:
+    """Data-only substitute for the published-artifact fetch — see the twin in
+    check_served_bytes.py. The live tier could not be made to fail on demand, which made
+    its one assertion permanently unbacked."""
+    import os
+    path = os.environ.get("CRC_LIVE_STUB")
+    if not path:
+        return None
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
 def chk(label: str, cond: bool, detail: str = "") -> None:
     print(f"  {'ok  ' if cond else 'FAIL'}  {label}" + (f" — {detail}" if not cond and detail else ""))
     if not cond:
@@ -140,7 +152,7 @@ def tier2(records: list[tuple[str, dict]]) -> None:
     """The record's CID actually serves the build of the commit it names."""
     import shutil
     print("\ntier 2 — the published artifact IS the stamped build of the selected commit\n")
-    if not shutil.which("ipfs"):
+    if _stub() is None and not shutil.which("ipfs"):
         note("tier 2", "no ipfs binary — cannot fetch any published artifact")
         return
     for cid, rec in records:
@@ -154,14 +166,21 @@ def tier2(records: list[tuple[str, dict]]) -> None:
         if expected is None:
             note(f"{short}: rebuild", f"{artifact} at {commit[:12]} carries no placeholder")
             continue
-        r = subprocess.run(["ipfs", "cat", f"/ipfs/{cid}/{installs_to}"],
-                           capture_output=True, timeout=180)
-        if r.returncode != 0 or not r.stdout:
-            note(f"{short}: fetch {installs_to}", "not retrievable from this node")
+        stub = _stub()
+        if stub is not None:
+            import base64
+            v = (stub.get("published") or {}).get(f"{cid}/{installs_to}")
+            published = None if v is None else base64.b64decode(v)
+        else:
+            r = subprocess.run(["ipfs", "cat", f"/ipfs/{cid}/{installs_to}"],
+                               capture_output=True, timeout=180)
+            published = r.stdout if r.returncode == 0 and r.stdout else None
+        if published is None:
+            note(f"{short}: fetch {installs_to}", "not retrievable")
             continue
         chk(f"{short}: published {installs_to} is the stamped build of {commit[:12]}",
-            r.stdout == expected,
-            f"published sha256 differs from the rebuild ({len(r.stdout)} vs {len(expected)} bytes)")
+            published == expected,
+            f"published bytes differ from the rebuild ({len(published)} vs {len(expected)})")
 
 
 def main() -> int:
