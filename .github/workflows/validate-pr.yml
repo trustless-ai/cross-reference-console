@@ -223,6 +223,13 @@ jobs:
         run: python3 reference/check_selects_authoritative.py
       - name: every published record says what gateways serve, and to WHICH client
         run: python3 reference/check_served_bytes.py
+      # The live tier used to be exempt: it reaches a resolver, a local ipfs node and
+      # several gateways, so no control could mutate an input and watch its four assertions
+      # bite. "It needs the network" is the same shape of excuse as "the rule is written
+      # down", so the gates now accept a DATA-ONLY stub. The stub is built from git and the
+      # pin records, so this runs in CI with no network at all — and its faithfulness is
+      # asserted first, because a stub that does not pass the unmutated gate makes every
+      # mutant below prove nothing.
       - name: and both gates go red on the assertion that names the defect
         run: |
           # 12 record mutations plus 9 classifier vectors. The classifier matters most: it
