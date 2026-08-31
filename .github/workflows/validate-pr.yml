@@ -238,6 +238,14 @@ jobs:
           # must ALL come back DIFFERS. A loose version would launder a real substitution into
           # an operational footnote on a page whose whole claim is integrity.
           python3 reference/test_operational_gates.py
+      - name: rung 4 — attribution recomputed under an independent semantic contract
+        run: |
+          # The attribution ladder's fourth rung: Aᵢ* is derived from independent per-invariant
+          # semantic relations + a separating witness basis, never from the gate's labels — so a
+          # mislabelled assertion that the gate and the mutant author share can no longer agree and
+          # be wrong together. Proves its separation matrix before attributing, refuses a mislabel,
+          # and reds under swapped labels / a missing witness class / oracle tampering / gate reuse.
+          python3 reference/rung4_oracle.py
       - name: the currency mapping holds
         run: python3 reference/check_currency_marker.py
       # The live read, transport stubbed. Its failure modes are the ones nobody exercises by
