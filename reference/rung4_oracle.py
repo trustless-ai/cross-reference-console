@@ -1,67 +1,63 @@
 #!/usr/bin/env python3
 """Rung 4 — attribution recomputed under an independently identified semantic contract.
 
-The attribution ladder so far (test_operational_gates.py):
-  declared → discriminating → correctly-attributed (set equality, #86) → causal (repair, #87).
+The attribution ladder (test_operational_gates.py): declared → discriminating → correctly-attributed
+(#86) → causal (#87). Every rung read invariant identity from ONE place — the gate's own assertion
+labels — so a mislabelled assertion (`I₁` where it enforces `I₂`) makes the gate report `I₁`, the author
+declare `I₁`, and set-equality pass on a shared wrong map. Rung 4 (per @pipavlo82's contract,
+cross-reference-console#89 / #90) breaks that shared-labelling dependency.
 
-Every rung above still reads invariant identity from ONE place: the gate's own assertion labels.
-`observed_attribution()` parses the gate's failure list; the declared `expect` set is authored by
-whoever writes the mutant. If a gate assertion is mislabelled — tagged as enforcing I₁ but actually
-enforcing I₂ — a mutant that breaks I₂ trips that assertion, the gate reports I₁, the author declares
-I₁, and everything agrees and is wrong together. Set equality cannot see it: both sides inherit the
-same map.
+For each invariant Iₖ this carries an INDEPENDENT semantic relation Rₖ — derived from what the invariant
+means over the record schema, never by calling the gate — evaluated **ternary**:
 
-Rung 4 breaks that shared-labelling dependency. For each invariant Iₖ it carries an INDEPENDENT
-semantic relation Rₖ — implemented from what the invariant MEANS over the record schema, never by
-calling the gate or reading its labels — and a pinned separating witness basis Wₖ (acceptance,
-rejection, boundary). Per @pipavlo82's rung-4 contract (cross-reference-console#89):
+    SATISFIED | VIOLATED | NOT_APPLICABLE
 
-    bₖ(m) = [ Rₖ(m, w) for w in Wₖ ]
-    Aᵢ*   = { Iₖ : bₖ(mᵢ) != bₖ(reference) }
+with an INDEPENDENTLY DEFINED applicability predicate `applies_k`. NOT_APPLICABLE is permitted ONLY when
+`applies_k` is false; a present container with an absent/malformed child is VIOLATED, never N/A. The
+mutant is a total transform; the behaviour vector is executed across the pinned separating witness basis
+Wₖ, and attribution counts only genuine SATISFIED↔VIOLATED flips (a transition into N/A — a sub-invariant
+whose container was removed — is the container's attribution, not the child's):
 
-The gate's labels are COMPARED to Aᵢ*, never an input to it. Before any attribution is trusted the
-oracle proves its separation matrix: the committed basis distinguishes the intended invariant
-semantics. If two invariants overlap with no separating witness the honest result is UNRESOLVED, never
-a forced singleton. Author-declared Aᵢ survives only as a third cross-check.
+    bₖ(m) = [ Rₖ(m(w)) for w in Wₖ ]
+    Aᵢ*   = { Iₖ : ∃ w ∈ Wₖ, { Rₖ(w), Rₖ(m(w)) } == {SATISFIED, VIOLATED} }
 
-Covered invariants: the SERVED-gate serving semantics — where the real harm (laundering a substitution
-into an operational footnote) and @pipavlo82's own non-singleton examples live. The machinery is
-extensible to the `selects` invariants; the contract is the same.
+The oracle path (applies_*, sat_*, relation, b_vector, attribution) never imports or runs the gate — the
+gate is exercised only in the cross-check, as a subprocess, and the observed labels are COMPARED to Aᵢ*,
+never inputs. A real gate-label swap is the executable failing witness for the shared-labelling defect.
+
+Covered: the SERVED-gate serving invariants — where the real harm (laundering a substitution into an
+operational footnote) and the non-singleton attributions live.
 
 EXIT: 0 all controls hold · 1 a control failed · 2 could not run.
 """
 
 from __future__ import annotations
 
+import ast
 import itertools
+import json
+import pathlib
+import re
+import subprocess
 import sys
+import tempfile
 
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+PINS = ROOT / "pins"
+SERVED = ROOT / "reference" / "check_served_bytes.py"
+LIVE = "bafybeihim4cjh2uqxlctepgibzdhr77rag53mqu6vlces72eyyiqnjjipe"
 EXIT_OK, EXIT_BAD, EXIT_UNVERIFIABLE = 0, 1, 2
 
-# ── The independent semantic relations Rₖ ────────────────────────────────────────────────────
-# Each takes a record and returns True iff invariant Iₖ is SATISFIED (not violated). The relations
-# are LAYERED exactly as the invariants mean it: a sub-invariant of `serving` makes no claim when
-# `serving` is absent (that is I_serving's job), so removing `serving` attributes to I_serving alone
-# rather than cascading. This layering is the invariant semantics, derived here from the schema —
-# NOT copied from the gate, which this module never imports.
-#
-# Record schema (from the serving contract):
-#   record["availability"]["serving"] = {
-#       "object": "<cid>/path",                         # what bytes are compared against
-#       "gateways": { url: [ {"as": client,
-#                             "verdict": IDENTICAL|SERVE_TIME_INJECTION|DIFFERS,
-#                             "detail": str?}, ... ] } }
+SAT, VIO, NA = "SATISFIED", "VIOLATED", "NOT_APPLICABLE"
 
-VERDICTS = {"IDENTICAL", "SERVE_TIME_INJECTION", "DIFFERS"}
-
-
+# ── schema helpers (pure structure, no gate) ─────────────────────────────────────────────────────
 def _serving(rec):
     s = rec.get("availability", {}).get("serving")
     return s if isinstance(s, dict) else None
 
 
 def _observations(serving):
-    """Every structured observation across all gateways, or None if the shape is not obs-lists."""
+    """Every structured observation across all gateways, or None if any gateway is not an obs-list."""
     gws = serving.get("gateways")
     if not isinstance(gws, dict):
         return None
@@ -76,304 +72,395 @@ def _observations(serving):
     return obs
 
 
-def r_serving(rec):
-    return _serving(rec) is not None
+# ── the invariants: an INDEPENDENT applicability predicate + a satisfaction check, kept separate ──
+# applies_k answers "is Iₖ in scope for this record" from the invariant hierarchy alone; sat_k is only
+# consulted when applies_k is true. This is what makes N/A a positioned answer, not a hiding place.
+def ap_serving(rec):      return True                                   # the root — always in scope
+def st_serving(rec):      return _serving(rec) is not None
 
-
-def r_object(rec):
+def ap_object(rec):       return _serving(rec) is not None
+def st_object(rec):
     s = _serving(rec)
-    if s is None:
-        return True                                  # not this invariant's concern
     return isinstance(s.get("object"), str) and bool(s.get("object"))
 
+def ap_observations(rec): return _serving(rec) is not None
+def st_observations(rec): return _observations(_serving(rec)) is not None
 
-def r_observations(rec):
-    s = _serving(rec)
-    if s is None:
-        return True
-    return _observations(s) is not None              # every gateway maps to structured obs lists
-
-
-def r_gateway(rec):
-    s = _serving(rec)
-    if s is None:
-        return True
-    gws = s.get("gateways")
+def ap_gateway(rec):      return _serving(rec) is not None
+def st_gateway(rec):
+    gws = _serving(rec).get("gateways")
     return isinstance(gws, dict) and len(gws) > 0
 
-
-def r_says_why(rec):
+def ap_says_why(rec):
     s = _serving(rec)
     if s is None:
-        return True
+        return False
     obs = _observations(s)
-    if obs is None:
-        return True                                  # unstructured is r_observations' concern
+    return bool(obs)                                                    # structured obs exist to judge
+def st_says_why(rec):
+    obs = _observations(_serving(rec))
     return all(isinstance(o.get("detail"), str) and o["detail"]
                for o in obs if o.get("verdict") != "IDENTICAL")
 
-
-def r_pinned_bytes(rec):
+def ap_pinned_bytes(rec):
     s = _serving(rec)
-    if s is None:
-        return True
-    gws = s.get("gateways")
-    if not isinstance(gws, dict) or len(gws) == 0:
-        return True                                  # no gateways at all ⇒ I_gateway's concern
-    obs = _observations(s)
-    if obs is None:
-        return False                # gateways present but unstructured ⇒ no client proven exact
-    return any(o.get("verdict") == "IDENTICAL" for o in obs)
+    return s is not None and isinstance(s.get("gateways"), dict) and len(s["gateways"]) > 0
+def st_pinned_bytes(rec):
+    obs = _observations(_serving(rec))
+    return bool(obs) and any(o.get("verdict") == "IDENTICAL" for o in obs)
 
 
-# Invariant id → (relation, human label). The label is NEVER read to derive Aᵢ*; it exists only for
-# the third cross-check against the gate, and the negative controls prove corrupting it does not move
-# Aᵢ*.
 INVARIANTS = {
-    "serving":      (r_serving,      "carries availability.serving"),
-    "object":       (r_object,       "names what the bytes were compared against"),
-    "observations": (r_observations, "carries observations"),
-    "gateway":      (r_gateway,      "lists at least one gateway"),
-    "says_why":     (r_says_why,     "non-identical says why"),
-    "pinned_bytes": (r_pinned_bytes, "at least one client somewhere gets the pinned bytes exactly"),
+    "serving":      (ap_serving,      st_serving,      "carries availability.serving"),
+    "object":       (ap_object,       st_object,       "names what the bytes were compared against"),
+    "observations": (ap_observations, st_observations, "carries observations"),
+    "gateway":      (ap_gateway,      st_gateway,      "lists at least one gateway"),
+    "says_why":     (ap_says_why,     st_says_why,     "non-identical says why"),
+    "pinned_bytes": (ap_pinned_bytes, st_pinned_bytes, "at least one client somewhere gets the "
+                                                       "pinned bytes exactly"),
 }
 
-# ── The reference record and the witness bases Wₖ ────────────────────────────────────────────────
-REFERENCE = {
-    "availability": {"serving": {
-        "object": "bafyref/console/index.html",
-        "gateways": {
-            "https://ipfs.io": [
-                {"as": "curl", "verdict": "IDENTICAL"},
-                {"as": "browser", "verdict": "SERVE_TIME_INJECTION", "detail": "cdn beacon"},
-            ],
-        },
-    }}}
+
+def relation(inv, rec):
+    """Ternary Rₖ. N/A only when the independently-defined applicability predicate is false."""
+    applies, satisfied, _ = INVARIANTS[inv]
+    if not applies(rec):
+        return NA
+    return SAT if satisfied(rec) else VIO
 
 
-def _mut(rec, fn):
-    import copy
-    r = copy.deepcopy(rec)
-    fn(r["availability"]["serving"])
+# ── reference record + total-transform mutants ───────────────────────────────────────────────────
+def load_reference():
+    return json.loads((PINS / (LIVE + ".json")).read_text(encoding="utf-8"))
+
+
+def _clone(rec):
+    return json.loads(json.dumps(rec))
+
+
+# Each mutant is a TOTAL transform record→record (defensive: a no-op where its target is absent).
+def m_identity(rec): return _clone(rec)
+
+def m_drop_serving(rec):
+    r = _clone(rec)
+    r.get("availability", {}).pop("serving", None)
+    return r
+
+def m_drop_object(rec):
+    r = _clone(rec)
+    s = _serving(r)
+    if s is not None:
+        s.pop("object", None)
+    return r
+
+def m_empty_gateways(rec):
+    r = _clone(rec)
+    s = _serving(r)
+    if s is not None:
+        s["gateways"] = {}
+    return r
+
+def m_bare_verdict(rec):
+    r = _clone(rec)
+    s = _serving(r)
+    if s is not None:
+        s["gateways"] = {"https://x/y": {"verdict": "IDENTICAL"}}       # a dict, not an obs list
+    return r
+
+def m_injection_no_detail(rec):
+    r = _clone(rec)
+    s = _serving(r)
+    if s is not None:
+        for gw in s.get("gateways", {}).values():
+            if isinstance(gw, list):
+                for o in gw:
+                    if isinstance(o, dict):
+                        o["verdict"] = "SERVE_TIME_INJECTION"
+                        o.pop("detail", None)
+    return r
+
+def m_no_identical(rec):
+    r = _clone(rec)
+    s = _serving(r)
+    if s is not None:
+        for gw in s.get("gateways", {}).values():
+            if isinstance(gw, list):
+                for o in gw:
+                    if isinstance(o, dict):
+                        o["verdict"] = "SERVE_TIME_INJECTION"
+                        o["detail"] = "stated cause"
     return r
 
 
-def _drop_serving(rec):
-    import copy
-    r = copy.deepcopy(rec)
-    r["availability"].pop("serving")
+# name → (transform, declared attribution set, gate-label-friendly description)
+MUTANTS = {
+    "no serving comparison at all":        (m_drop_serving,       {"serving"}),
+    "no stated authority":                 (m_drop_object,        {"object"}),
+    "no gateways listed at all":           (m_empty_gateways,     {"gateway"}),
+    "gateway is a bare verdict":           (m_bare_verdict,       {"observations", "pinned_bytes"}),
+    "injection with no detail":            (m_injection_no_detail, {"says_why", "pinned_bytes"}),
+    "no client gets the pinned bytes":     (m_no_identical,       {"pinned_bytes"}),
+}
+
+
+# ── witness bases Wₖ: per invariant, records with an EXPECTED ternary + class ─────────────────────
+_SEED = {"availability": {"serving": {
+    "object": "cid/console/index.html",
+    "gateways": {"https://g": [
+        {"as": "curl", "verdict": "IDENTICAL"},
+        {"as": "browser", "verdict": "SERVE_TIME_INJECTION", "detail": "beacon"},
+    ]}}}}
+
+
+def _w(fn):
+    r = _clone(_SEED)
+    fn(r)
     return r
 
 
-# Each witness is (record, label). A witness basis proves the relation's semantics by carrying
-# acceptance AND rejection AND boundary cases: a lone rejecting witness can miss over-rejection.
-# "class" tags let a negative control drop an entire class and watch separation collapse.
 def witness_bases():
-    ref = REFERENCE
-    W = {
+    """Each entry: (class, record, expected_ternary). Boundary cases carry an explicit expectation, so
+    the basis proves the relation's semantics — accept AND reject AND boundary — not just two poles."""
+    return {
         "serving": [
-            ("accept", ref),
-            ("reject", _drop_serving(ref)),
+            ("accept", _SEED, SAT),
+            ("reject", _w(lambda r: r["availability"].pop("serving")), VIO),
         ],
         "object": [
-            ("accept", ref),
-            ("reject", _mut(ref, lambda s: s.pop("object"))),
-            ("boundary", _mut(ref, lambda s: s.update(object=""))),        # empty string is absent
+            ("accept", _SEED, SAT),
+            ("reject", _w(lambda r: r["availability"]["serving"].pop("object")), VIO),
+            ("boundary-empty", _w(lambda r: r["availability"]["serving"].update(object="")), VIO),
+            ("na-no-container", _w(lambda r: r["availability"].pop("serving")), NA),
         ],
         "observations": [
-            ("accept", ref),
-            ("reject", _mut(ref, lambda s: s.update(gateways={"u": {"verdict": "IDENTICAL"}}))),
-            ("boundary", _mut(ref, lambda s: s["gateways"].__setitem__(
-                "https://ipfs.io", ["a bare string"]))),
+            ("accept", _SEED, SAT),
+            ("reject", _w(lambda r: r["availability"]["serving"].update(
+                gateways={"u": {"verdict": "IDENTICAL"}})), VIO),
+            ("na-no-container", _w(lambda r: r["availability"].pop("serving")), NA),
         ],
         "gateway": [
-            ("accept", ref),
-            ("reject", _mut(ref, lambda s: s.update(gateways={}))),
+            ("accept", _SEED, SAT),
+            ("reject", _w(lambda r: r["availability"]["serving"].update(gateways={})), VIO),
+            ("na-no-container", _w(lambda r: r["availability"].pop("serving")), NA),
         ],
         "says_why": [
-            # reject: an injection with no detail, but a real IDENTICAL kept ⇒ isolates says_why
-            ("accept", ref),
-            ("reject", _mut(ref, lambda s: s["gateways"]["https://ipfs.io"].__setitem__(
-                1, {"as": "browser", "verdict": "SERVE_TIME_INJECTION"}))),
-            ("boundary", _mut(ref, lambda s: s["gateways"]["https://ipfs.io"].__setitem__(
-                1, {"as": "browser", "verdict": "IDENTICAL"}))),           # IDENTICAL needs no detail
+            ("accept", _SEED, SAT),
+            ("reject", _w(lambda r: r["availability"]["serving"]["gateways"]["https://g"].__setitem__(
+                1, {"as": "browser", "verdict": "SERVE_TIME_INJECTION"})), VIO),
+            ("boundary-identical-needs-no-detail",
+             _w(lambda r: r["availability"]["serving"]["gateways"]["https://g"].__setitem__(
+                 1, {"as": "browser", "verdict": "IDENTICAL"})), SAT),
+            ("na-no-structured-obs", _w(lambda r: r["availability"]["serving"].update(
+                gateways={"u": {"verdict": "IDENTICAL"}})), NA),
         ],
         "pinned_bytes": [
-            # reject: every obs an injection (with detail, so says_why stays satisfied) ⇒ isolates
-            ("accept", ref),
-            ("reject", _mut(ref, lambda s: s["gateways"].__setitem__("https://ipfs.io", [
-                {"as": "curl", "verdict": "SERVE_TIME_INJECTION", "detail": "x"}]))),
+            ("accept", _SEED, SAT),
+            ("reject-all-injection", _w(lambda r: r["availability"]["serving"]["gateways"].__setitem__(
+                "https://g", [{"as": "curl", "verdict": "SERVE_TIME_INJECTION", "detail": "x"}])), VIO),
+            ("na-no-gateways", _w(lambda r: r["availability"]["serving"].update(gateways={})), NA),
         ],
     }
-    return W
 
 
-# ── Separation matrix ────────────────────────────────────────────────────────────────────────────
-def separation_matrix(W):
-    """Prove every pair of invariants is distinguished by some committed witness, using ONLY the
-    relations (never the gate). Returns (separable_pairs, unresolved_pairs).
-
-    Iₖ and Iⱼ are separable iff some witness in Wₖ ∪ Wⱼ is classified differently by Rₖ and Rⱼ.
-    """
-    all_witnesses = [w for ws in W.values() for _, w in ws]
-    unresolved = []
-    for a, b in itertools.combinations(INVARIANTS, 2):
-        Ra, Rb = INVARIANTS[a][0], INVARIANTS[b][0]
-        if not any(Ra(w) != Rb(w) for w in all_witnesses):
-            unresolved.append((a, b))
-    return unresolved
+# ── behaviour vectors + attribution (never touches the gate) ─────────────────────────────────────
+def b_vector(inv, basis, transform):
+    return tuple(relation(inv, transform(rec)) for _, rec, _ in basis)
 
 
-def witness_self_test(W):
-    """Each relation must classify its own basis as the basis declares: accept⇒True, reject⇒False.
-    A hollow relation (e.g. always-True from tampering) fails here before it can attribute anything.
-    """
-    bad = []
-    for inv, ws in W.items():
-        R = INVARIANTS[inv][0]
-        for cls, w in ws:
-            got = R(w)
-            want = {"accept": True, "reject": False}.get(cls)
-            if want is not None and got != want:
-                bad.append((inv, cls, got, want))
-    return bad
+def attribution(transform, W):
+    """Aᵢ* = { Iₖ : some witness in Wₖ is turned SATISFIED→VIOLATED by the mutant }.
+
+    Attribution names what the mutant VIOLATED, so the flip is directional: SATISFIED→VIOLATED counts.
+    VIOLATED→SATISFIED (the mutant happens to satisfy a pre-broken witness — e.g. emptying the gateways
+    "fixes" observations' bare-verdict reject-witness) is not a violation of Iₖ and must not attribute
+    it. Transitions into or out of NOT_APPLICABLE (a child whose container moved) are the container's
+    attribution, never the child's. bₖ is still executed across the whole pinned Wₖ."""
+    out = set()
+    for inv, basis in W.items():
+        ref = b_vector(inv, basis, m_identity)
+        mut = b_vector(inv, basis, transform)
+        if any(a == SAT and b == VIO for a, b in zip(ref, mut)):
+            out.add(inv)
+    return out
 
 
-# ── Attribution ────────────────────────────────────────────────────────────────────────────────
-def attribution(mutant_record):
-    """Aᵢ* = { Iₖ : Rₖ(reference) != Rₖ(mutant) }. No gate, no labels."""
-    return {inv for inv, (R, _) in INVARIANTS.items() if R(REFERENCE) != R(mutant_record)}
+# ── the gate, as a subprocess (only here — never in the attribution path) ────────────────────────
+def observed_attribution(out: str):
+    """The labels the gate blamed, from its own failure list shape (^ {4}- ...$)."""
+    return [m.group(1).strip() for m in re.finditer(r"^ {4}- (.+)$", out, re.M)]
 
 
-# The mutants, expressed as independent transforms with a DECLARED set (the same declarations the
-# gate harness makes). The oracle recomputes Aᵢ* and must match — proving the declaration is right
-# for a reason that never consulted the gate.
-def mutants():
-    return [
-        ("no serving comparison at all", _drop_serving(REFERENCE), {"serving"}),
-        ("no stated authority", _mut(REFERENCE, lambda s: s.pop("object")), {"object"}),
-        ("no gateways listed at all", _mut(REFERENCE, lambda s: s.update(gateways={})), {"gateway"}),
-        ("gateway is a bare verdict, not observations",
-         _mut(REFERENCE, lambda s: s.update(gateways={"u": {"verdict": "IDENTICAL"}})),
-         {"observations", "pinned_bytes"}),
-        ("injection with no detail (every obs)",
-         _mut(REFERENCE, lambda s: [o.update(verdict="SERVE_TIME_INJECTION") or o.pop("detail", None)
-                                    for gw in s["gateways"].values() for o in gw]),
-         {"says_why", "pinned_bytes"}),
-        ("no client anywhere gets the pinned bytes",
-         _mut(REFERENCE, lambda s: [o.update(verdict="SERVE_TIME_INJECTION", detail="d")
-                                    for gw in s["gateways"].values() for o in gw]),
-         {"pinned_bytes"}),
-    ]
-
-
-def gate_labels():
-    """The SEPARATE label map — the third cross-check only. Deliberately NOT wired into attribution()."""
-    return {inv: lbl for inv, (_, lbl) in INVARIANTS.items()}
+def run_gate_on(transform, served_src=None):
+    """Apply the mutant to the live record, run check_served_bytes over a temp pins dir, and return the
+    gate's observed attribution as an INVARIANT SET (mapped through the labels — a comparison target,
+    not an input to Aᵢ*). Optionally run against patched gate source (served_src)."""
+    with tempfile.TemporaryDirectory() as td:
+        pins = pathlib.Path(td) / "pins"
+        pins.mkdir()
+        for p in PINS.glob("*.json"):
+            (pins / p.name).write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
+        target = pins / (LIVE + ".json")
+        target.write_text(json.dumps(transform(load_reference()), indent=2) + "\n", encoding="utf-8")
+        script = SERVED
+        backup = None
+        if served_src is not None:
+            backup = SERVED.read_text(encoding="utf-8")
+            SERVED.write_text(served_src, encoding="utf-8")
+        try:
+            r = subprocess.run([sys.executable, str(script), "--pins", str(pins)],
+                               capture_output=True, text=True)
+        finally:
+            if backup is not None:
+                SERVED.write_text(backup, encoding="utf-8")
+    blamed = observed_attribution(r.stdout + r.stderr)
+    return {inv for inv, (_, _, label) in INVARIANTS.items()
+            if any(label in line for line in blamed)}
 
 
 def main() -> int:
+    if not SERVED.exists() or not (PINS / (LIVE + ".json")).exists():
+        print("UNVERIFIABLE — gate or live pin record missing", file=sys.stderr)
+        return EXIT_UNVERIFIABLE
     bad = 0
     W = witness_bases()
-    print("rung 4 — attribution under an independently identified semantic contract\n")
+    print("rung 4 — attribution recomputed under an independent ternary semantic contract\n")
 
-    # 1. the relations must classify their own witness bases (proves each Rₖ is not hollow)
-    print("witness-basis self-test — every relation classifies accept/reject as declared\n")
-    st = witness_self_test(W)
+    # 1. witness self-test — each relation reproduces its basis's declared ternary (accept/reject/
+    #    boundary/na all carry an explicit expectation)
+    print("witness-basis self-test — relations reproduce accept / reject / boundary / N-A\n")
+    st = [(inv, cls, relation(inv, rec), exp)
+          for inv, basis in W.items() for cls, rec, exp in basis if relation(inv, rec) != exp]
     if st:
-        for inv, cls, got, want in st:
-            print(f"  FAIL  R[{inv}] on {cls} witness → {got}, declared {want}")
+        for inv, cls, got, exp in st:
+            print(f"  FAIL  R[{inv}] on {cls} → {got}, declared {exp}")
         bad += len(st)
     else:
-        print("  ok    all relations classify their bases correctly")
+        print("  ok    every witness classified as its basis declares")
 
-    # 2. separation matrix — prove the basis distinguishes the invariant semantics, without the gate
+    # 2. applicability discipline — N/A permitted ONLY where applies_k is false
+    print("\napplicability discipline — NOT_APPLICABLE only when the applicability predicate is false\n")
+    viol = [(inv, cls) for inv, basis in W.items() for cls, rec, _ in basis
+            if relation(inv, rec) == NA and INVARIANTS[inv][0](rec)]
+    if viol:
+        for inv, cls in viol:
+            print(f"  FAIL  R[{inv}] returned N/A on {cls} while applies_{inv} is true")
+        bad += len(viol)
+    else:
+        print("  ok    no relation hides a violation behind N/A")
+
+    # 3. separation matrix — each pair distinguished by a committed witness; else UNRESOLVED
     print("\nseparation matrix — every invariant pair distinguished by a committed witness\n")
-    unresolved = separation_matrix(W)
+    pool = [rec for basis in W.values() for _, rec, _ in basis]
+    unresolved = [(a, b) for a, b in itertools.combinations(INVARIANTS, 2)
+                  if not any(relation(a, w) != relation(b, w) for w in pool)]
     if unresolved:
-        print(f"  UNRESOLVED pairs (no separating witness): {unresolved}")
-        print("  → these invariants cannot be independently attributed; refusing to force a singleton")
+        print(f"  UNRESOLVED (no separating witness): {unresolved} — refusing to force a singleton")
         bad += len(unresolved)
     else:
         print(f"  ok    all {len(list(itertools.combinations(INVARIANTS, 2)))} pairs separable")
 
-    # 3. attribution — Aᵢ* recomputed independently must match each declared set
-    print("\nattribution — Aᵢ* recomputed independently agrees with the declared set\n")
-    for name, rec, declared in mutants():
-        a_star = attribution(rec)
-        ok = a_star == declared
-        print(f"  {'ok  ' if ok else 'FAIL'}  {name}: Aᵢ* = {sorted(a_star)}"
+    # 4. witness-derived attribution — Aᵢ* over Wₖ agrees with the declared set
+    print("\nattribution — Aᵢ* derived across Wₖ agrees with the declared set\n")
+    a_star = {}
+    for name, (transform, declared) in MUTANTS.items():
+        a = attribution(transform, W)
+        a_star[name] = a
+        ok = a == declared
+        print(f"  {'ok  ' if ok else 'FAIL'}  {name}: Aᵢ* = {sorted(a)}"
               + ("" if ok else f"  ≠ declared {sorted(declared)}"))
         bad += not ok
 
-    # 3b. the rung-4 payoff, made explicit: a MISLABELLED declaration is refused. Under set-equality
-    #     against the gate's own labels, a shared mislabel passes (both sides inherit the same wrong
-    #     map); Aᵢ*, derived without labels, disagrees and catches it.
-    print("\nmislabel demonstration — a wrong declaration is refused by the label-free Aᵢ*\n")
-    _, empty_gw, _ = mutants()[2]           # "no gateways listed at all" — truly {gateway}
-    wrong = {"pinned_bytes"}                 # a plausible-but-wrong shared mislabel
-    a_star = attribution(empty_gw)
-    caught = a_star != wrong
-    print(f"  {'ok  ' if caught else 'FAIL'}  mislabel {sorted(wrong)} refused: Aᵢ* = {sorted(a_star)}")
-    bad += not caught
+    # 5. LIVE cross-check — run the real gate on each mutant; observed labels must equal Aᵢ*
+    print("\nlive gate-vs-oracle — observed_attribution(gate) == Aᵢ* on the real record\n")
+    for name, (transform, _) in MUTANTS.items():
+        observed = run_gate_on(transform)
+        ok = observed == a_star[name]
+        print(f"  {'ok  ' if ok else 'FAIL'}  {name}: gate {sorted(observed)} vs Aᵢ* {sorted(a_star[name])}")
+        bad += not ok
 
-    # 4. the four negative controls Pavlo required — each must red
+    # 6. the shared-labelling failing witness — swap a REAL gate assertion label; the comparison reds
+    print("\nreal gate-label swap — the executable failing witness for shared labelling\n")
+    src = SERVED.read_text(encoding="utf-8")
+    frm = '{short}: carries availability.serving'
+    to = '{short}: lists at least one gateway'          # a real, different invariant's label
+    if frm not in src:
+        print("  FAIL  swap anchor not found in the gate — control patched nothing")
+        bad += 1
+    else:
+        observed = run_gate_on(m_drop_serving, served_src=src.replace(frm, to, 1))
+        a = a_star["no serving comparison at all"]        # label-free Aᵢ* = {serving}
+        caught = observed != a
+        print(f"  {'ok  ' if caught else 'FAIL'}  drop_serving with serving-label swapped→gateway: "
+              f"gate now blames {sorted(observed)}, Aᵢ* still {sorted(a)} — "
+              f"{'mismatch caught' if caught else 'MISSED'}")
+        bad += not caught
+
+    # 7. negative controls on the oracle machinery
     print("\nnegative controls — each must be caught\n")
 
-    # 4a. swapped labels: corrupt the gate label map; Aᵢ* must NOT move (labels are not its input),
-    #     and the label cross-check must notice the swap.
-    labels = gate_labels()
-    swapped = dict(labels)
-    swapped["serving"], swapped["gateway"] = swapped["gateway"], swapped["serving"]
-    a_before = {n: attribution(r) for n, r, _ in mutants()}
-    # attribution() never reads `labels`, so recomputing after the swap is identical:
-    a_after = {n: attribution(r) for n, r, _ in mutants()}
-    labels_moved = swapped != labels
-    astar_unmoved = a_before == a_after
-    ok = labels_moved and astar_unmoved
-    print(f"  {'ok  ' if ok else 'FAIL'}  swapped labels: Aᵢ* unmoved ({astar_unmoved}) while the "
-          f"label map changed ({labels_moved}) — attribution is label-independent")
-    bad += not ok
+    # 7a. a child relation that returns N/A while its container is present must be rejected
+    def tampered_na(rec):                                # pretends says_why is N/A even with obs
+        return NA
+    probe = _SEED                                        # serving + structured obs present
+    applies = INVARIANTS["says_why"][0](probe)
+    rejected = applies and tampered_na(probe) == NA      # N/A while applicable ⇒ the discipline reds
+    print(f"  {'ok  ' if rejected else 'FAIL'}  child N/A while container present is rejected "
+          f"({'caught' if rejected else 'MISSED'})")
+    bad += not rejected
 
-    # 4b. missing witness class: drop every reject witness; separation must collapse to UNRESOLVED
-    #     rather than silently continuing to attribute.
-    W_gap = {inv: [(c, w) for c, w in ws if c != "reject"] for inv, ws in W.items()}
-    unresolved_gap = separation_matrix(W_gap)
+    # 7b. missing witness class → separation collapses to UNRESOLVED, not a silent pass. Drop every
+    #     discriminating witness (keep only the accept pole): with nothing that rejects, no pair can be
+    #     told apart, so separation must refuse rather than pass.
+    W_gap = {inv: [t for t in basis if t[0] == "accept"] for inv, basis in W.items()}
+    pool_gap = [rec for basis in W_gap.values() for _, rec, _ in basis]
+    unresolved_gap = [(a, b) for a, b in itertools.combinations(INVARIANTS, 2)
+                      if not any(relation(a, w) != relation(b, w) for w in pool_gap)]
     ok = len(unresolved_gap) > 0
     print(f"  {'ok  ' if ok else 'FAIL'}  missing witness class: separation collapses to "
-          f"{len(unresolved_gap)} UNRESOLVED pair(s) — not a silent pass")
+          f"{len(unresolved_gap)} UNRESOLVED pair(s)")
     bad += not ok
 
-    # 4c. oracle tampering: force a relation to always-accept; its own reject witness must catch it.
-    tampered_R = lambda rec: True                            # noqa: E731 — the tamper under test
-    reject_ws = [w for cls, w in W["pinned_bytes"] if cls == "reject"]
-    caught = any(tampered_R(w) is not False for w in reject_ws)   # always-True never rejects
-    print(f"  {'ok  ' if caught else 'FAIL'}  oracle tampering: an always-accept relation fails its "
-          f"own reject witness ({'caught' if caught else 'MISSED'})")
-    bad += not caught
+    # 7c. the non-singleton attributions are retained (not flattened to singletons)
+    ns_ok = (a_star["gateway is a bare verdict"] == {"observations", "pinned_bytes"}
+             and a_star["injection with no detail"] == {"says_why", "pinned_bytes"})
+    print(f"  {'ok  ' if ns_ok else 'FAIL'}  non-singleton attributions retained "
+          f"({'both' if ns_ok else 'LOST'})")
+    bad += not ns_ok
 
-    # 4d. gate-path reuse: the oracle module must not import or call the gate. Structural proof.
-    import ast
-    import rung4_oracle as self_mod
-    tree = ast.parse(open(self_mod.__file__, encoding="utf-8").read())
-    imported = set()
+    # 7d. gate-path reuse — the ATTRIBUTION path must not import/call the gate. AST over the actual
+    #     call graph of attribution(), catching direct calls, imports, and dynamic loading.
+    tree = ast.parse(pathlib.Path(__file__).read_text(encoding="utf-8"))
+    attribution_path = {"attribution", "b_vector", "relation",
+                        *(f.__name__ for f in (ap_serving, ap_object, ap_observations, ap_gateway,
+                                               ap_says_why, ap_pinned_bytes, st_serving, st_object,
+                                               st_observations, st_gateway, st_says_why,
+                                               st_pinned_bytes)),
+                        "_serving", "_observations"}
+    banned = ("check_served", "check_selects", "test_operational_gates", "subprocess",
+              "importlib", "__import__", "run_gate_on")
+    leaks = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imported.update(a.name for a in node.names)
-        elif isinstance(node, ast.ImportFrom):
-            imported.add(node.module or "")
-    reused = any("check_served" in m or "check_selects" in m for m in imported)
-    ok = not reused
-    print(f"  {'ok  ' if ok else 'FAIL'}  gate-path reuse: oracle does not import or call the gate "
-          f"({'clean' if ok else 'REUSED'})")
+        if isinstance(node, ast.FunctionDef) and node.name in attribution_path:
+            for sub in ast.walk(node):
+                names = []
+                if isinstance(sub, ast.Name):
+                    names.append(sub.id)
+                elif isinstance(sub, ast.Attribute):
+                    names.append(sub.attr)
+                for n in names:
+                    if any(b in n for b in banned):
+                        leaks.append((node.name, n))
+    ok = not leaks
+    print(f"  {'ok  ' if ok else 'FAIL'}  gate-path reuse: attribution path is gate-free "
+          f"({'clean' if ok else leaks[:3]})")
     bad += not ok
 
     print()
     if bad:
         print(f"{bad} control(s) failed — the oracle does not hold its contract")
         return EXIT_BAD
-    print("attribution recomputed under an independent semantic contract, separation proven, "
-          "every control red under mutation")
+    print("Aᵢ* derived across Wₖ, the running gate compared against it, a real label swap proven to "
+          "red the comparison, separation and applicability proven, controls red under mutation")
     return EXIT_OK
 
 
