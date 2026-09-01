@@ -74,21 +74,24 @@ def main() -> int:
     W = O.witness_bases()
     print("rung 4 — live gate-vs-oracle cross-check\n")
 
-    # 1. isolation proof — the oracle imports NOTHING that can reach the gate (real AST scan, module-
-    #    level, so aliases and dynamic loading are caught). This is what makes Aᵢ* provably label-free.
-    print("oracle isolation — the pure oracle imports no gate / subprocess / dynamic loader\n")
+    # 1. isolation proof — the oracle can reach the gate through NO path. An ALLOWLIST of imports (only
+    #    the stdlib the pure oracle needs) plus rejection of every dynamic-execution primitive
+    #    (exec/eval/compile/__import__) — so an aliased import, `exec("import check_served_bytes as g")`,
+    #    or an eval/compile route is all refused, not just the static `import`/`__import__` forms a
+    #    blacklist would catch. This is what makes Aᵢ* provably label-free.
+    print("oracle isolation — allowlisted imports, no dynamic-execution primitives\n")
     tree = ast.parse(ORACLE.read_text(encoding="utf-8"))
-    banned = ("check_served", "check_selects", "test_operational_gates", "subprocess", "importlib")
+    ALLOWED = {"itertools", "json", "pathlib", "sys", "__future__"}
+    DYNAMIC = {"exec", "eval", "compile", "__import__"}
     leaks = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            leaks += [a.name for a in node.names if any(b in a.name for b in banned)]
+            leaks += [f"import {a.name}" for a in node.names if a.name.split(".")[0] not in ALLOWED]
         elif isinstance(node, ast.ImportFrom):
-            if node.module and any(b in node.module for b in banned):
-                leaks.append(node.module)
-        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
-                and node.func.id == "__import__":
-            leaks.append("__import__()")
+            if (node.module or "").split(".")[0] not in ALLOWED:
+                leaks.append(f"from {node.module} import ...")
+        elif isinstance(node, ast.Name) and node.id in DYNAMIC:
+            leaks.append(f"dynamic-exec primitive: {node.id}")   # catches exec(...)/eval(...)/compile/__import__
     ok = not leaks
     print(f"  {'ok  ' if ok else 'FAIL'}  rung4_oracle.py is gate-free ({'clean' if ok else leaks})")
     bad += not ok
