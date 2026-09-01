@@ -3,11 +3,14 @@
 gate's observed attribution to equal the oracle's independent Aᵢ* — the executable form of the
 shared-labelling failing witness.
 
-The oracle (rung4_oracle.py) is PURE: it imports nothing that can reach the gate. This runner proves
-that isolation as a real fact (§1, an AST scan of the oracle's imports — module-level, so an aliased
-`from check_served_bytes import classify as g` cannot hide), then imports the oracle and does the gate
-comparison here, where the subprocess call legitimately lives. The gate's labels are COMPARED to Aᵢ*,
-never fed into it.
+The oracle (rung4_oracle.py) is PURE: it has no capability to reach the gate. Isolation is proven two
+ways — a fast static AST pre-filter (§1, module-level, so an aliased `from check_served_bytes import
+classify as g` cannot hide), and, load-bearing, CAPABILITY CONFINEMENT (§1c): the oracle is executed
+with an explicit __builtins__ that excludes every import/exec/reflection route and offers only an
+allowlist-guarded importer — so no syntax, including Python's auto-injected `__builtins__["__import__"]`
+(Pavlo's 7th counterexample), resolves to anything that can load the gate. The runner then imports the
+confined oracle and does the gate comparison here, where the subprocess call legitimately lives. The
+gate's labels are COMPARED to Aᵢ*, never fed into it.
 
 EXIT: 0 all comparisons + controls hold · 1 a comparison/control failed · 2 could not run.
 """
@@ -15,6 +18,7 @@ EXIT: 0 all comparisons + controls hold · 1 a comparison/control failed · 2 co
 from __future__ import annotations
 
 import ast
+import builtins as _builtins
 import json
 import pathlib
 import re
@@ -55,14 +59,57 @@ def scan_oracle_isolation(src: str):
     return leaks
 
 
-# Scan the exact oracle bytes FIRST, then execute those same checked bytes into an isolated namespace —
-# the oracle never runs before it is proven clean, so it cannot neuter this scan at import time (Pavlo's
-# sixth counterexample: `sys.modules["ast"].walk = lambda t: []` using only the allowlisted `sys`).
+# ── Capability confinement — the load-bearing isolation control (Pavlo's 7th counterexample) ─────────
+# The AST scan above is a static pre-filter, NOT the proof. Blacklisting escape *syntax* one form at a
+# time is unbounded: a scanned-clean source can still reach the gate through Python's auto-injected
+# builtins — `__builtins__["__import__"]("check_served_bytes")` has no Import node and no bare __import__
+# Name. So the oracle is EXECUTED with an explicit __builtins__ that has no import/reflection capability
+# to name at all: a guarded importer locked to the allowlist, with eval/exec/compile/open/getattr/setattr/
+# delattr/globals/vars/__import__(raw) simply absent. There is no capability to reach, by any syntax.
+_UNSAFE_BUILTINS = {"__import__", "eval", "exec", "compile", "open", "globals", "vars",
+                    "getattr", "setattr", "delattr", "input", "breakpoint"}
+
+
+def _guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+    """The ONLY importer the oracle can reach — enforces the allowlist at RUNTIME, not just in the static
+    scan. `import check_served_bytes` and `__builtins__["__import__"]("check_served_bytes")` both route
+    here and both raise; only the pure allowlist resolves. `_builtins` itself is a runner-module global,
+    never present in the oracle namespace, so the oracle cannot reach the real importer through it."""
+    if name.split(".")[0] not in ALLOWED_IMPORTS:
+        raise ImportError(f"import of {name!r} is not permitted in the isolated oracle namespace")
+    return _builtins.__import__(name, globals, locals, fromlist, level)
+
+
+def confined_builtins():
+    """Real builtins MINUS every import/exec/reflection route, PLUS the allowlist-guarded importer. A
+    fresh dict per call so a witness run cannot mutate the builtins the real oracle executes under."""
+    b = {k: v for k, v in vars(_builtins).items() if k not in _UNSAFE_BUILTINS}
+    b["__import__"] = _guarded_import
+    return b
+
+
+def runs_under_confinement(src: str):
+    """Exec a source under the SAME confined builtins the real oracle runs with, in a FRESH namespace.
+    Returns the exception it raised, or None if it ran clean. Hostile sources must raise (the gate never
+    binds); allowlisted imports must run — proving the confinement is a capability boundary, not a
+    syntactic guess."""
+    ns = {"__builtins__": confined_builtins(), "__name__": "witness", "__file__": "<witness>"}
+    try:
+        exec(compile(src, "<witness>", "exec"), ns)
+        return None
+    except BaseException as e:  # noqa: BLE001 — a control: any raise means the route is blocked
+        return e
+
+
+# Scan the exact oracle bytes FIRST (fast static pre-filter), then execute those same checked bytes into
+# an isolated namespace whose __builtins__ is set BEFORE exec — so Python does not inject the real
+# builtins, and the real oracle itself runs capability-confined, not just the witnesses.
 _ORACLE_SRC = ORACLE.read_text(encoding="utf-8")
 _ISOLATION_LEAKS = scan_oracle_isolation(_ORACLE_SRC)
 O = types.ModuleType("rung4_oracle")
 O.__dict__["__name__"] = "rung4_oracle"
 O.__file__ = str(ORACLE)
+O.__dict__["__builtins__"] = confined_builtins()   # set before exec → Python keeps it, no real builtins
 if not _ISOLATION_LEAKS:
     exec(compile(_ORACLE_SRC, str(ORACLE), "exec"), O.__dict__)
 
@@ -114,7 +161,8 @@ def main() -> int:
     # 1. isolation proof — scanned on the oracle's EXACT bytes BEFORE it was imported/executed (module
     #    top), so the oracle cannot sabotage this scan at import time. If it leaked, the oracle was never
     #    executed and there is nothing safe to run — stop.
-    print("oracle isolation — allowlist + no dynamic-exec + no sys.modules (scanned pre-import)\n")
+    print("oracle isolation — static AST pre-filter (fast fail-early; the capability confinement in §1c "
+          "is the load-bearing proof)\n")
     ok = not _ISOLATION_LEAKS
     print(f"  {'ok  ' if ok else 'FAIL'}  rung4_oracle.py is gate-free ({'clean' if ok else _ISOLATION_LEAKS})")
     bad += not ok
@@ -140,6 +188,35 @@ def main() -> int:
         "from __future__ import annotations\nimport itertools, json, pathlib, sys")
     print(f"  {'ok  ' if clean_ok else 'FAIL'}  clean oracle imports: {'pass' if clean_ok else 'WRONGLY REJECTED'}")
     bad += not clean_ok
+
+    # 1c. capability confinement — the LOAD-BEARING isolation proof. Each hostile source is executed
+    #     under the same confined builtins the real oracle runs with; it must RAISE (the gate never
+    #     binds), by capability absence, not by the scan guessing its syntax. Pavlo's seventh
+    #     counterexample is pinned first. The allowlisted imports must still run.
+    print("\ncapability confinement — hostile source raises under the confined builtins (gate unreachable)\n")
+    hostile = {
+        "builtins __import__ (Pavlo #7)": '__builtins__["__import__"]("check_served_bytes")',
+        "bare __import__ Name":           '__import__("check_served_bytes")',
+        "plain import statement":         "import check_served_bytes",
+        "eval route":                     'eval("__import__")("check_served_bytes")',
+        "exec route":                     'exec("import check_served_bytes")',
+        "getattr reflection":             'import sys\ng = getattr(sys, "modules")',
+        "open file-read route":           'src = open("check_served_bytes.py").read()',
+    }
+    for nm, src in hostile.items():
+        err = runs_under_confinement(src)
+        blocked = err is not None
+        print(f"  {'ok  ' if blocked else 'FAIL'}  {nm}: "
+              f"{'blocked (' + type(err).__name__ + ')' if blocked else 'REACHED GATE'}")
+        bad += not blocked
+    for nm, src in {"itertools": "import itertools",
+                    "json/pathlib/sys": "import json, pathlib, sys",
+                    "__future__": "from __future__ import annotations"}.items():
+        err = runs_under_confinement(src)
+        ran = err is None
+        print(f"  {'ok  ' if ran else 'FAIL'}  allowlisted import '{nm}': "
+              f"{'runs' if ran else 'WRONGLY BLOCKED (' + type(err).__name__ + ')'}")
+        bad += not ran
 
     if not SERVED.exists() or not (O.PINS / (O.LIVE + ".json")).exists():
         print("UNVERIFIABLE — gate or live pin record missing", file=sys.stderr)
