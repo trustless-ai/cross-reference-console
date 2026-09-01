@@ -2,12 +2,14 @@
 """Rung 4 — the PURE semantic oracle. Attribution recomputed under an independently identified
 semantic contract, with NO dependency on the gate.
 
-This module deliberately imports nothing that can reach the gate (no check_served_bytes,
-check_selects_authoritative, test_operational_gates, subprocess, or importlib). That is what makes the
-gate-isolation proof a real call-graph fact rather than a substring guess: rung4_crosscheck.py parses
-this file's imports and refuses any gate/subprocess reference, so an aliased `from check_served_bytes
-import classify as g` could not hide here — it would be a module-level import and get flagged. The gate
-is exercised only in the runner, and its observed attribution is COMPARED to Aᵢ*, never an input.
+This module imports ONLY `itertools` — a builtin C module that exposes no submodule and whose loader
+cannot load file modules. It imports no sys / json / pathlib / __future__ and nothing that transitively
+reaches the gate: a module like `sys` or `pathlib` hands back `sys.modules` / `pathlib.os`, i.e. a live
+`__import__` (@pipavlo82's 8th counterexample, `sys.__getattribute__("modules")["builtins"]…`). So the
+runner both statically scans this file's imports (allowlist = {itertools}) AND executes it under a
+confined `__builtins__` that has no import/reflection capability to name — the isolation is a capability
+boundary, not a substring guess. The gate is exercised only in the runner, its observed attribution
+COMPARED to Aᵢ*, never an input.
 
 Contract (per @pipavlo82, cross-reference-console#89/#90):
 - ternary relations SATISFIED | VIOLATED | NOT_APPLICABLE, each with an INDEPENDENTLY defined
@@ -24,15 +26,10 @@ Run directly for the pure self-tests (no gate). The live gate-vs-oracle comparis
 rung4_crosscheck.py. EXIT: 0 ok · 1 a control failed.
 """
 
-from __future__ import annotations
-
 import itertools
-import json
-import pathlib
-import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-PINS = ROOT / "pins"
+# The live pinned record is read by the RUNNER (which legitimately holds file I/O); the oracle carries
+# only its content-address as data. LIVE is a plain string — no path/json capability lives here.
 LIVE = "bafybeihim4cjh2uqxlctepgibzdhr77rag53mqu6vlces72eyyiqnjjipe"
 
 SAT, VIO, NA = "SATISFIED", "VIOLATED", "NOT_APPLICABLE"
@@ -131,13 +128,15 @@ def label_of(inv):
     return INVARIANTS[inv][2]
 
 
-# ── reference record + total-transform mutants ───────────────────────────────────────────────────
-def load_reference():
-    return json.loads((PINS / (LIVE + ".json")).read_text(encoding="utf-8"))
-
-
+# ── total-transform mutants (the live reference record is supplied by the runner) ─────────────────
 def _clone(rec):
-    return json.loads(json.dumps(rec))
+    # Pure structural deep-clone over JSON-shaped data — no json/copy import (both expose submodules
+    # that reach the gate). dict/list are rebuilt; str/int/float/bool/None are immutable, shared safely.
+    if isinstance(rec, dict):
+        return {k: _clone(v) for k, v in rec.items()}
+    if isinstance(rec, list):
+        return [_clone(v) for v in rec]
+    return rec
 
 
 def m_identity(rec): return _clone(rec)
@@ -366,4 +365,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())   # no `sys` import — see the module docstring (capability confinement)

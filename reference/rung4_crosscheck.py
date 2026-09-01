@@ -30,9 +30,13 @@ import types
 HERE = pathlib.Path(__file__).resolve().parent
 SERVED = HERE / "check_served_bytes.py"
 ORACLE = HERE / "rung4_oracle.py"
+REF_PINS = HERE.parent / "pins"   # the live pinned records — file I/O lives in the RUNNER, so the
+#                                   oracle need import no pathlib/json (both reach the gate via submodules)
 EXIT_OK, EXIT_BAD, EXIT_UNVERIFIABLE = 0, 1, 2
 
-ALLOWED_IMPORTS = {"itertools", "json", "pathlib", "sys", "__future__"}
+ALLOWED_IMPORTS = {"itertools"}   # the ONLY module the pure oracle imports — a builtin whose loader
+#                                   cannot load files and which exposes no submodule; sys→sys.modules and
+#                                   pathlib→pathlib.os would each hand back a live __import__ (Pavlo #8/#9)
 # dynamic-execution + reflection primitives the pure oracle never needs (belt to the import-allowlist's
 # braces — a blacklist here only has to hold within an already import-restricted module)
 DYNAMIC = {"exec", "eval", "compile", "__import__", "getattr", "setattr", "delattr", "globals", "vars"}
@@ -114,6 +118,12 @@ if not _ISOLATION_LEAKS:
     exec(compile(_ORACLE_SRC, str(ORACLE), "exec"), O.__dict__)
 
 
+def load_reference():
+    """Read the live pinned record HERE, in the runner — the oracle imports no json/pathlib. Returns the
+    parsed dict the mutants transform. `O.LIVE` is the content-address the oracle carries as plain data."""
+    return json.loads((REF_PINS / (O.LIVE + ".json")).read_text(encoding="utf-8"))
+
+
 def observed(out: str):
     return [m.group(1).strip() for m in re.finditer(r"^ {4}- (.+)$", out, re.M)]
 
@@ -126,10 +136,10 @@ def run_gate_on(transform, served_src=None):
     with tempfile.TemporaryDirectory() as td:
         pins = pathlib.Path(td) / "pins"
         pins.mkdir()
-        for p in O.PINS.glob("*.json"):
+        for p in REF_PINS.glob("*.json"):
             (pins / p.name).write_text(p.read_text(encoding="utf-8"), encoding="utf-8")
         (pins / (O.LIVE + ".json")).write_text(
-            json.dumps(transform(O.load_reference()), indent=2) + "\n", encoding="utf-8")
+            json.dumps(transform(load_reference()), indent=2) + "\n", encoding="utf-8")
         # A mutated gate (label swap) runs as a TEMPORARY COPY in the same dir — the tracked
         # check_served_bytes.py is never rewritten (rewrite+restore left CRLF / a dirty worktree on
         # Windows). Same directory so the gate's sibling imports still resolve.
@@ -184,10 +194,13 @@ def main() -> int:
         caught = bool(scan_oracle_isolation(src))
         print(f"  {'ok  ' if caught else 'FAIL'}  {nm}: {'rejected' if caught else 'MISSED'}")
         bad += not caught
-    clean_ok = not scan_oracle_isolation(
-        "from __future__ import annotations\nimport itertools, json, pathlib, sys")
-    print(f"  {'ok  ' if clean_ok else 'FAIL'}  clean oracle imports: {'pass' if clean_ok else 'WRONGLY REJECTED'}")
-    bad += not clean_ok
+    clean_ok = not scan_oracle_isolation("import itertools")
+    sysbad = bool(scan_oracle_isolation("import sys")) and bool(scan_oracle_isolation("import pathlib"))
+    print(f"  {'ok  ' if clean_ok else 'FAIL'}  clean oracle imports (itertools only): "
+          f"{'pass' if clean_ok else 'WRONGLY REJECTED'}")
+    print(f"  {'ok  ' if sysbad else 'FAIL'}  sys/pathlib imports rejected by the scan: "
+          f"{'both flagged' if sysbad else 'NOT FLAGGED'}")
+    bad += (not clean_ok) + (not sysbad)
 
     # 1c. capability confinement — the LOAD-BEARING isolation proof. Each hostile source is executed
     #     under the same confined builtins the real oracle runs with; it must RAISE (the gate never
@@ -196,12 +209,20 @@ def main() -> int:
     print("\ncapability confinement — hostile source raises under the confined builtins (gate unreachable)\n")
     hostile = {
         "builtins __import__ (Pavlo #7)": '__builtins__["__import__"]("check_served_bytes")',
-        "bare __import__ Name":           '__import__("check_served_bytes")',
-        "plain import statement":         "import check_served_bytes",
-        "eval route":                     'eval("__import__")("check_served_bytes")',
-        "exec route":                     'exec("import check_served_bytes")',
-        "getattr reflection":             'import sys\ng = getattr(sys, "modules")',
-        "open file-read route":           'src = open("check_served_bytes.py").read()',
+        "sys.modules via __getattribute__ (Pavlo #8)":
+            'import sys\n'
+            'GATE = sys.__getattribute__("modules")["builtins"]'
+            '.__getattribute__("__import__")("check_served_bytes")',
+        "pathlib.os module route (latent #9)": 'import pathlib\npathlib.os.system("true")',
+        "bare __import__ Name":                '__import__("check_served_bytes")',
+        "plain import statement":              "import check_served_bytes",
+        "import sys (de-allowlisted)":         "import sys",
+        "import pathlib (de-allowlisted)":     "import pathlib",
+        "import json (de-allowlisted)":        "import json",
+        "eval route":                          'eval("__import__")("check_served_bytes")',
+        "exec route":                          'exec("import check_served_bytes")',
+        "getattr reflection":                  'g = getattr({}, "keys")',
+        "open file-read route":                'src = open("check_served_bytes.py").read()',
     }
     for nm, src in hostile.items():
         err = runs_under_confinement(src)
@@ -210,15 +231,14 @@ def main() -> int:
               f"{'blocked (' + type(err).__name__ + ')' if blocked else 'REACHED GATE'}")
         bad += not blocked
     for nm, src in {"itertools": "import itertools",
-                    "json/pathlib/sys": "import json, pathlib, sys",
-                    "__future__": "from __future__ import annotations"}.items():
+                    "itertools use": "import itertools\nlist(itertools.combinations([1, 2, 3], 2))"}.items():
         err = runs_under_confinement(src)
         ran = err is None
-        print(f"  {'ok  ' if ran else 'FAIL'}  allowlisted import '{nm}': "
+        print(f"  {'ok  ' if ran else 'FAIL'}  allowlisted '{nm}': "
               f"{'runs' if ran else 'WRONGLY BLOCKED (' + type(err).__name__ + ')'}")
         bad += not ran
 
-    if not SERVED.exists() or not (O.PINS / (O.LIVE + ".json")).exists():
+    if not SERVED.exists() or not (REF_PINS / (O.LIVE + ".json")).exists():
         print("UNVERIFIABLE — gate or live pin record missing", file=sys.stderr)
         return EXIT_UNVERIFIABLE
     W = O.witness_bases()
