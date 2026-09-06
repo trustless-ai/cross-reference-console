@@ -1,0 +1,19 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeigevhslhrknlq6ovigk5vq2qatvxul24quk4k4ljmlqevmkaxrlma",
+  "commit": "fd8b3e0",
+  "selects": { "repo": "https://github.com/trustless-ai/cross-reference-console", "commit": "ddf1dad61403e781f65134529d2391e744c02293", "artifact": "ui/index.html", "note": "Console page + currency wiring unchanged; only /semantic-abi/ changed." },
+  "artifact": "site tree (31 published files)",
+  "tree_sha256": "sha256:968774c31393c70209efacb561829143507b91dd9cf24c5be9662436ae3f9284",
+  "cid_params": { "cid_version": 1, "wrap_with_directory": false, "raw_leaves": true, "chunker": "size-262144", "hash": "sha2-256" },
+  "supersedes": "bafybeicrvka73uca54nhueuaexz7rxn4dnu3sl4fkshbqaibzbtc4m6n2q",
+  "purpose": "Semantic ABI demo UI polish: trustless-ai robot mascot mark (replacing the geometric Vertice-style mark) + favicon/apple-touch-icon; accent recolored violet -> the trustless-ai home-page light blue (#2E63D6 / #eaf1ff / #aec7ff); and a real fix for missing-glyph 'type errors' — the embedded Space Grotesk + Inter subsets lack the arrow/check/refresh/play/dot/not-equal glyphs (confirmed via fonttools), so button icons are now inline SVG and inline symbols carry an OS symbol-font fallback. Self-contained; no external subresources.",
+  "availability": { "note": "Real ipfs add (recorded params) on trustless-ai-landing@fd8b3e0 reproduced this CID; held+pinned on a live announcing node, then Pinata pinByHash 6da8315e-cbaa-4961-bb0c-4b5477dffd76. Mascot + favicon + fonts all embedded as data URIs.", "retrieval_verified": { "https://trustless-ai.eth.limo/semantic-abi/": "200 + robot mark + blue accent" } },
+  "verification": { "contenthash_read_from": "resolver 0xF29100983E058B709F3D539b0c765937B804AC15, trustless-ai.eth", "decoded_cid": "bafybeigevhslhrknlq6ovigk5vq2qatvxul24quk4k4ljmlqevmkaxrlma", "note": "setContenthash tx 0x71df0b55541e2bb122b4cc4063f088f2c1441ddc4147248ac5f9f85459292b84 confirmed on mainnet: receipt status 0x1, to the resolver, from 0xFf9a176577Fb42b6bc9c19fd05a241e8fCd0ca14, block 25919679.", "block": 25919679 },
+  "tx": "0x71df0b55541e2bb122b4cc4063f088f2c1441ddc4147248ac5f9f85459292b84",
+  "pinned_at": "2026-09-06T17:05:21Z",
+  "confirmations": [],
+  "discipline_note": "Unilateral pin (owner set contenthash; one rebuild reproduced the CID). tx recorded + confirmed (block 25919679); confirmations empty pending a second node reproducing tree_sha256 from trustless-ai-landing@fd8b3e0."
+}
