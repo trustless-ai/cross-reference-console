@@ -1,0 +1,19 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeicrvka73uca54nhueuaexz7rxn4dnu3sl4fkshbqaibzbtc4m6n2q",
+  "commit": "1032c51",
+  "selects": { "repo": "https://github.com/trustless-ai/cross-reference-console", "commit": "ddf1dad61403e781f65134529d2391e744c02293", "artifact": "ui/index.html", "note": "Console page + currency wiring unchanged; only /semantic-abi/ changed." },
+  "artifact": "site tree (31 published files)",
+  "tree_sha256": "sha256:3a635272e42d252618a168b129affa48b95a0cba3d9fc665a2d56d823bb334db",
+  "cid_params": { "cid_version": 1, "wrap_with_directory": false, "raw_leaves": true, "chunker": "size-262144", "hash": "sha2-256" },
+  "supersedes": "bafybeic4pbxe7u372dfibsb7yw5ouckuddtyec6rges62ebpywymcbfuwm",
+  "purpose": "Semantic ABI demo PQ panel updated to ANCHORED. Trustless Pioneer #1 (0xe91934ab…524963 #1) was swept into PQ anchor epoch 4 (root a187b1336a56b15619837f099a477f8709c2837d202366d63884d4f83c4a658c, tx 0x3a3bc56fcd75ded5e480d8000f9cfb3dc5d61d3743a1c1488a1d260fb625fa1a, Base Sepolia chain 84532). Independently verified: leaf 98f970d3… folds through the Merkle proof (sorted-pair sha256) into that root. Panel now reads 'anchored · Base Sepolia (epoch 4)'; verify-in-browser shows the Merkle fold step.",
+  "availability": { "note": "Real ipfs add (recorded params) on trustless-ai-landing@1032c51 reproduced this CID; held+pinned on a live announcing node, then Pinata pinByHash 4f8fd0ee-1ccb-487b-bc35-043312820448. Self-contained (agent image + fonts embedded).", "retrieval_verified": { "https://trustless-ai.eth.limo/semantic-abi/": "200 + 'anchored · Base Sepolia (epoch 4)'" } },
+  "verification": { "contenthash_read_from": "resolver 0xF29100983E058B709F3D539b0c765937B804AC15, trustless-ai.eth", "decoded_cid": "bafybeicrvka73uca54nhueuaexz7rxn4dnu3sl4fkshbqaibzbtc4m6n2q", "note": "Owner set the contenthash; eth.limo serves this CID. setContenthash tx hash not yet recorded — tx below empty pending it.", "block": null },
+  "tx": "",
+  "pinned_at": "2026-09-06T15:57:46Z",
+  "confirmations": [],
+  "discipline_note": "Unilateral pin (owner set contenthash; one rebuild reproduced the CID). confirmations empty pending a second node reproducing tree_sha256 from trustless-ai-landing@1032c51; tx pending the setContenthash hash. The PQ anchor itself (epoch 4) IS independently verifiable on-chain — see purpose."
+}
