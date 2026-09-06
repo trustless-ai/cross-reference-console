@@ -1,0 +1,27 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeic4pbxe7u372dfibsb7yw5ouckuddtyec6rges62ebpywymcbfuwm",
+  "commit": "d76f694",
+  "selects": {
+    "repo": "https://github.com/trustless-ai/cross-reference-console",
+    "commit": "ddf1dad61403e781f65134529d2391e744c02293",
+    "artifact": "ui/index.html",
+    "note": "Console page + currency wiring unchanged from the prior pin; only /semantic-abi/ changed."
+  },
+  "artifact": "site tree (31 published files)",
+  "tree_sha256": "sha256:e4e370adc77efc8c847f566a785d21a1d2c30da4bf7253094984731851b2868e",
+  "cid_params": { "cid_version": 1, "wrap_with_directory": false, "raw_leaves": true, "chunker": "size-262144", "hash": "sha2-256" },
+  "supersedes": "bafybeifd72ejmxbooja3pfvxeewf5tqbo3irwkom2vbtrhqccjw2esinfu",
+  "purpose": "Wires the Semantic ABI demo's agent panel to the real Trustless Pioneer (GenesisAgentRegistry 0xe91934ab1f6a40cc1bb4cd530feff56dfe524963 #1, owner 0xFf9a…ca14). The PQ panel is made honest to the VERIFIED live binding (pq_key_binding.v0): ML-DSA-65 only, owner-authorized gateway delegate, recomputable (cc sha256(JCS(statement)) = 98f970d3…, owner secp256k1 sig recovers to the owner), anchoring pending next batch (Base Sepolia), per-action companion = roadmap. Dropped the prior over-claims (SLH-DSA, mainnet-anchored, non-custodial, live companion).",
+  "availability": {
+    "note": "Real ipfs add (recorded params) on trustless-ai-landing@d76f694 reproduced this CID; bytes held+pinned on a live announcing node, then Pinata pinByHash a8b51010-eb51-45f2-aede-ea2ed8dd2e4c (replicated, not re-uploaded). Agent image + fonts embedded as data URIs — no external subresources.",
+    "retrieval_verified": { "https://trustless-ai.eth.limo/semantic-abi/": "200 + Trustless Pioneer marker" }
+  },
+  "verification": { "contenthash_read_from": "resolver 0xF29100983E058B709F3D539b0c765937B804AC15, trustless-ai.eth", "decoded_cid": "bafybeic4pbxe7u372dfibsb7yw5ouckuddtyec6rges62ebpywymcbfuwm", "note": "Owner set the contenthash; eth.limo serves this CID. setContenthash tx hash not yet recorded — tx below empty pending it.", "block": null },
+  "tx": "",
+  "pinned_at": "2026-09-06T15:24:46Z",
+  "confirmations": [],
+  "discipline_note": "Unilateral pin (owner set contenthash; one rebuild reproduced the CID). confirmations empty pending a second node reproducing tree_sha256 from trustless-ai-landing@d76f694, and tx pending the setContenthash hash. Follow-up: once the fleet-wide anchor batch (POST /pq/anchor-epoch/anchor) sweeps agent #1 in, the panel line 'anchoring pending' becomes 'anchored · Base Sepolia' in a subsequent republish."
+}
