@@ -37,11 +37,11 @@
   "verification": {
     "contenthash_read_from": "resolver 0xF29100983E058B709F3D539b0c765937B804AC15, trustless-ai.eth",
     "decoded_cid": "bafybeifd72ejmxbooja3pfvxeewf5tqbo3irwkom2vbtrhqccjw2esinfu",
-    "note": "Read back via ENS after the owner (0xFf9a…ca14) set the contenthash; it decodes to this CID. The setContenthash tx hash is not yet recorded here — `tx` below is empty pending it.",
-    "block": null
+    "note": "Read back via ENS after the owner (0xFf9a…ca14) set the contenthash; it decodes to this CID. setContenthash tx 0xa771d8a0a5df3d5526a201ada530cd392a25bd50591e2572e891e2ef591f3bfa confirmed on mainnet: receipt status 0x1, to the resolver 0xF29100983E058B709F3D539b0c765937B804AC15, from 0xFf9a176577Fb42b6bc9c19fd05a241e8fCd0ca14, block 25918650.",
+    "block": 25918650
   },
-  "tx": "",
+  "tx": "0xa771d8a0a5df3d5526a201ada530cd392a25bd50591e2572e891e2ef591f3bfa",
   "pinned_at": "2026-09-06T13:50:22Z",
   "confirmations": [],
-  "discipline_note": "HONEST DEVIATION: this was a UNILATERAL pin. The README rule is 'no pin until two independent parties each rebuild the stated commit and reproduce the same CID/tree hash', and the recommended order is record-then-transaction. Neither held here: the owner set the contenthash first (under ETHOnline time pressure), and only one party (this node) has rebuilt and reproduced the CID so far. `confirmations` is empty on purpose rather than backfilled. A second node reproducing `tree_sha256`/`cid` from trustless-ai-landing@f5dbcb1 should append its signed confirmation, and `tx` should be filled with the setContenthash transaction hash, to bring this record up to the standard the rest of the file assumes."
+  "discipline_note": "HONEST DEVIATION: this was a UNILATERAL pin. The README rule is 'no pin until two independent parties each rebuild the stated commit and reproduce the same CID/tree hash', and the recommended order is record-then-transaction. Neither held here: the owner set the contenthash first (under ETHOnline time pressure), and only one party (this node) has rebuilt and reproduced the CID so far. The tx is now recorded and confirmed (block 25918650); `confirmations` remains empty on purpose rather than backfilled. A second node reproducing `tree_sha256`/`cid` from trustless-ai-landing@f5dbcb1 should append its signed confirmation to bring this record fully to standard."
 }
