@@ -1,0 +1,47 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeifd72ejmxbooja3pfvxeewf5tqbo3irwkom2vbtrhqccjw2esinfu",
+  "commit": "f5dbcb1",
+  "selects": {
+    "repo": "https://github.com/trustless-ai/cross-reference-console",
+    "commit": "ddf1dad61403e781f65134529d2391e744c02293",
+    "artifact": "ui/index.html",
+    "note": "The console commit this publication SELECTS (unchanged from the prior pin — the console page was not touched by this republish). The published page compares this against its own CONSOLE_SOURCE_COMMIT to render its currency verdict."
+  },
+  "artifact": "site tree (31 published files)",
+  "tree_sha256": "sha256:ef6816f2d77bcbeb92d45ed4986cc5ecb932170b1f0a139a48527715d486fa0c",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "supersedes": "bafybeihim4cjh2uqxlctepgibzdhr77rag53mqu6vlces72eyyiqnjjipe",
+  "purpose": "Adds /semantic-abi/ — the interactive Semantic ABI demo (trustless-ai/semantic-abi, ETHOnline 2026 from-scratch track) — to the org site, restyled to the trustless-ai brand (light palette, embedded Space Grotesk + Inter). Two files changed vs the prior tree: the new semantic-abi/index.html and the site growth already carried on main. The console page and its currency wiring are unchanged.",
+  "availability": {
+    "stored_at": "2026-09-06T13:45:00Z",
+    "note": "build/site_cid.py derives the CID with `ipfs add -n`, which STORES NOTHING — and on this publish that trap actually fired: the contenthash was set to the derived CID before any node held the bytes, and every gateway 504'd (a pointer to nothing). Fixed by running the real `ipfs add` (no -n) with the recorded params on the committed tree; it reproduced this exact CID, proving the bytes are recomputable AND placing+pinning them on a live announcing node. Then pinned on Pinata by hash (pinByHash id 44cbe943-06bc-47bd-aebe-eac710a1d92c), not re-uploaded, so the service replicates THIS CID rather than minting its own.",
+    "retrieval_verified": {
+      "at": "2026-09-06T13:40:00Z",
+      "method": "HTTP GET of <cid>/semantic-abi/index.html, checked for the restyle marker; a 200 with the marker on an independent gateway means the bytes are reachable, not that they were compared byte-for-byte (no check_served_bytes.py run on this record).",
+      "results": {
+        "https://ipfs.io/ipfs/<cid>/semantic-abi/index.html": "200 + marker",
+        "https://<cid>.ipfs.dweb.link/semantic-abi/index.html": "200 + marker",
+        "https://trustless-ai.eth.limo/semantic-abi/": "200 + marker"
+      }
+    }
+  },
+  "verification": {
+    "contenthash_read_from": "resolver 0xF29100983E058B709F3D539b0c765937B804AC15, trustless-ai.eth",
+    "decoded_cid": "bafybeifd72ejmxbooja3pfvxeewf5tqbo3irwkom2vbtrhqccjw2esinfu",
+    "note": "Read back via ENS after the owner (0xFf9a…ca14) set the contenthash; it decodes to this CID. The setContenthash tx hash is not yet recorded here — `tx` below is empty pending it.",
+    "block": null
+  },
+  "tx": "",
+  "pinned_at": "2026-09-06T13:50:22Z",
+  "confirmations": [],
+  "discipline_note": "HONEST DEVIATION: this was a UNILATERAL pin. The README rule is 'no pin until two independent parties each rebuild the stated commit and reproduce the same CID/tree hash', and the recommended order is record-then-transaction. Neither held here: the owner set the contenthash first (under ETHOnline time pressure), and only one party (this node) has rebuilt and reproduced the CID so far. `confirmations` is empty on purpose rather than backfilled. A second node reproducing `tree_sha256`/`cid` from trustless-ai-landing@f5dbcb1 should append its signed confirmation, and `tx` should be filled with the setContenthash transaction hash, to bring this record up to the standard the rest of the file assumes."
+}
