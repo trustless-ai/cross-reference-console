@@ -1,0 +1,19 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeiabezl56aampeyk5yghyaqjwlq2eht2euve45pdaramidde7f6urq",
+  "commit": "4058d94",
+  "selects": { "repo": "https://github.com/trustless-ai/cross-reference-console", "commit": "ddf1dad61403e781f65134529d2391e744c02293", "artifact": "ui/index.html", "note": "Console page + currency wiring unchanged; only /semantic-abi/ changed." },
+  "artifact": "site tree (31 published files)",
+  "tree_sha256": "sha256:06768480373c90e1c54c61a4d4744a9c5223d11be81859d45896da465f2e6fa0",
+  "cid_params": { "cid_version": 1, "wrap_with_directory": false, "raw_leaves": true, "chunker": "size-262144", "hash": "sha2-256" },
+  "supersedes": "bafybeigevhslhrknlq6ovigk5vq2qatvxul24quk4k4ljmlqevmkaxrlma",
+  "purpose": "Fix the on-page 'type errors' (root cause: MOJIBAKE, not font tofu). The IPFS gateway serves /semantic-abi/ as text/html with NO charset and x-content-type-options: nosniff, so browsers fell back to Latin-1 and mangled every UTF-8 byte. The file was always valid UTF-8; fix is <meta charset=\"utf-8\"> as the first element (overrides the missing HTTP header). Also added a viewport meta (mobile) and flipped the trustless-ai robot mark (scaleX(-1)) to face the title.",
+  "availability": { "note": "Real ipfs add (recorded params) on trustless-ai-landing@4058d94 reproduced this CID; held+pinned on a live announcing node, then Pinata pinByHash f9ab2669-e898-4b15-bba6-2c05ab688eec.", "retrieval_verified": { "https://trustless-ai.eth.limo/semantic-abi/": "200; <meta charset=utf-8> present in served bytes (mojibake fix live)" } },
+  "verification": { "contenthash_read_from": "resolver 0xF29100983E058B709F3D539b0c765937B804AC15, trustless-ai.eth", "decoded_cid": "bafybeiabezl56aampeyk5yghyaqjwlq2eht2euve45pdaramidde7f6urq", "note": "setContenthash tx 0x05e1cb2781d21049d810e62adb7f6c7cc8ec8841439771341bcbae682a27d65d confirmed on mainnet: receipt status 0x1, to the resolver, from 0xFf9a176577Fb42b6bc9c19fd05a241e8fCd0ca14, block 25919752.", "block": 25919752 },
+  "tx": "0x05e1cb2781d21049d810e62adb7f6c7cc8ec8841439771341bcbae682a27d65d",
+  "pinned_at": "2026-09-06T17:20:31Z",
+  "confirmations": [],
+  "discipline_note": "Unilateral pin (owner set contenthash; one rebuild reproduced the CID). tx recorded + confirmed (block 25919752); confirmations empty pending a second node reproducing tree_sha256 from trustless-ai-landing@4058d94."
+}
