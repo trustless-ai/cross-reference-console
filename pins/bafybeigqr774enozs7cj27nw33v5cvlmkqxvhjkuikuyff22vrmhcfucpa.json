@@ -1,0 +1,31 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeigqr774enozs7cj27nw33v5cvlmkqxvhjkuikuyff22vrmhcfucpa",
+  "commit": "2a45f83af0b4fe91359537d257b9f87d79323813",
+  "selects": {
+    "repo": "https://github.com/trustless-ai/cross-reference-console",
+    "commit": "ddf1dad61403e781f65134529d2391e744c02293",
+    "artifact": "ui/index.html",
+    "note": "Console unchanged this repin (only semantic-abi/index.html moved: ETHGlobal event icon + 'Continuity track' label). selects.commit unchanged, so the published page's currency self-check stays CURRENT."
+  },
+  "artifact": "site tree (31 published files)",
+  "tree_sha256": "sha256:6237e50a0f7206db5fae8aa49ef61153041914eca9e33924bb011a7edda7a64e",
+  "cid_params": { "cid_version": 1, "wrap_with_directory": false, "raw_leaves": true, "chunker": "size-262144", "hash": "sha2-256" },
+  "supersedes": "bafybeihntuoplatk7y2canqxb2ooub6wrg6tacqtbq4dhzxfnci4g4cm6e",
+  "purpose": "Polish repin of the Semantic ABI demo: adds the ETHGlobal atom mark to the event label and corrects the track label to 'Continuity track' (from 'from-scratch') to match the locked ETHOnline track. Only semantic-abi/index.html changed.",
+  "tx": "0xde66d3b115a2309070c08e9a7f7cb908f108f6bc59126c4fe3689694f1f2c4c8",
+  "pinned_at": "2026-09-07T21:28:36Z",
+  "verification": {
+    "contenthash_read_from": "resolver 0xf29100983e058b709f3d539b0c765937b804ac15, contenthash(namehash('trustless-ai.eth'))",
+    "decoded_cid": "bafybeigqr774enozs7cj27nw33v5cvlmkqxvhjkuikuyff22vrmhcfucpa",
+    "receipt": "status 0x1, block 25928153, to resolver, from 0xff9a176577fb42b6bc9c19fd05a241e8fcd0ca14 (owner)",
+    "calldata_verified": "setContenthash(namehash('trustless-ai.eth'), ipfs://<this CID>) — selector 0x304e6ade, node + contenthash digest both matched; LIVE resolver contenthash == calldata; eth.limo served x-ipfs-roots == this CID",
+    "block": 25928153
+  },
+  "availability": {
+    "note": "site_cid.py --store: derived==stored, held + pinned on the local ipfs node; also Pinata pinByHash (request 197aed27-009c-4462-b2d2-c976d532421b)."
+  },
+  "confirmations": []
+}
