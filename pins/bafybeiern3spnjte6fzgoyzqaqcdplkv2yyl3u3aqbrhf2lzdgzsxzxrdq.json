@@ -1,0 +1,19 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeiern3spnjte6fzgoyzqaqcdplkv2yyl3u3aqbrhf2lzdgzsxzxrdq",
+  "commit": "7ba41b4",
+  "selects": { "repo": "https://github.com/trustless-ai/cross-reference-console", "commit": "ddf1dad61403e781f65134529d2391e744c02293", "artifact": "ui/index.html", "note": "Console page + currency wiring unchanged; only /semantic-abi/ changed." },
+  "artifact": "site tree (31 published files)",
+  "tree_sha256": "sha256:07687fcdd6ed7704733331428579a49ddd595deecd1c90e7f6e79e71b026bed4",
+  "cid_params": { "cid_version": 1, "wrap_with_directory": false, "raw_leaves": true, "chunker": "size-262144", "hash": "sha2-256" },
+  "supersedes": "bafybeihducjt7sjxwantuar6eohnpq4e2gb7klsachc5d7luypylqsdrze",
+  "purpose": "Layered hero copy on the Semantic ABI demo: a plain, value-forward investor lede on top (problem in money terms — software treating weak proof as strong = the root of 'it was verified' failures; product — flags the mismatch as a signal of a possible exploit before it ships; analogy — type-checking, but for trust), with the precise technical thesis kept directly beneath as a muted 'for builders' line. Honest framing: 'signals a possible exploit', NOT 'prevents hacks'. Content/model unchanged from the v0-aligned pin; presentation only.",
+  "availability": { "note": "Real ipfs add on trustless-ai-landing@7ba41b4 reproduced this CID; held+pinned on a live announcing node, then Pinata pinByHash 549f529f-4447-430d-8962-0b4cc1073b0d." },
+  "verification": { "contenthash_read_from": "resolver 0xF29100983E058B709F3D539b0c765937B804AC15, trustless-ai.eth", "decoded_cid": "bafybeiern3spnjte6fzgoyzqaqcdplkv2yyl3u3aqbrhf2lzdgzsxzxrdq", "note": "setContenthash tx 0x661ebf23b7fa75b611a384ee256123e51efcbbecff6c8ac59f14fd94a8fa055f confirmed on mainnet: receipt status 0x1, to the resolver, from 0xFf9a176577Fb42b6bc9c19fd05a241e8fCd0ca14, block 25924738.", "block": 25924738 },
+  "tx": "0x661ebf23b7fa75b611a384ee256123e51efcbbecff6c8ac59f14fd94a8fa055f",
+  "pinned_at": "2026-09-07T10:01:11Z",
+  "confirmations": [],
+  "discipline_note": "Unilateral pin (owner set contenthash; one rebuild reproduced the CID). tx recorded + confirmed (block 25924738); confirmations empty pending a second node reproducing tree_sha256 from trustless-ai-landing@7ba41b4."
+}
