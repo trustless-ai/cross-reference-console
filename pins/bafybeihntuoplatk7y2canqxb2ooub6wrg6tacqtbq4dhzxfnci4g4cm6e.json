@@ -1,0 +1,40 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeihntuoplatk7y2canqxb2ooub6wrg6tacqtbq4dhzxfnci4g4cm6e",
+  "commit": "46b0bf719fb75f6e764a146fc38fcbcd0515f980",
+  "selects": {
+    "repo": "https://github.com/trustless-ai/cross-reference-console",
+    "commit": "ddf1dad61403e781f65134529d2391e744c02293",
+    "artifact": "ui/index.html",
+    "note": "The console commit this publication SELECTS, distinct from `commit` above (the landing repo commit published). The console was NOT changed in this repin — only semantic-abi/index.html moved — so `selects.commit` is unchanged from the previous site pin, and the published page's currency self-check (resolve contenthash → fetch this record → compare selects.commit against its inlined CONSOLE_SOURCE_COMMIT) still resolves CURRENT."
+  },
+  "artifact": "site tree (31 published files)",
+  "tree_sha256": "sha256:c968ebbe9a0c15eea5f9342c805d1495261a56f80aa9364f97c50ba3400e44f9",
+  "cid_params": {
+    "cid_version": 1,
+    "wrap_with_directory": false,
+    "raw_leaves": true,
+    "chunker": "size-262144",
+    "hash": "sha2-256"
+  },
+  "supersedes": "bafybeiao35wewrznvqobhftblfpzedn6fd7lukgmtz472ygs6ol4f6npza",
+  "purpose": "Publishes the sequenced-UI migration of the Semantic ABI demo (trustless-ai-landing PR #25): the functional page reorganised into a guided reveal (agent card + Drive CTA → blue runner slides in → semantic linker), with every functional part preserved and reachable (relation matrix, three-axis readout, click-cell recompute, pre/post toggle, tampered-twin with a before→after visual, PQ verify, linker + presets). The Subject/receipt links to the real Base Sepolia binding anchor; both system columns link to real adapter code + vectors in trustless-ai/semantic-abi. Only semantic-abi/index.html changed vs the previous site pin.",
+  "ordering_note": "This record is filed AFTER the contenthash transaction (tx below already confirmed), unlike the console-currency repin of 15 August which filed first. Consequence: from the moment the transaction confirmed until this record merged to cross-reference-console main, the newly-published console could resolve its own CID, find no record here, and render COULD_NOT_CHECK / lock_unreadable — honest (never STALE), transient, and resolved on merge. The console source did not change this repin, so no currency verdict flips once the record is present.",
+  "tx": "0x15f4779c9174fe0801f08341b6607d2e6604088f8010fdbe760db97d2674c2cb",
+  "pinned_at": "2026-09-07T16:01:51Z",
+  "verification": {
+    "contenthash_read_from": "resolver 0xf29100983e058b709f3d539b0c765937b804ac15, contenthash(namehash('trustless-ai.eth'))",
+    "decoded_cid": "bafybeihntuoplatk7y2canqxb2ooub6wrg6tacqtbq4dhzxfnci4g4cm6e",
+    "receipt": "status 0x1, block 25926523, to the resolver 0xf291…AC15, from 0xff9a176577fb42b6bc9c19fd05a241e8fcd0ca14 (owner)",
+    "served": "trustless-ai.eth.limo/semantic-abi/ returned x-ipfs-roots == bafybeihntuoplatk7y2canqxb2ooub6wrg6tacqtbq4dhzxfnci4g4cm6e on first fetch after confirmation; the served page carries the sequenced UI (#leftcol, Drive CTA, adapter+vectors links).",
+    "block": 25926523
+  },
+  "availability": {
+    "stored_at": "2026-09-07T16:00:00Z",
+    "note": "build/site_cid.py --store re-ran the derivation WITHOUT -n and refused to report success unless the stored CID equalled the derived one; both produced this CID and the bytes are held + pinned on the local ipfs node (not a hash-only pointer). Also pinned to Pinata by hash (pinByHash id 7932e7b5-2ed5-4dab-b758-e7026b904f56) rather than re-uploaded, so the service cannot re-chunk to a different CID under its own defaults.",
+    "pinata_request_id": "7932e7b5-2ed5-4dab-b758-e7026b904f56"
+  },
+  "confirmations": []
+}
