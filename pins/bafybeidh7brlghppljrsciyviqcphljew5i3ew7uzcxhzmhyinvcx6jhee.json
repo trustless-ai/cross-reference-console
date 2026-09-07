@@ -1,0 +1,18 @@
+{
+  "schema": "crc.pin-record.v0",
+  "artifact_kind": "site-tree",
+  "repo": "https://github.com/trustless-ai/trustless-ai-landing",
+  "cid": "bafybeidh7brlghppljrsciyviqcphljew5i3ew7uzcxhzmhyinvcx6jhee",
+  "commit": "f70406dafb90c32691a00f0e55c1985f9a2ae554",
+  "selects": { "repo": "https://github.com/trustless-ai/cross-reference-console", "commit": "ddf1dad61403e781f65134529d2391e744c02293", "artifact": "ui/index.html", "note": "Console unchanged (only semantic-abi/index.html moved: 1inch slippage-vs-minimum linker preset). Currency self-check stays CURRENT." },
+  "artifact": "site tree (31 published files)",
+  "tree_sha256": "sha256:318f4d6c0a658b1ca7bb979df4e7cc00350be52c7fad3f694e916c6ce78539b4",
+  "cid_params": { "cid_version": 1, "wrap_with_directory": false, "raw_leaves": true, "chunker": "size-262144", "hash": "sha2-256" },
+  "supersedes": "bafybeigqr774enozs7cj27nw33v5cvlmkqxvhjkuikuyff22vrmhcfucpa",
+  "purpose": "Adds a semantic-linker preset for the 1inch relative-slippage-vs-absolute-minimum over-claim (1inch mark, icon-only label). Non-prize demo illustration; example numbers, real recompute in trustless-ai/semantic-abi adapters/oneinch. The Graph remains the sole partner prize.",
+  "tx": "0x42a9b5c42eebced58d54ae48d5dcd47b72ed24dcb9254a583aad683f69612d26",
+  "pinned_at": "2026-09-07T22:29:05Z",
+  "verification": { "contenthash_read_from": "resolver 0xf29100983e058b709f3d539b0c765937b804ac15", "decoded_cid": "bafybeidh7brlghppljrsciyviqcphljew5i3ew7uzcxhzmhyinvcx6jhee", "receipt": "status 0x1, block 25928456, to resolver, from 0xff9a176577fb42b6bc9c19fd05a241e8fcd0ca14 (owner)", "calldata_verified": "setContenthash(namehash('trustless-ai.eth'), ipfs://<this CID>); node + digest matched; LIVE resolver == calldata; eth.limo served x-ipfs-roots == this CID", "block": 25928456 },
+  "availability": { "note": "site_cid.py --store derived==stored, held+pinned locally; Pinata pinByHash 14d6fc02-d0ec-48f6-8ce4-8ec7c04cd921." },
+  "confirmations": []
+}
