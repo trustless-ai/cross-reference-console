@@ -1,0 +1,22 @@
+{
+  "schema": "crc.claimfile.v0",
+  "claim_id": "sha256:2cfe798b163d920666e49794358e50abc44b6e2f27d066502b8da65e13ee004d",
+  "claim_preimage": {
+    "schema": "crc.claim.v0",
+    "profile_id": "invinoveritas.review",
+    "policy_version": "invinoveritas.review.v22",
+    "artifact_hash": "e1ce87c0feb5518e95002a741b7390126946157e3c33c5aeaf986705868ccfea",
+    "artifact_type": "review_verdict",
+    "claim_body": "reject",
+    "source_class": "agent_reported",
+    "verifier_profile": "attestation/invinoveritas",
+    "as_of": "2026-10-14T01:44:54Z",
+    "claimant": 54848
+  },
+  "lift": {
+    "rule": "lift.v0",
+    "source_id": "invinoveritas-ledger",
+    "entry": 273
+  },
+  "source_url": "https://api.babyblueviper.com/ledger/273"
+}
